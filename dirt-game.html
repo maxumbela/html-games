@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>301 Darts - Multiplayer & WebRTC Online</title>
+  <!-- PeerJS for WebRTC Online Multiplayer -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 450px;
+      height: 100%;
+      max-height: 850px;
+      background: repeating-linear-gradient(
+        90deg,
+        #e28761,
+        #e28761 28px,
+        #d17651 28px,
+        #d17651 56px
+      );
+      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Floor at bottom */
+    #game-container::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 22%;
+      background: linear-gradient(to bottom, #91512f, #633318);
+      border-top: 5px solid #4a240f;
+      z-index: 1;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    }
+
+    /* Top HUD / Score Board */
+    .hud-header {
+      position: absolute;
+      top: 15px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .score-badge {
+      background: #28212e;
+      border: 3px solid #3f3647;
+      border-radius: 20px;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.2rem;
+    }
+
+    .player-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 70px;
+    }
+
+    .player-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.8;
+      margin-bottom: 2px;
+    }
+
+    .score-val {
+      font-size: 1.4rem;
+      font-weight: 900;
+    }
+
+    .p1 { color: #ff5252; }
+    .p2 { color: #40c4ff; }
+    .vs { color: #aaa; font-size: 0.8rem; font-weight: bold; }
+
+    .active-player {
+      transform: scale(1.1);
+      transition: transform 0.2s;
+    }
+    .active-player .score-val {
+      text-shadow: 0 0 10px currentColor;
+    }
+
+    .top-btn {
+      position: absolute;
+      top: 15px;
+      background: #ffffff;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-weight: 900;
+      color: #3f3647;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+    .exit-btn { right: 15px; }
+
+    .help-btn {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #7a6354;
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: bold;
+      border: 3px solid #574438;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    }
+
+    .turn-indicator-box {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .turn-text {
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    .dart-icons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dart-icon {
+      width: 12px;
+      height: 24px;
+      background: #ff5252;
+      border-radius: 3px;
+      clip-path: polygon(50% 0%, 100% 40%, 70% 100%, 30% 100%, 0% 40%);
+      opacity: 0.2;
+      transition: opacity 0.2s;
+    }
+    .dart-icon.active { opacity: 1; }
+
+    /* Modal Overlay & Card Style */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-card {
+      background: #eaf4f8;
+      border-radius: 28px;
+      width: 100%;
+      max-width: 360px;
+      padding: 24px 20px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      border: 4px solid #ffffff;
+      animation: popIn 0.25s ease-out;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .modal-title {
+      color: #2c3e50;
+      font-size: 1.6rem;
+      font-weight: 900;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .modal-body {
+      color: #34495e;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .input-box {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #b0bec5;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-align: center;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      outline: none;
+    }
+    .input-box:focus {
+      border-color: #00bcd4;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn {
+      background: #5c3a6b;
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #3d2547;
+      transition: transform 0.1s;
+      flex: 1;
+    }
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #3d2547;
+    }
+    .btn-green { background: #2e7d32; box-shadow: 0 4px 0 #1b5e20; }
+    .btn-blue { background: #0288d1; box-shadow: 0 4px 0 #01579b; }
+
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      background: #bdc3c7;
+      border-radius: 50%;
+    }
+    .dot.active { background: #00bcd4; }
+    .hidden { display: none !important; }
+
+    .code-display {
+      background: #263238;
+      color: #00e676;
+      font-family: monospace;
+      font-size: 1.6rem;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 12px;
+      letter-spacing: 4px;
+      margin: 8px 0;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- Top HUD -->
+    <div class="hud-header">
+      <div class="score-badge">
+        <div class="player-box p1 active-player" id="p1-box">
+          <span class="player-label" id="p1-label">P1</span>
+          <span class="score-val" id="p1-score-display">301</span>
+        </div>
+        <span class="vs">VS</span>
+        <div class="player-box p2" id="p2-box">
+          <span class="player-label" id="p2-label">P2</span>
+          <span class="score-val" id="p2-score-display">301</span>
+        </div>
+      </div>
+    </div>
+    <button class="top-btn exit-btn" id="btn-exit">EXIT</button>
+    
+    <!-- Game Canvas -->
+    <canvas id="dartCanvas"></canvas>
+
+    <!-- Bottom Controls/Info -->
+    <div class="help-btn" id="btn-help">?</div>
+    <div class="turn-indicator-box">
+      <div class="turn-text" id="turn-status">P1 TURN</div>
+      <div class="dart-icons" id="dart-indicators">
+        <div class="dart-icon active"></div>
+        <div class="dart-icon active"></div>
+        <div class="dart-icon active"></div>
+      </div>
+    </div>
+
+    <!-- Main Menu Modal -->
+    <div class="modal-overlay" id="menu-modal">
+      <div class="modal-card">
+        <div class="modal-title">301 DARTS</div>
+        <div class="modal-body">
+          Select Game Mode
+        </div>
+        <div class="btn-group" style="flex-direction: column; gap: 10px;">
+          <button class="btn" id="btn-mode-vs">1 PLAYER (VS AI)</button>
+          <button class="btn btn-green" id="btn-mode-local">2 PLAYER LOCAL (PASS & PLAY)</button>
+          <button class="btn btn-blue" id="btn-mode-webrtc">2 PLAYER ONLINE (WebRTC)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WebRTC Online Lobby Modal -->
+    <div class="modal-overlay hidden" id="webrtc-modal">
+      <div class="modal-card">
+        <div class="modal-title">ONLINE MULTIPLAYER</div>
+        <div class="modal-body" id="webrtc-status">
+          Host a room or enter code to join friend!
+        </div>
+        
+        <div id="webrtc-host-section" class="hidden">
+          <div>Your Room Code:</div>
+          <div class="code-display" id="my-peer-code">----</div>
+          <button class="btn btn-green" id="btn-copy-code" style="margin-bottom: 8px; padding: 8px 16px; font-size: 0.9rem;">📋 COPY CODE</button>
+          <p style="font-size:0.8rem; color:#666;">Share this code with your friend</p>
+        </div>
+
+        <div id="webrtc-join-section">
+          <input type="text" id="join-code-input" class="input-box" placeholder="ENTER ROOM CODE" maxlength="6">
+          <button class="btn btn-green" id="btn-connect-peer">JOIN ROOM</button>
+        </div>
+
+        <div style="margin-top: 15px;">
+          <button class="btn btn-blue" id="btn-host-room">CREATE ROOM</button>
+        </div>
+        <div style="margin-top: 10px;">
+          <button class="btn" id="btn-back-menu" style="background:#78909c; box-shadow:0 4px 0 #455a64;">BACK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div class="modal-overlay hidden" id="tutorial-modal">
+      <div class="modal-card">
+        <div class="modal-title">HOW TO PLAY</div>
+        <div class="modal-body" id="tutorial-text">
+          Your score starts at 301. Each dart subtracts points. First player to get their score down to zero wins!
+        </div>
+        <div class="dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn" id="tut-prev" style="flex:0 0 45px;">❮</button>
+          <button class="btn" id="tut-ok">OK</button>
+          <button class="btn" id="tut-next" style="flex:0 0 45px;">❯</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="modal-overlay hidden" id="gameover-modal">
+      <div class="modal-card">
+        <div class="modal-title" id="winner-title">🎉 CONGRATULATIONS!</div>
+        <div class="modal-body" id="winner-body">
+          You Win!
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-green" id="btn-restart">PLAY AGAIN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Canvas & Core Setup ---
+    const canvas = document.getElementById('dartCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('game-container');
+
+    function resizeCanvas() {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // --- Web Audio API Sound Synthesizer ---
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playThrowSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(70, audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    function playHitSound(isSpecial = false) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+
+      if (isSpecial) {
+        setTimeout(() => {
+          const notes = [523.25, 659.25, 783.99];
+          notes.forEach((freq, idx) => {
+            const chimeOsc = audioCtx.createOscillator();
+            const chimeGain = audioCtx.createGain();
+            chimeOsc.type = 'sine';
+            chimeOsc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.06);
+            chimeGain.gain.setValueAtTime(0.25, audioCtx.currentTime + idx * 0.06);
+            chimeGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.06 + 0.3);
+            chimeOsc.connect(chimeGain);
+            chimeGain.connect(audioCtx.destination);
+            chimeOsc.start(audioCtx.currentTime + idx * 0.06);
+            chimeOsc.stop(audioCtx.currentTime + idx * 0.06 + 0.3);
+          });
+        }, 50);
+      }
+    }
+
+    function playBustSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(70, audioCtx.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.25);
+    }
+
+    // --- Dartboard Definition ---
+    const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+    
+    // --- Game State Vars ---
+    let gameMode = 'VS'; // 'VS', 'LOCAL', 'WEBRTC'
+    let scores = [301, 301];
+    let dartsRemaining = [3, 3];
+    let currentPlayer = 0; // 0: P1, 1: P2
+    let myPlayerIdx = 0; // Host = 0, Guest = 1
+
+    // States: 'IDLE', 'AIM_H', 'AIM_V', 'THROWING', 'AI_THINKING', 'GAME_OVER'
+    let state = 'IDLE';
+
+    function getBoardCenter() {
+      return { x: canvas.width / 2, y: canvas.height * 0.38 };
+    }
+    function getBoardRadius() {
+      return canvas.width * 0.35;
+    }
+
+    // Gauges / Aiming Variables
+    let gaugeH = 0.5;
+    let gaugeHDir = 1;
+    let gaugeV = 0.5;
+    let gaugeVDir = 1;
+    const GAUGE_SPEED = 1.3;
+
+    let lockedH = 0.5;
+    let lockedV = 0.5;
+
+    // Throw Animation
+    let dartAnim = {
+      active: false,
+      startX: 0, startY: 0,
+      targetX: 0, targetY: 0,
+      currentX: 0, currentY: 0,
+      progress: 0
+    };
+
+    let stuckDarts = []; // { x, y, color, owner }
+    let particles = [];
+    let scorePopups = [];
+
+    // --- WebRTC Online Multiplayer Setup (PeerJS) ---
+    let peer = null;
+    let conn = null;
+
+    function generateRoomCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    function initPeerJS(customId = null, callback = null) {
+      if (peer) peer.destroy();
+      peer = customId ? new Peer(customId) : new Peer();
+
+      peer.on('open', (id) => {
+        if (callback) callback(id);
+      });
+
+      peer.on('connection', (connection) => {
+        conn = connection;
+        setupWebRTCConnection();
+      });
+
+      peer.on('error', (err) => {
+        alert('WebRTC Error: ' + err.type);
+        document.getElementById('webrtc-status').innerText = 'Connection error. Try again.';
+      });
+    }
+
+    function setupWebRTCConnection() {
+      conn.on('open', () => {
+        document.getElementById('webrtc-modal').classList.add('hidden');
+        startGame('WEBRTC');
+      });
+
+      conn.on('data', (data) => {
+        handleOnlineData(data);
+      });
+
+      conn.on('close', () => {
+        alert('Opponent disconnected');
+        showMenu();
+      });
+    }
+
+    function handleOnlineData(data) {
+      if (data.type === 'THROW') {
+        executeThrow(data.h, data.v, true);
+      } else if (data.type === 'RESTART') {
+        startGame('WEBRTC');
+      }
+    }
+
+    function sendOnlineData(data) {
+      if (conn && conn.open) {
+        conn.send(data);
+      }
+    }
+
+    // --- Tutorial Logic ---
+    const tutorialPages = [
+      "Your score starts at 301. Each dart subtracts points. First player to get their score down to zero wins!",
+      "Players alternate turns ONE BY ONE after each throw!",
+      "Previous player's darts automatically vanish when the opponent throws to keep the board neat and clean!",
+      "Target score highlights on the board in pulsing yellow when you get close to finishing (e.g. Score 4 highlights Double 2 and Single 4)!",
+      "Outer ring DOUBLES points, inner ring TRIPLES points!"
+    ];
+    let tutPageIndex = 0;
+
+    function updateTutorialUI() {
+      document.getElementById('tutorial-text').innerText = tutorialPages[tutPageIndex];
+      const dots = document.querySelectorAll('.dots .dot');
+      dots.forEach((dot, idx) => {
+        if (idx === tutPageIndex) dot.classList.add('active');
+        else dot.classList.remove('active');
+      });
+    }
+
+    // --- DOM Event Listeners ---
+    document.getElementById('btn-mode-vs').onclick = () => startGame('VS');
+    document.getElementById('btn-mode-local').onclick = () => startGame('LOCAL');
+    document.getElementById('btn-mode-webrtc').onclick = () => {
+      document.getElementById('menu-modal').classList.add('hidden');
+      document.getElementById('webrtc-modal').classList.remove('hidden');
+    };
+
+    document.getElementById('btn-host-room').onclick = () => {
+      initAudio();
+      const code = generateRoomCode();
+      document.getElementById('webrtc-status').innerText = 'Waiting for friend to join...';
+      document.getElementById('webrtc-host-section').classList.remove('hidden');
+      document.getElementById('webrtc-join-section').classList.add('hidden');
+      document.getElementById('my-peer-code').innerText = code;
+      myPlayerIdx = 0;
+      initPeerJS('dart301-' + code);
+    };
+
+    document.getElementById('btn-copy-code').onclick = () => {
+      const code = document.getElementById('my-peer-code').innerText;
+      if (code && code !== '----') {
+        navigator.clipboard.writeText(code).then(() => {
+          const copyBtn = document.getElementById('btn-copy-code');
+          copyBtn.innerText = '✅ COPIED!';
+          setTimeout(() => {
+            copyBtn.innerText = '📋 COPY CODE';
+          }, 2000);
+        }).catch(() => {
+          const input = document.createElement('input');
+          input.value = code;
+          document.body.appendChild(input);
+          input.select();
+          document.execCommand('copy');
+          document.body.removeChild(input);
+          const copyBtn = document.getElementById('btn-copy-code');
+          copyBtn.innerText = '✅ COPIED!';
+          setTimeout(() => {
+            copyBtn.innerText = '📋 COPY CODE';
+          }, 2000);
+        });
+      }
+    };
+
+    document.getElementById('btn-connect-peer').onclick = () => {
+      initAudio();
+      const inputCode = document.getElementById('join-code-input').value.trim();
+      if (inputCode.length < 5) {
+        alert('Please enter a valid 6-digit room code!');
+        return;
+      }
+      document.getElementById('webrtc-status').innerText = 'Connecting to Host...';
+      myPlayerIdx = 1;
+      initPeerJS(null, () => {
+        conn = peer.connect('dart301-' + inputCode);
+        setupWebRTCConnection();
+      });
+    };
+
+    document.getElementById('btn-back-menu').onclick = () => {
+      document.getElementById('webrtc-modal').classList.add('hidden');
+      showMenu();
+    };
+
+    document.getElementById('btn-exit').onclick = () => showMenu();
+    document.getElementById('btn-help').onclick = () => {
+      tutPageIndex = 0;
+      updateTutorialUI();
+      document.getElementById('tutorial-modal').classList.remove('hidden');
+    };
+    document.getElementById('tut-ok').onclick = () => {
+      document.getElementById('tutorial-modal').classList.add('hidden');
+    };
+    document.getElementById('tut-next').onclick = () => {
+      tutPageIndex = (tutPageIndex + 1) % tutorialPages.length;
+      updateTutorialUI();
+    };
+    document.getElementById('tut-prev').onclick = () => {
+      tutPageIndex = (tutPageIndex - 1 + tutorialPages.length) % tutorialPages.length;
+      updateTutorialUI();
+    };
+    document.getElementById('btn-restart').onclick = () => {
+      document.getElementById('gameover-modal').classList.add('hidden');
+      if (gameMode === 'WEBRTC') {
+        sendOnlineData({ type: 'RESTART' });
+      }
+      startGame(gameMode);
+    };
+
+    canvas.addEventListener('pointerdown', handleTap);
+
+    function handleTap(e) {
+      initAudio();
+
+      if (gameMode === 'VS' && currentPlayer === 1) return;
+      if (gameMode === 'WEBRTC' && currentPlayer !== myPlayerIdx) return;
+
+      if (state === 'AIM_H') {
+        lockedH = gaugeH;
+        state = 'AIM_V';
+      } else if (state === 'AIM_V') {
+        lockedV = gaugeV;
+        if (gameMode === 'WEBRTC') {
+          sendOnlineData({ type: 'THROW', h: lockedH, v: lockedV });
+        }
+        executeThrow(lockedH, lockedV);
+      }
+    }
+
+    function showMenu() {
+      state = 'IDLE';
+      document.getElementById('menu-modal').classList.remove('hidden');
+      document.getElementById('webrtc-modal').classList.add('hidden');
+      if (peer) peer.destroy();
+    }
+
+    function startGame(mode) {
+      gameMode = mode;
+      scores = [301, 301];
+      dartsRemaining = [3, 3];
+      currentPlayer = 0;
+      stuckDarts = [];
+      particles = [];
+      scorePopups = [];
+
+      document.getElementById('menu-modal').classList.add('hidden');
+      document.getElementById('webrtc-modal').classList.add('hidden');
+
+      if (gameMode === 'WEBRTC') {
+        document.getElementById('p1-label').innerText = myPlayerIdx === 0 ? 'YOU (P1)' : 'OPP (P1)';
+        document.getElementById('p2-label').innerText = myPlayerIdx === 1 ? 'YOU (P2)' : 'OPP (P2)';
+      } else if (gameMode === 'VS') {
+        document.getElementById('p1-label').innerText = 'YOU';
+        document.getElementById('p2-label').innerText = 'BOT';
+      } else {
+        document.getElementById('p1-label').innerText = 'P1';
+        document.getElementById('p2-label').innerText = 'P2';
+      }
+
+      updateHUD();
+      startTurn();
+    }
+
+    function startTurn() {
+      updateHUD();
+      if (gameMode === 'VS' && currentPlayer === 1) {
+        state = 'AI_THINKING';
+        setTimeout(playAITurn, 800);
+      } else if (gameMode === 'WEBRTC' && currentPlayer !== myPlayerIdx) {
+        state = 'IDLE';
+      } else {
+        state = 'AIM_H';
+      }
+    }
+
+    // --- Scoring Engine ---
+    function calculateScore(x, y) {
+      const center = getBoardCenter();
+      const R = getBoardRadius();
+      const dx = x - center.x;
+      const dy = y - center.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      const rInnerBull = R * 0.06;
+      const rOuterBull = R * 0.14;
+      const rTripleInner = R * 0.50;
+      const rTripleOuter = R * 0.58;
+      const rDoubleInner = R * 0.88;
+      const rDoubleOuter = R * 0.96;
+
+      if (dist <= rInnerBull) return { score: 50, type: 'BULLSEYE', label: 'BULLSEYE! +50' };
+      if (dist <= rOuterBull) return { score: 25, type: 'BULL', label: 'BULL! +25' };
+      if (dist > rDoubleOuter) return { score: 0, type: 'MISS', label: 'MISS 0' };
+
+      let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+      angle += 90;
+      if (angle < 0) angle += 360;
+
+      let adjustedAngle = angle + 9;
+      if (adjustedAngle >= 360) adjustedAngle -= 360;
+      const sectorIdx = Math.floor(adjustedAngle / 18);
+      const baseScore = SECTORS[sectorIdx];
+
+      if (dist >= rTripleInner && dist <= rTripleOuter) {
+        return { score: baseScore * 3, type: 'TRIPLE', label: `TRIPLE ${baseScore}! +${baseScore * 3}` };
+      }
+      if (dist >= rDoubleInner && dist <= rDoubleOuter) {
+        return { score: baseScore * 2, type: 'DOUBLE', label: `DOUBLE ${baseScore}! +${baseScore * 2}` };
+      }
+
+      return { score: baseScore, type: 'SINGLE', label: `+${baseScore}` };
+    }
+
+    // --- Throw Mechanism ---
+    function executeThrow(hVal, vVal, isRemote = false) {
+      state = 'THROWING';
+      playThrowSound();
+
+      // Clear previous thrower's darts to keep board clean
+      stuckDarts = stuckDarts.filter(d => d.owner === currentPlayer);
+
+      const center = getBoardCenter();
+      const R = getBoardRadius();
+
+      const spread = R * 1.3;
+      const targetX = center.x + (hVal - 0.5) * 2 * spread + (Math.random() - 0.5) * 4;
+      const targetY = center.y + (vVal - 0.5) * 2 * spread + (Math.random() - 0.5) * 4;
+
+      dartAnim = {
+        active: true,
+        startX: canvas.width / 2,
+        startY: canvas.height + 50,
+        targetX: targetX,
+        targetY: targetY,
+        currentX: canvas.width / 2,
+        currentY: canvas.height + 50,
+        progress: 0
+      };
+    }
+
+    function onThrowComplete(hitX, hitY) {
+      const result = calculateScore(hitX, hitY);
+      const currentScore = scores[currentPlayer];
+      const pColor = currentPlayer === 0 ? '#ff5252' : '#40c4ff';
+
+      const isSpecial = result.type === 'DOUBLE' || result.type === 'TRIPLE' || result.type === 'BULLSEYE';
+
+      if (currentScore - result.score < 0) {
+        playBustSound();
+        spawnScorePopup("BUST!", hitX, hitY, "#ff1744", "SCORE TOO HIGH");
+      } else {
+        scores[currentPlayer] -= result.score;
+        playHitSound(isSpecial);
+        spawnScorePopup(result.label, hitX, hitY, pColor, result.type);
+        if (isSpecial) {
+          spawnParticles(hitX, hitY, pColor, 25);
+        } else if (result.score > 0) {
+          spawnParticles(hitX, hitY, '#ffffff', 8);
+        }
+      }
+
+      stuckDarts.push({ x: hitX, y: hitY, color: pColor, owner: currentPlayer });
+      dartsRemaining[currentPlayer]--;
+
+      // WIN CHECK & CUSTOMIZED CONGRATULATIONS SCREEN
+      if (scores[currentPlayer] === 0) {
+        state = 'GAME_OVER';
+        const winTitle = document.getElementById('winner-title');
+        const winBody = document.getElementById('winner-body');
+
+        if (gameMode === 'WEBRTC') {
+          if (currentPlayer === myPlayerIdx) {
+            winTitle.innerText = "🎉 CONGRATULATIONS!";
+            winBody.innerText = "YOU WIN THE GAME!";
+          } else {
+            winTitle.innerText = "OPPONENT WON!";
+            winBody.innerText = "Opponent reached 0 first. Play again!";
+          }
+        } else if (gameMode === 'VS') {
+          if (currentPlayer === 0) {
+            winTitle.innerText = "🎉 CONGRATULATIONS!";
+            winBody.innerText = "YOU DEFEATED THE BOT!";
+          } else {
+            winTitle.innerText = "BOT WON!";
+            winBody.innerText = "The bot reached 0 first. Play again!";
+          }
+        } else {
+          winTitle.innerText = `🎉 PLAYER ${currentPlayer + 1} WINS!`;
+          winBody.innerText = `Congratulations Player ${currentPlayer + 1}! Excellent throwing.`;
+        }
+
+        document.getElementById('gameover-modal').classList.remove('hidden');
+        return;
+      }
+
+      if (dartsRemaining[0] === 0 && dartsRemaining[1] === 0) {
+        dartsRemaining = [3, 3];
+      }
+
+      // ALTERNATING CHANCE SWITCH
+      currentPlayer = currentPlayer === 0 ? 1 : 0;
+
+      setTimeout(startTurn, 700);
+    }
+
+    // --- AI Logic ---
+    function playAITurn() {
+      if (state === 'GAME_OVER') return;
+
+      let targetH = 0.5;
+      let targetV = 0.5;
+
+      const accuracy = 0.11; 
+      targetH += (Math.random() - 0.5) * accuracy * 2;
+      targetV += (Math.random() - 0.5) * accuracy * 2;
+
+      executeThrow(targetH, targetV);
+    }
+
+    // --- Particle & Score Popup Visual Systems ---
+    function spawnParticles(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 6;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: 2.5 + Math.random() * 3,
+          color: color,
+          alpha: 1,
+          decay: 0.02 + Math.random() * 0.03
+        });
+      }
+    }
+
+    function spawnScorePopup(text, x, y, color, subtext) {
+      scorePopups.push({
+        text: text,
+        subtext: subtext,
+        x: x,
+        y: y,
+        color: color,
+        alpha: 1,
+        scale: 0.5,
+        targetScale: 1.2,
+        life: 0
+      });
+    }
+
+    // --- HUD Updating ---
+    function updateHUD() {
+      document.getElementById('p1-score-display').innerText = scores[0];
+      document.getElementById('p2-score-display').innerText = scores[1];
+
+      const p1Box = document.getElementById('p1-box');
+      const p2Box = document.getElementById('p2-box');
+
+      if (currentPlayer === 0) {
+        p1Box.classList.add('active-player');
+        p2Box.classList.remove('active-player');
+      } else {
+        p2Box.classList.add('active-player');
+        p1Box.classList.remove('active-player');
+      }
+
+      const statusEl = document.getElementById('turn-status');
+      if (gameMode === 'WEBRTC') {
+        statusEl.innerText = currentPlayer === myPlayerIdx ? 'YOUR TURN' : 'OPPONENT TURN';
+      } else if (gameMode === 'VS') {
+        statusEl.innerText = currentPlayer === 0 ? 'YOUR TURN' : 'BOT TURN';
+      } else {
+        statusEl.innerText = `P${currentPlayer + 1} TURN`;
+      }
+
+      const dartIcons = document.querySelectorAll('.dart-icon');
+      const activeDartsLeft = dartsRemaining[currentPlayer];
+      dartIcons.forEach((icon, idx) => {
+        if (idx < activeDartsLeft) icon.classList.add('active');
+        else icon.classList.remove('active');
+      });
+    }
+
+    // --- Main Game Loop & Rendering ---
+    let lastTime = performance.now();
+
+    function gameLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      update(dt, now);
+      render(now);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update(dt, now) {
+      if (state === 'AIM_H') {
+        gaugeH += gaugeHDir * GAUGE_SPEED * dt;
+        if (gaugeH >= 1) { gaugeH = 1; gaugeHDir = -1; }
+        if (gaugeH <= 0) { gaugeH = 0; gaugeHDir = 1; }
+      } else if (state === 'AIM_V') {
+        gaugeV += gaugeVDir * GAUGE_SPEED * dt;
+        if (gaugeV >= 1) { gaugeV = 1; gaugeVDir = -1; }
+        if (gaugeV <= 0) { gaugeV = 0; gaugeVDir = 1; }
+      }
+
+      if (state === 'THROWING' && dartAnim.active) {
+        dartAnim.progress += dt * 3.8;
+        if (dartAnim.progress >= 1) {
+          dartAnim.progress = 1;
+          dartAnim.active = false;
+          onThrowComplete(dartAnim.targetX, dartAnim.targetY);
+        } else {
+          dartAnim.currentX = dartAnim.startX + (dartAnim.targetX - dartAnim.startX) * dartAnim.progress;
+          dartAnim.currentY = dartAnim.startY + (dartAnim.targetY - dartAnim.startY) * dartAnim.progress;
+        }
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) particles.splice(i, 1);
+      }
+
+      for (let i = scorePopups.length - 1; i >= 0; i--) {
+        const popup = scorePopups[i];
+        popup.life += dt;
+        popup.y -= 25 * dt;
+        if (popup.scale < popup.targetScale) popup.scale += 3 * dt;
+        if (popup.life > 0.6) popup.alpha -= 2 * dt;
+        if (popup.alpha <= 0) scorePopups.splice(i, 1);
+      }
+    }
+
+    function render(now) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const center = getBoardCenter();
+      const R = getBoardRadius();
+
+      // Render Dartboard
+      drawDartboard(ctx, center.x, center.y, R, now);
+
+      // Render Observation Dot preview during aiming
+      if (state === 'AIM_H' || state === 'AIM_V') {
+        const currentH = (state === 'AIM_H') ? gaugeH : lockedH;
+        const currentV = (state === 'AIM_H' || state === 'AIM_V') ? gaugeV : lockedV;
+        const spread = R * 1.3;
+        const aimX = center.x + (currentH - 0.5) * 2 * spread;
+        const aimY = center.y + (currentV - 0.5) * 2 * spread;
+
+        drawObservationDot(ctx, aimX, aimY);
+      }
+
+      // Render Aim Gauges
+      if (state === 'AIM_H' || state === 'AIM_V' || state === 'THROWING') {
+        drawGauges(ctx, center, R);
+      }
+
+      // Render Stuck Darts
+      stuckDarts.forEach(d => drawDart(ctx, d.x, d.y, 0.45, d.color));
+
+      // Render Flying / Ready Dart
+      if (state === 'THROWING' && dartAnim.active) {
+        const scale = 1 - dartAnim.progress * 0.55;
+        const color = currentPlayer === 0 ? '#ff5252' : '#40c4ff';
+        drawDart(ctx, dartAnim.currentX, dartAnim.currentY, scale, color);
+      } else if (state === 'AIM_H' || state === 'AIM_V') {
+        const color = currentPlayer === 0 ? '#ff5252' : '#40c4ff';
+        drawDart(ctx, canvas.width / 2, canvas.height * 0.82, 1.0, color);
+      }
+
+      // Render Particles
+      particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Render Score Popups
+      scorePopups.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.translate(p.x, p.y);
+        ctx.scale(p.scale, p.scale);
+
+        ctx.font = '900 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(p.text, 0, 0);
+
+        ctx.fillStyle = p.color;
+        ctx.fillText(p.text, 0, 0);
+
+        ctx.restore();
+      });
+    }
+
+    // --- Observation / Aim Dot Drawing ---
+    function drawObservationDot(ctx, x, y) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, 10, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 235, 59, 0.35)';
+      ctx.fill();
+      ctx.strokeStyle = '#ffeb3b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff1744';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // --- Target Finish Highlight Resolver ---
+    function getCheckoutHighlights(score) {
+      if (score > 60 || score <= 0) return [];
+      
+      const highlights = [];
+
+      if (score === 50) return [{ ring: 'BULLSEYE' }];
+      if (score === 25) return [{ ring: 'BULL' }];
+
+      if (score <= 40 && score % 2 === 0) {
+        highlights.push({ sector: score / 2, ring: 'DOUBLE' });
+      }
+      if (score <= 20) {
+        highlights.push({ sector: score, ring: 'SINGLE' });
+      }
+
+      return highlights;
+    }
+
+    // --- Drawing Helper Functions ---
+    function drawDartboard(ctx, cx, cy, R, now = 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 1.15, 0, Math.PI * 2);
+      ctx.fillStyle = '#111';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 15;
+      ctx.fill();
+      ctx.restore();
+
+      const rDoubleOuter = R * 0.96;
+      const rDoubleInner = R * 0.88;
+      const rTripleOuter = R * 0.58;
+      const rTripleInner = R * 0.50;
+      const rOuterBull = R * 0.14;
+      const rInnerBull = R * 0.06;
+
+      const angleStep = (Math.PI * 2) / 20;
+      const startAngleOffset = -Math.PI / 2 - angleStep / 2;
+
+      for (let i = 0; i < 20; i++) {
+        const startA = startAngleOffset + i * angleStep;
+        const endA = startA + angleStep;
+        const isEven = i % 2 === 0;
+
+        const mainColor = isEven ? '#111111' : '#f5f2e9';
+        const ringColor = isEven ? '#e53935' : '#00a651';
+
+        drawSectorSlice(ctx, cx, cy, rDoubleInner, rDoubleOuter, startA, endA, ringColor);
+        drawSectorSlice(ctx, cx, cy, rTripleOuter, rDoubleInner, startA, endA, mainColor);
+        drawSectorSlice(ctx, cx, cy, rTripleInner, rTripleOuter, startA, endA, ringColor);
+        drawSectorSlice(ctx, cx, cy, rOuterBull, rTripleInner, startA, endA, mainColor);
+      }
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, rOuterBull, 0, Math.PI * 2);
+      ctx.fillStyle = '#00a651';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, rInnerBull, 0, Math.PI * 2);
+      ctx.fillStyle = '#e53935';
+      ctx.fill();
+
+      // DYNAMIC YELLOW HIGHLIGHT ANIMATION FOR FINISHING SCORES
+      const currentScore = scores[currentPlayer];
+      const targets = getCheckoutHighlights(currentScore);
+
+      if (targets.length > 0) {
+        const pulse = 0.4 + 0.45 * Math.sin(now * 0.008);
+        ctx.save();
+        ctx.fillStyle = `rgba(255, 235, 59, ${pulse})`;
+        ctx.strokeStyle = '#ffee58';
+        ctx.lineWidth = 3;
+
+        targets.forEach(tgt => {
+          if (tgt.ring === 'BULLSEYE') {
+            ctx.beginPath();
+            ctx.arc(cx, cy, rInnerBull, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          } else if (tgt.ring === 'BULL') {
+            ctx.beginPath();
+            ctx.arc(cx, cy, rOuterBull, 0, Math.PI * 2);
+            ctx.arc(cx, cy, rInnerBull, 0, Math.PI * 2, true);
+            ctx.fill();
+            ctx.stroke();
+          } else if (tgt.sector) {
+            const sIdx = SECTORS.indexOf(tgt.sector);
+            if (sIdx !== -1) {
+              const startA = startAngleOffset + sIdx * angleStep;
+              const endA = startA + angleStep;
+
+              if (tgt.ring === 'DOUBLE') {
+                drawSectorSlice(ctx, cx, cy, rDoubleInner, rDoubleOuter, startA, endA, `rgba(255, 235, 59, ${pulse})`);
+              } else if (tgt.ring === 'SINGLE') {
+                drawSectorSlice(ctx, cx, cy, rTripleOuter, rDoubleInner, startA, endA, `rgba(255, 235, 59, ${pulse * 0.7})`);
+                drawSectorSlice(ctx, cx, cy, rOuterBull, rTripleInner, startA, endA, `rgba(255, 235, 59, ${pulse * 0.7})`);
+              }
+            }
+          }
+        });
+        ctx.restore();
+      }
+
+      ctx.strokeStyle = 'rgba(200,200,200,0.4)';
+      ctx.lineWidth = 1.5;
+      [rDoubleOuter, rDoubleInner, rTripleOuter, rTripleInner, rOuterBull, rInnerBull].forEach(r => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 ${R * 0.13}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let i = 0; i < 20; i++) {
+        const angle = startAngleOffset + i * angleStep + angleStep / 2;
+        const textR = R * 1.05;
+        const tx = cx + Math.cos(angle) * textR;
+        const ty = cy + Math.sin(angle) * textR;
+        ctx.fillText(SECTORS[i].toString(), tx, ty);
+      }
+    }
+
+    function drawSectorSlice(ctx, cx, cy, rIn, rOut, startA, endA, color) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, rOut, startA, endA);
+      ctx.arc(cx, cy, rIn, endA, startA, true);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    function drawGauges(ctx, center, R) {
+      const barW = R * 1.6;
+      const barH = 14;
+
+      const hBarX = center.x - barW / 2;
+      const hBarY = center.y + R * 1.35;
+
+      ctx.beginPath();
+      ctx.roundRect(hBarX, hBarY, barW, barH, 7);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(center.x, hBarY);
+      ctx.lineTo(center.x, hBarY + barH);
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      const hIndPos = state === 'AIM_H' ? gaugeH : lockedH;
+      const hIndX = hBarX + hIndPos * barW;
+      ctx.beginPath();
+      ctx.roundRect(hIndX - 4, hBarY - 4, 8, barH + 8, 4);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      const vBarX = center.x - R * 1.35;
+      const vBarY = center.y - barW / 2;
+
+      ctx.beginPath();
+      ctx.roundRect(vBarX, vBarY, barH, barW, 7);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(vBarX, center.y);
+      ctx.lineTo(vBarX + barH, center.y);
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      const vIndPos = (state === 'AIM_H' || state === 'AIM_V') ? gaugeV : lockedV;
+      const vIndY = vBarY + vIndPos * barW;
+      ctx.beginPath();
+      ctx.roundRect(vBarX - 4, vIndY - 4, barH + 8, 8, 4);
+      ctx.fillStyle = state === 'AIM_H' ? 'rgba(255,255,255,0.4)' : '#ffffff';
+      ctx.fill();
+    }
+
+    // --- HIGH REALISM 3D DART RENDERER ---
+    function drawDart(ctx, x, y, scale, color) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      // Steel Tip Needle
+      const tipGrad = ctx.createLinearGradient(-3, 0, 3, 0);
+      tipGrad.addColorStop(0, '#333');
+      tipGrad.addColorStop(0.5, '#e0e0e0');
+      tipGrad.addColorStop(1, '#222');
+
+      ctx.beginPath();
+      ctx.moveTo(0, -38);
+      ctx.lineTo(-2, -14);
+      ctx.lineTo(2, -14);
+      ctx.closePath();
+      ctx.fillStyle = tipGrad;
+      ctx.fill();
+
+      // Metallic Chrome/Tungsten Barrel
+      const barrelGrad = ctx.createLinearGradient(-6, 0, 6, 0);
+      barrelGrad.addColorStop(0, '#1c2833');
+      barrelGrad.addColorStop(0.2, '#bdc3c7');
+      barrelGrad.addColorStop(0.5, '#ffffff');
+      barrelGrad.addColorStop(0.8, '#7f8c8d');
+      barrelGrad.addColorStop(1, '#11161b');
+
+      ctx.beginPath();
+      ctx.roundRect(-5, -14, 10, 28, [2, 2, 4, 4]);
+      ctx.fillStyle = barrelGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Grip ridges/knurling on barrel
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = 1.5;
+      for (let i = -10; i <= 8; i += 4) {
+        ctx.beginPath();
+        ctx.moveTo(-4.5, i);
+        ctx.lineTo(4.5, i);
+        ctx.stroke();
+      }
+
+      // Metallic Stem Shaft
+      const shaftGrad = ctx.createLinearGradient(-3, 0, 3, 0);
+      shaftGrad.addColorStop(0, '#111');
+      shaftGrad.addColorStop(0.5, '#666');
+      shaftGrad.addColorStop(1, '#000');
+
+      ctx.beginPath();
+      ctx.moveTo(-3, 14);
+      ctx.lineTo(-2, 38);
+      ctx.lineTo(2, 38);
+      ctx.lineTo(3, 14);
+      ctx.closePath();
+      ctx.fillStyle = shaftGrad;
+      ctx.fill();
+
+      // Gold Locking Ring
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(-3, 34, 6, 3);
+
+      // 3D Perspective Flight Fins
+      // Left Fin
+      ctx.beginPath();
+      ctx.moveTo(0, 38);
+      ctx.bezierCurveTo(-12, 42, -22, 52, -24, 68);
+      ctx.lineTo(-8, 64);
+      ctx.lineTo(0, 52);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'; // Shadow overlay
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Right Fin
+      ctx.beginPath();
+      ctx.moveTo(0, 38);
+      ctx.bezierCurveTo(12, 42, 22, 52, 24, 68);
+      ctx.lineTo(8, 64);
+      ctx.lineTo(0, 52);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.2)'; // Light sheen overlay
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Center Blade Fin
+      ctx.beginPath();
+      ctx.moveTo(0, 37);
+      ctx.lineTo(-3, 72);
+      ctx.lineTo(0, 68);
+      ctx.lineTo(3, 72);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // Center Crease Line
+      ctx.beginPath();
+      ctx.moveTo(0, 37);
+      ctx.lineTo(0, 70);
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        if (typeof r === 'number') r = [r, r, r, r];
+        this.beginPath();
+        this.moveTo(x + r[0], y);
+        this.lineTo(x + w - r[1], y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+        this.lineTo(x + w, y + h - r[2]);
+        this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+        this.lineTo(x + r[3], y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+        this.lineTo(x, y + r[0]);
+        this.quadraticCurveTo(x, y, x + r[0], y);
+        this.closePath();
+        return this;
+      };
+    }
+
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

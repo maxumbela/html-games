@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>COLOR WARS</title>
+    <!-- PeerJS WebRTC Library for Serverless Internet Multiplayer -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        /* ==========================================================================
+           RESET & COLOR PALETTE
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-color: #61ADD0;
+            --board-bg: #E36C5A;
+            --cell-bg: #F5F2D9;
+            --blue-player: #19B9E8;
+            --red-player: #FF5A5F;
+            --pill-bg: #25262B;
+            --modal-bg: #30366A;
+            --card-bg: #EAF6FC;
+            --btn-cyan: #19B9E8;
+            --white: #FFFFFF;
+            --font-main: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --spring-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --grid-size: 5;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #12151E;
+            font-family: var(--font-main);
+            touch-action: manipulation;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 430px;
+            max-height: 932px;
+            background-color: var(--bg-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: clamp(10px, 2vh, 16px) clamp(12px, 3.5vw, 20px);
+            padding-top: max(clamp(10px, 2vh, 16px), env(safe-area-inset-top));
+            padding-bottom: max(clamp(10px, 2vh, 16px), env(safe-area-inset-bottom));
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (min-width: 480px) and (min-height: 600px) {
+            #game-container {
+                height: 92vh;
+                border-radius: 36px;
+                border: 4px solid #25262B;
+            }
+        }
+
+        /* HEADER */
+        .header {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .game-title {
+            font-size: clamp(22px, 5vw, 32px);
+            font-weight: 900;
+            color: #1A324B;
+            letter-spacing: 1.5px;
+            text-shadow: 0 2px 0 rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .status-banner {
+            margin-top: 4px;
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(10px);
+            padding: 5px 16px;
+            border-radius: 20px;
+            font-size: clamp(11px, 2.8vw, 14px);
+            font-weight: 800;
+            color: #102436;
+            letter-spacing: 0.5px;
+            transition: all 0.3s var(--spring-ease);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            transition: background-color 0.3s ease, transform 0.3s var(--spring-ease);
+            animation: pulse-dot 1.8s infinite ease-in-out;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 1;
+            }
+        }
+
+        /* BOARD STAGE */
+        .board-stage {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            margin: 10px 0;
+        }
+
+        .board-wrapper {
+            position: relative;
+            width: min(84vw, 340px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .score-container-top {
+            width: 100%;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .score-container-bottom {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .game-board {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: var(--board-bg);
+            border-radius: clamp(14px, 3.5vw, 22px);
+            padding: clamp(8px, 2vw, 14px);
+            display: grid;
+            grid-template-columns: repeat(var(--grid-size), 1fr);
+            grid-template-rows: repeat(var(--grid-size), 1fr);
+            gap: clamp(2px, calc(26vw / var(--grid-size)), 8px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+
+        /* SCORE PILLS */
+        .score-pill {
+            width: clamp(96px, 26vw, 120px);
+            height: clamp(38px, 9vw, 48px);
+            background-color: var(--pill-bg);
+            border: 3px solid #000000;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            transition: transform 0.3s var(--spring-ease), box-shadow 0.3s ease;
+        }
+
+        .score-pill.active {
+            transform: scale(1.08);
+        }
+
+        .score-pill.blue.active {
+            box-shadow: 0 0 16px rgba(25, 185, 232, 0.7), 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .score-pill.red.active {
+            box-shadow: 0 0 16px rgba(255, 90, 95, 0.7), 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .score-pill .indicator-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.4);
+        }
+
+        .score-pill.blue .indicator-dot {
+            background-color: var(--blue-player);
+        }
+
+        .score-pill.red .indicator-dot {
+            background-color: var(--red-player);
+        }
+
+        .score-pill .score-value {
+            font-size: clamp(16px, 4.5vw, 24px);
+            font-weight: 900;
+            font-family: var(--font-main);
+            transition: transform 0.2s var(--spring-ease);
+        }
+
+        .score-pill.pop .score-value {
+            transform: scale(1.35);
+        }
+
+        .score-pill.blue .score-value {
+            color: var(--blue-player);
+        }
+
+        .score-pill.red .score-value {
+            color: var(--red-player);
+        }
+
+        /* GRID CELLS & CIRCLES */
+        .cell {
+            background-color: var(--cell-bg);
+            border-radius: max(3px, calc(16px - (var(--grid-size) * 0.5px)));
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.25s ease, box-shadow 0.25s ease;
+            box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.08);
+            aspect-ratio: 1 / 1;
+            perspective: 600px;
+        }
+
+        .cell.valid-move {
+            box-shadow: inset 0 0 0 clamp(1.5px, calc(8px / var(--grid-size)), 3px) rgba(255, 255, 255, 0.95);
+            animation: pulse-border 1.4s infinite alternate;
+        }
+
+        .cell.invalid-move {
+            opacity: 0.88;
+            cursor: not-allowed;
+        }
+
+        @keyframes pulse-border {
+            0% {
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+            }
+
+            100% {
+                box-shadow: inset 0 0 0 clamp(2px, calc(10px / var(--grid-size)), 4px) rgba(255, 255, 255, 0.95);
+            }
+        }
+
+        .cell:active {
+            transform: scale(0.90);
+        }
+
+        .circle {
+            width: 76%;
+            height: 76%;
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.25s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+            will-change: transform;
+        }
+
+        .circle.spawn {
+            animation: springPop 0.35s var(--spring-ease) forwards;
+        }
+
+        .circle.grow {
+            animation: growSquish 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .circle.swell {
+            animation: explodeSwell 0.25s ease-in forwards;
+        }
+
+        .circle.conquer {
+            animation: conquerFlip 0.35s var(--spring-ease) forwards;
+        }
+
+        .cell.impact {
+            animation: impactBounce 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes springPop {
+            0% {
+                transform: scale(0) rotate(-15deg);
+                opacity: 0;
+            }
+
+            70% {
+                transform: scale(1.18) rotate(4deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        @keyframes growSquish {
+            0% {
+                transform: scale(1);
+            }
+
+            35% {
+                transform: scale(1.28, 0.78);
+            }
+
+            65% {
+                transform: scale(0.88, 1.18);
+            }
+
+            100% {
+                transform: scale(1, 1);
+            }
+        }
+
+        @keyframes explodeSwell {
+            0% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+
+            60% {
+                transform: scale(1.35);
+                filter: brightness(1.3);
+            }
+
+            100% {
+                transform: scale(0);
+                filter: brightness(1.5);
+            }
+        }
+
+        @keyframes conquerFlip {
+            0% {
+                transform: scale(0.6) rotateY(90deg);
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: scale(1) rotateY(0deg);
+                opacity: 1;
+            }
+        }
+
+        @keyframes impactBounce {
+            0% {
+                transform: scale(1);
+            }
+
+            40% {
+                transform: scale(1.14);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .circle.blue {
+            background-color: var(--blue-player);
+        }
+
+        .circle.red {
+            background-color: var(--red-player);
+        }
+
+        .dots-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dot {
+            width: max(2.5px, 20%);
+            height: max(2.5px, 20%);
+            background-color: var(--white);
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .val-1 .dot {
+            top: 40%;
+            left: 40%;
+        }
+
+        .val-2 .dot:nth-child(1) {
+            top: 40%;
+            left: 20%;
+        }
+
+        .val-2 .dot:nth-child(2) {
+            top: 40%;
+            right: 20%;
+        }
+
+        .val-3 .dot:nth-child(1) {
+            top: 20%;
+            left: 40%;
+        }
+
+        .val-3 .dot:nth-child(2) {
+            bottom: 22%;
+            left: 20%;
+        }
+
+        .val-3 .dot:nth-child(3) {
+            bottom: 22%;
+            right: 20%;
+        }
+
+        .val-4 .dot:nth-child(1) {
+            top: 20%;
+            left: 20%;
+        }
+
+        .val-4 .dot:nth-child(2) {
+            top: 20%;
+            right: 20%;
+        }
+
+        .val-4 .dot:nth-child(3) {
+            bottom: 20%;
+            left: 20%;
+        }
+
+        .val-4 .dot:nth-child(4) {
+            bottom: 20%;
+            right: 20%;
+        }
+
+        .flying-projectile {
+            position: absolute;
+            width: max(8px, calc(120px / var(--grid-size)));
+            height: max(8px, calc(120px / var(--grid-size)));
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 50;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            will-change: transform, left, top;
+        }
+
+        .flying-projectile.blue {
+            background-color: var(--blue-player);
+        }
+
+        .flying-projectile.red {
+            background-color: var(--red-player);
+        }
+
+        .particle {
+            position: absolute;
+            width: max(3px, calc(60px / var(--grid-size)));
+            height: max(3px, calc(60px / var(--grid-size)));
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        /* FOOTER & BUTTONS */
+        .footer {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            z-index: 5;
+        }
+
+        .btn {
+            background-color: var(--pill-bg);
+            color: var(--white);
+            border: 3px solid #000;
+            border-radius: 25px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 800;
+            font-family: var(--font-main);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.15s var(--spring-ease), background-color 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .btn:active {
+            transform: scale(0.92);
+        }
+
+        .btn-cyan {
+            background-color: var(--btn-cyan);
+            color: #072B36;
+            border: none;
+            box-shadow: 0 6px 16px rgba(24, 185, 229, 0.4);
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border-radius: 50%;
+        }
+
+        /* MODALS & OVERLAYS */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--modal-bg);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background-color: var(--card-bg);
+            width: 92%;
+            max-width: 360px;
+            border-radius: 36px;
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            position: relative;
+            transform: translateY(30px) scale(0.95);
+            transition: transform 0.35s var(--spring-ease);
+        }
+
+        .overlay.active .modal-card {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-title {
+            font-size: 28px;
+            font-weight: 900;
+            color: #1A2B4C;
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+        }
+
+        .modal-body {
+            font-size: 15px;
+            font-weight: 600;
+            color: #334760;
+            line-height: 1.45;
+            margin-bottom: 24px;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .input-box {
+            width: 100%;
+            height: 48px;
+            border-radius: 24px;
+            border: 2px solid #B8D4E3;
+            padding: 0 16px;
+            font-size: 20px;
+            font-weight: 900;
+            text-align: center;
+            letter-spacing: 3px;
+            outline: none;
+            background-color: #FFFFFF;
+            color: #1E3048;
+        }
+
+        .code-display-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .code-pill-box {
+            font-size: 28px;
+            font-weight: 900;
+            color: #18B9E5;
+            letter-spacing: 4px;
+            background: #FFFFFF;
+            padding: 8px 18px;
+            border-radius: 18px;
+            border: 2.5px dashed #18B9E5;
+            flex-grow: 1;
+        }
+
+        .btn-copy {
+            height: 48px;
+            padding: 0 16px;
+            font-size: 13px;
+            border-radius: 18px;
+            white-space: nowrap;
+        }
+
+        .coin-toss-badge {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 12px;
+            animation: springPop 0.5s var(--spring-ease);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .coin-toss-badge.blue {
+            background-color: var(--blue-player);
+            color: var(--white);
+        }
+
+        .coin-toss-badge.red {
+            background-color: var(--red-player);
+            color: var(--white);
+        }
+
+        .modal-illustration {
+            width: 100%;
+            height: 140px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            border: 2px dashed #B8D4E3;
+        }
+
+        .carousel-indicators {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #B2D1E0;
+            transition: all 0.25s var(--spring-ease);
+        }
+
+        .carousel-dot.active {
+            background-color: var(--btn-cyan);
+            width: 24px;
+            border-radius: 12px;
+        }
+
+        .btn-large {
+            width: 80%;
+            height: 52px;
+            font-size: 18px;
+            font-weight: 900;
+            border-radius: 26px;
+        }
+
+        .setting-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #D0E3EE;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1E3048;
+        }
+
+        .setting-col {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 12px 0;
+            border-bottom: 1px solid #D0E3EE;
+            gap: 8px;
+        }
+
+        .setting-header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1E3048;
+        }
+
+        .grid-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #CBD5E1;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .grid-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--btn-cyan);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid #FFFFFF;
+        }
+
+        .grid-slider:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .grid-slider:disabled::-webkit-slider-thumb {
+            cursor: not-allowed;
+            background: #94A3B8;
+        }
+
+        .toggle-btn {
+            width: 56px;
+            height: 32px;
+            background-color: #CBD5E1;
+            border-radius: 16px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.25s ease;
+        }
+
+        .toggle-btn.on {
+            background-color: var(--btn-cyan);
+        }
+
+        .toggle-knob {
+            width: 26px;
+            height: 26px;
+            background-color: var(--white);
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.25s var(--spring-ease);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-btn.on .toggle-knob {
+            transform: translateX(24px);
+        }
+
+        .menu-overlay {
+            background-color: var(--bg-color);
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 280px;
+            margin-top: 15px;
+        }
+
+        .menu-btn {
+            width: 100%;
+            height: 52px;
+            font-size: 17px;
+            font-weight: 900;
+            border-radius: 26px;
+            letter-spacing: 0.5px;
+        }
+
+        .icon-svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+
+        <!-- HEADER -->
+        <header class="header">
+            <h1 class="game-title">COLOR WARS</h1>
+            <div id="status-banner" class="status-banner">
+                <span id="status-dot" class="status-dot"></span>
+                <span id="status-text">BLUE ER TURN</span>
+            </div>
+        </header>
+
+        <!-- BOARD STAGE -->
+        <main class="board-stage">
+            <div class="board-wrapper">
+
+                <!-- Blue Score Pill Container -->
+                <div class="score-container-top">
+                    <div id="blue-score-pill" class="score-pill blue active">
+                        <div class="indicator-dot"></div>
+                        <span id="blue-score-text" class="score-value">0</span>
+                    </div>
+                </div>
+
+                <!-- Grid Board -->
+                <div id="board" class="game-board"></div>
+
+                <!-- Red Score Pill Container -->
+                <div class="score-container-bottom">
+                    <div id="red-score-pill" class="score-pill red">
+                        <span id="red-score-text" class="score-value">0</span>
+                        <div class="indicator-dot"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <button id="btn-restart" class="btn" aria-label="Restart Game">
+                <svg class="icon-svg" viewBox="0 0 24 24">
+                    <path
+                        d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                </svg>
+                RESET
+            </button>
+            <button id="btn-settings" class="btn btn-icon" aria-label="Settings">
+                <svg class="icon-svg" viewBox="0 0 24 24">
+                    <path
+                        d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.07.49.12.64l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
+                </svg>
+            </button>
+        </footer>
+
+        <!-- MAIN MENU OVERLAY -->
+        <div id="overlay-menu" class="overlay menu-overlay active">
+            <div class="modal-card menu-card" style="background:transparent; box-shadow:none;">
+                <h1 class="game-title" style="font-size: 38px; margin-bottom: 5px;">COLOR WARS</h1>
+                <div class="menu-buttons">
+                    <button id="btn-start-ai" class="btn btn-cyan menu-btn">VS AI (BOT)</button>
+                    <button id="btn-start-pvp" class="btn menu-btn">2 PLAYER (LOCAL)</button>
+                    <button id="btn-start-online" class="btn menu-btn"
+                        style="background-color:#102436; color:#19B9E8; border-color:#19B9E8;">ONLINE
+                        MULTIPLAYER</button>
+                    <button id="btn-open-tutorial" class="btn menu-btn">KIVABE KHELBEN</button>
+                    <button id="btn-open-settings" class="btn menu-btn">SETTINGS</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONLINE MULTIPLAYER OVERLAY -->
+        <div id="overlay-online" class="overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">ONLINE ROOM</h2>
+
+                <div class="modal-body" id="online-modal-body">
+                    <p style="font-size: 14px; font-weight: 700; color: #50657E;">Create a room or enter a 4-digit code
+                        to join.</p>
+
+                    <button id="btn-create-room" class="btn btn-cyan btn-large" style="width: 100%;">CREATE
+                        ROOM</button>
+
+                    <div style="margin: 8px 0; font-size: 12px; font-weight: 900; color: #8A9BAE;">— OR JOIN ROOM —
+                    </div>
+
+                    <input type="number" id="input-room-code" class="input-box" placeholder="4-DIGIT CODE" max="9999">
+                    <button id="btn-join-room" class="btn btn-large" style="width: 100%;">JOIN ROOM</button>
+                </div>
+
+                <button id="btn-close-online" class="btn menu-btn" style="height: 44px; font-size: 15px;">BACK TO
+                    MENU</button>
+            </div>
+        </div>
+
+        <!-- RANDOM FIRST TURN ANNOUNCEMENT OVERLAY -->
+        <div id="overlay-coin-toss" class="overlay">
+            <div class="modal-card">
+                <div id="toss-badge" class="coin-toss-badge blue">🔵</div>
+                <h2 id="toss-title" class="modal-title" style="margin-bottom: 6px;">FIRST TURN!</h2>
+                <p id="toss-desc" style="font-weight: 800; color: #18B9E5; margin-bottom: 20px; font-size: 16px;">BLUE
+                    GOES FIRST!</p>
+                <button id="btn-start-toss-game" class="btn btn-cyan btn-large">START MATCH</button>
+            </div>
+        </div>
+
+        <!-- TUTORIAL OVERLAY -->
+        <div id="overlay-tutorial" class="overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">COLOR WARS</h2>
+
+                <div class="modal-illustration" id="tutorial-illustration"></div>
+
+                <div id="tutorial-text" class="modal-body"></div>
+
+                <div class="carousel-indicators">
+                    <div class="carousel-dot active"></div>
+                    <div class="carousel-dot"></div>
+                    <div class="carousel-dot"></div>
+                </div>
+
+                <button id="btn-tutorial-next" class="btn btn-cyan btn-large">OK</button>
+            </div>
+        </div>
+
+        <!-- SETTINGS OVERLAY -->
+        <div id="overlay-settings" class="overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">SETTINGS</h2>
+
+                <div style="width: 100%; margin-bottom: 20px;">
+                    <div class="setting-col">
+                        <div class="setting-header">
+                            <span>Board Size</span>
+                            <span id="slider-size-val" style="color:var(--btn-cyan);">5 x 5</span>
+                        </div>
+                        <input type="range" id="slider-grid-size" class="grid-slider" min="5" max="25" value="5"
+                            step="1">
+                        <span id="slider-host-hint"
+                            style="font-size:11px; font-weight:700; color:#8A9BAE; display:none; text-align:center;">Only
+                            Host can change board size in Online Multiplayer.</span>
+                    </div>
+
+                    <div class="setting-row">
+                        <span>Sound Effects</span>
+                        <div id="toggle-sound" class="toggle-btn on">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <span>Vibration</span>
+                        <div id="toggle-vibe" class="toggle-btn on">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-replay-tutorial" class="btn menu-btn"
+                    style="margin-bottom: 12px; height: 48px; font-size: 15px;">TUTORIAL DEKHUN</button>
+                <button id="btn-close-settings" class="btn btn-cyan btn-large" style="height: 48px;">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- VICTORY OVERLAY -->
+        <div id="overlay-victory" class="overlay">
+            <div class="modal-card">
+                <div style="font-size: 50px; margin-bottom: 10px; animation: springPop 0.6s var(--spring-ease);">🏆
+                </div>
+                <h2 id="victory-title" class="modal-title" style="margin-bottom: 8px;">BLUE JITECHE!</h2>
+                <p style="font-weight: 700; color: #50657E; margin-bottom: 24px;">SOB ROOM CONQUERED</p>
+
+                <button id="btn-play-again" class="btn btn-cyan btn-large" style="margin-bottom: 12px;">ABAR
+                    KHELBEN</button>
+                <button id="btn-victory-menu" class="btn menu-btn" style="height: 50px; font-size: 16px;">MAIN
+                    MENU</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- GAME LOGIC ENGINE -->
+    <script>
+        let GRID_SIZE = 5;
+        const PLAYER = { BLUE: 'blue', RED: 'red' };
+        const COLOR = { blue: '#19B9E8', red: '#FF5A5F' };
+
+        // ENHANCED PEERJS WEBRTC CONFIG (Fixes Wi-Fi / NAT Traversal Issues)
+        const PEER_CONFIG = {
+            host: '0.peerjs.com',
+            port: 443,
+            path: '/',
+            secure: true,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' },
+                    {
+                        urls: 'turn:openrelay.metered.ca:80',
+                        username: 'openrelay',
+                        credential: 'openrelay'
+                    },
+                    {
+                        urls: 'turn:openrelay.metered.ca:443',
+                        username: 'openrelay',
+                        credential: 'openrelay'
+                    }
+                ]
+            }
+        };
+
+        let board = [];
+        let currentTurn = PLAYER.BLUE;
+        let gamePhase = 'menu';
+        let gameMode = 'pvp';
+        let myOnlineRole = null; // 'blue' (host) or 'red' (client)
+        let inputLocked = false;
+        let hasBlueMoved = false;
+        let hasRedMoved = false;
+
+        let soundEnabled = true;
+        let vibeEnabled = true;
+
+        let audioCtx = null;
+        let peer = null;
+        let peerConn = null;
+
+        function initAudio() {
+            try {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) audioCtx = new AudioContext();
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (e) { }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'tap') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'increase') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(500, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'explode') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'win') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const noteOsc = audioCtx.createOscillator();
+                        const noteGain = audioCtx.createGain();
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioCtx.destination);
+                        noteOsc.type = 'sine';
+                        noteOsc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        noteGain.gain.setValueAtTime(0.3, now + idx * 0.08);
+                        noteGain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+                        noteOsc.start(now + idx * 0.08);
+                        noteOsc.stop(now + idx * 0.08 + 0.2);
+                    });
+                }
+            } catch (e) { }
+        }
+
+        function triggerVibe(ms) {
+            if (vibeEnabled && navigator.vibrate) {
+                try { navigator.vibrate(ms); } catch (e) { }
+            }
+        }
+
+        const boardElem = document.getElementById('board');
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+        const blueScoreText = document.getElementById('blue-score-text');
+        const redScoreText = document.getElementById('red-score-text');
+        const blueScorePill = document.getElementById('blue-score-pill');
+        const redScorePill = document.getElementById('red-score-pill');
+
+        const overlayMenu = document.getElementById('overlay-menu');
+        const overlayOnline = document.getElementById('overlay-online');
+        const overlayCoinToss = document.getElementById('overlay-coin-toss');
+        const overlayTutorial = document.getElementById('overlay-tutorial');
+        const overlaySettings = document.getElementById('overlay-settings');
+        const overlayVictory = document.getElementById('overlay-victory');
+        const sliderGridSize = document.getElementById('slider-grid-size');
+        const sliderSizeVal = document.getElementById('slider-size-val');
+        const sliderHostHint = document.getElementById('slider-host-hint');
+
+        function createBoardState() {
+            board = [];
+            for (let r = 0; r < GRID_SIZE; r++) {
+                const row = [];
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    row.push({ owner: null, value: 0 });
+                }
+                board.push(row);
+            }
+        }
+
+        function getCriticalMass(r, c) {
+            return 4;
+        }
+
+        function getNeighbors(r, c) {
+            const neighbors = [];
+            if (r > 0) neighbors.push({ r: r - 1, c });
+            if (r < GRID_SIZE - 1) neighbors.push({ r: r + 1, c });
+            if (c > 0) neighbors.push({ r, c: c - 1 });
+            if (c < GRID_SIZE - 1) neighbors.push({ r, c: c + 1 });
+            return neighbors;
+        }
+
+        function isFirstMoveForCurrentPlayer() {
+            if (currentTurn === PLAYER.BLUE) return !hasBlueMoved;
+            if (currentTurn === PLAYER.RED) return !hasRedMoved;
+            return false;
+        }
+
+        function renderBoard(animType = null, animCoords = null) {
+            document.documentElement.style.setProperty('--grid-size', GRID_SIZE);
+            boardElem.innerHTML = '';
+            const isFirstMove = isFirstMoveForCurrentPlayer();
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const cellData = board[r][c];
+                    const cellElem = document.createElement('div');
+                    cellElem.className = 'cell';
+                    cellElem.dataset.row = r;
+                    cellElem.dataset.col = c;
+                    cellElem.setAttribute('role', 'button');
+
+                    let isValidTarget = false;
+                    if (gamePhase === 'playing' && !inputLocked) {
+                        if (isFirstMove) {
+                            isValidTarget = (cellData.owner === null);
+                        } else {
+                            isValidTarget = (cellData.owner === currentTurn);
+                        }
+                    }
+
+                    if (gameMode === 'online' && currentTurn !== myOnlineRole) {
+                        isValidTarget = false;
+                    }
+
+                    if (isValidTarget) {
+                        cellElem.classList.add('valid-move');
+                    } else if (gamePhase === 'playing') {
+                        cellElem.classList.add('invalid-move');
+                    }
+
+                    if (cellData.owner && cellData.value > 0) {
+                        const circleElem = document.createElement('div');
+                        circleElem.className = `circle ${cellData.owner}`;
+
+                        if (animCoords && animCoords.r === r && animCoords.c === c && animType) {
+                            circleElem.classList.add(animType);
+                        }
+
+                        const dotsContainer = document.createElement('div');
+                        dotsContainer.className = `dots-container val-${cellData.value}`;
+
+                        for (let i = 0; i < cellData.value; i++) {
+                            const dot = document.createElement('div');
+                            dot.className = 'dot';
+                            dotsContainer.appendChild(dot);
+                        }
+
+                        circleElem.appendChild(dotsContainer);
+                        cellElem.appendChild(circleElem);
+                    }
+
+                    cellElem.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        if (gameMode === 'ai' && currentTurn === PLAYER.RED) return;
+                        if (gameMode === 'online' && currentTurn !== myOnlineRole) return;
+                        handleCellClick(r, c, true);
+                    });
+
+                    boardElem.appendChild(cellElem);
+                }
+            }
+        }
+
+        function updateUI() {
+            let blueScore = 0;
+            let redScore = 0;
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (board[r][c].owner === PLAYER.BLUE) blueScore++;
+                    if (board[r][c].owner === PLAYER.RED) redScore++;
+                }
+            }
+
+            if (blueScoreText.textContent !== String(blueScore)) {
+                blueScoreText.textContent = blueScore;
+                blueScorePill.classList.add('pop');
+                setTimeout(() => blueScorePill.classList.remove('pop'), 200);
+            }
+
+            if (redScoreText.textContent !== String(redScore)) {
+                redScoreText.textContent = redScore;
+                redScorePill.classList.add('pop');
+                setTimeout(() => redScorePill.classList.remove('pop'), 200);
+            }
+
+            if (gamePhase === 'playing') {
+                const isFirstMove = isFirstMoveForCurrentPlayer();
+                if (currentTurn === PLAYER.BLUE) {
+                    if (gameMode === 'online') {
+                        statusText.textContent = (myOnlineRole === 'blue') ? "APNAR TURN (BLUE)" : "OPPONENT'S TURN (BLUE)";
+                    } else {
+                        statusText.textContent = isFirstMove ? "BLUE: PROTHOM ORB PLACE KORUN" : "BLUE ER TURN";
+                    }
+                    statusDot.style.backgroundColor = COLOR.blue;
+                    blueScorePill.classList.add('active');
+                    redScorePill.classList.remove('active');
+                } else {
+                    if (gameMode === 'ai') {
+                        statusText.textContent = "AI (RED) CHINTA KORCHE...";
+                    } else if (gameMode === 'online') {
+                        statusText.textContent = (myOnlineRole === 'red') ? "APNAR TURN (RED)" : "OPPONENT'S TURN (RED)";
+                    } else {
+                        statusText.textContent = isFirstMove ? "RED: PROTHOM ORB PLACE KORUN" : "RED ER TURN";
+                    }
+                    statusDot.style.backgroundColor = COLOR.red;
+                    blueScorePill.classList.remove('active');
+                    redScorePill.classList.add('active');
+                }
+            }
+        }
+
+        async function handleCellClick(r, c, isLocalAction = false) {
+            if (inputLocked || gamePhase !== 'playing') return;
+
+            initAudio();
+            const cell = board[r][c];
+            const isFirstMove = isFirstMoveForCurrentPlayer();
+
+            if (isFirstMove) {
+                if (cell.owner !== null) return;
+            } else {
+                if (cell.owner !== currentTurn) return;
+            }
+
+            if (gameMode === 'online' && isLocalAction && peerConn) {
+                peerConn.send({ type: 'MOVE', r: r, c: c });
+            }
+
+            inputLocked = true;
+
+            let animClass = 'grow';
+            if (cell.owner === null) {
+                playSound('increase');
+                triggerVibe(20);
+                cell.owner = currentTurn;
+                cell.value = 1;
+                animClass = 'spawn';
+
+                if (currentTurn === PLAYER.BLUE) hasBlueMoved = true;
+                if (currentTurn === PLAYER.RED) hasRedMoved = true;
+            } else {
+                playSound('tap');
+                triggerVibe(20);
+                cell.value += 1;
+            }
+
+            renderBoard(animClass, { r, c });
+            await delay(180);
+
+            await resolveExplosions();
+
+            if (checkWinCondition()) {
+                inputLocked = false;
+                return;
+            }
+
+            currentTurn = (currentTurn === PLAYER.BLUE) ? PLAYER.RED : PLAYER.BLUE;
+            updateUI();
+            renderBoard();
+            inputLocked = false;
+
+            if (gameMode === 'ai' && currentTurn === PLAYER.RED && gamePhase === 'playing') {
+                await delay(600);
+                makeAIMove();
+            }
+        }
+
+        function makeAIMove() {
+            if (gamePhase !== 'playing' || currentTurn !== PLAYER.RED || inputLocked) return;
+
+            const isFirstMove = !hasRedMoved;
+            let targetRow = -1;
+            let targetCol = -1;
+
+            if (isFirstMove) {
+                const candidates = [];
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        if (board[r][c].owner === null) {
+                            candidates.push({ r, c });
+                        }
+                    }
+                }
+                if (candidates.length > 0) {
+                    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+                    targetRow = pick.r;
+                    targetCol = pick.c;
+                }
+            } else {
+                const myCells = [];
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        if (board[r][c].owner === PLAYER.RED) {
+                            const cm = getCriticalMass(r, c);
+                            const val = board[r][c].value;
+                            const distToExplode = cm - val;
+                            myCells.push({ r, c, cm, val, distToExplode });
+                        }
+                    }
+                }
+
+                if (myCells.length > 0) {
+                    const immediateExplode = myCells.filter(c => c.distToExplode === 1);
+                    if (immediateExplode.length > 0) {
+                        const pick = immediateExplode[Math.floor(Math.random() * immediateExplode.length)];
+                        targetRow = pick.r;
+                        targetCol = pick.c;
+                    } else {
+                        myCells.sort((a, b) => a.distToExplode - b.distToExplode);
+                        const pick = myCells[0];
+                        targetRow = pick.r;
+                        targetCol = pick.c;
+                    }
+                }
+            }
+
+            if (targetRow !== -1 && targetCol !== -1) {
+                handleCellClick(targetRow, targetCol, false);
+            }
+        }
+
+        async function resolveExplosions() {
+            let hasUnstable = true;
+
+            while (hasUnstable) {
+                const unstableCells = [];
+
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        const cm = getCriticalMass(r, c);
+                        if (board[r][c].value >= cm) {
+                            unstableCells.push({ r, c, owner: board[r][c].owner });
+                        }
+                    }
+                }
+
+                if (unstableCells.length === 0) {
+                    hasUnstable = false;
+                    break;
+                }
+
+                unstableCells.forEach(u => {
+                    const idx = u.r * GRID_SIZE + u.c;
+                    const circle = boardElem.children[idx]?.querySelector('.circle');
+                    if (circle) circle.classList.add('swell');
+                });
+
+                playSound('explode');
+                triggerVibe(40);
+                await delay(180);
+
+                const additions = [];
+                const flyPromises = [];
+
+                for (const u of unstableCells) {
+                    const neighbors = getNeighbors(u.r, u.c);
+                    board[u.r][u.c].value -= neighbors.length;
+                    if (board[u.r][u.c].value <= 0) {
+                        board[u.r][u.c].value = 0;
+                        board[u.r][u.c].owner = null;
+                    }
+
+                    spawnExplosionParticles(u.r, u.c, u.owner);
+
+                    for (const n of neighbors) {
+                        additions.push({ r: n.r, c: n.c, owner: u.owner });
+                        flyPromises.push(animateFlyingOrb(u.r, u.c, n.r, n.c, u.owner));
+                    }
+                }
+
+                await Promise.all(flyPromises);
+
+                for (const add of additions) {
+                    const wasOwner = board[add.r][add.c].owner;
+                    board[add.r][add.c].owner = add.owner;
+                    board[add.r][add.c].value += 1;
+
+                    const idx = add.r * GRID_SIZE + add.c;
+                    const cellEl = boardElem.children[idx];
+                    if (cellEl) {
+                        cellEl.classList.add('impact');
+                        setTimeout(() => cellEl.classList.remove('impact'), 250);
+                    }
+                }
+
+                renderBoard();
+                updateUI();
+
+                if (checkWinCondition()) {
+                    return;
+                }
+
+                await delay(120);
+            }
+        }
+
+        function animateFlyingOrb(r1, c1, r2, c2, playerColor) {
+            return new Promise((resolve) => {
+                const idx1 = r1 * GRID_SIZE + c1;
+                const idx2 = r2 * GRID_SIZE + c2;
+
+                const cell1 = boardElem.children[idx1];
+                const cell2 = boardElem.children[idx2];
+                if (!cell1 || !cell2) { resolve(); return; }
+
+                const rect1 = cell1.getBoundingClientRect();
+                const rect2 = cell2.getBoundingClientRect();
+                const boardRect = boardElem.getBoundingClientRect();
+
+                const size = Math.max(8, 120 / GRID_SIZE);
+
+                const startX = rect1.left + rect1.width / 2 - boardRect.left - (size / 2);
+                const startY = rect1.top + rect1.height / 2 - boardRect.top - (size / 2);
+                const endX = rect2.left + rect2.width / 2 - boardRect.left - (size / 2);
+                const endY = rect2.top + rect2.height / 2 - boardRect.top - (size / 2);
+
+                const p = document.createElement('div');
+                p.className = `flying-projectile ${playerColor}`;
+                p.style.left = `${startX}px`;
+                p.style.top = `${startY}px`;
+                boardElem.appendChild(p);
+
+                const anim = p.animate([
+                    { transform: 'translate(0, 0) scale(0.6)', opacity: 0.8 },
+                    { transform: `translate(${endX - startX}px, ${endY - startY}px) scale(1.1)`, opacity: 1 }
+                ], {
+                    duration: 200,
+                    easing: 'cubic-bezier(0.25, 1, 0.5, 1)'
+                });
+
+                anim.onfinish = () => {
+                    p.remove();
+                    resolve();
+                };
+            });
+        }
+
+        function checkWinCondition() {
+            if (!hasBlueMoved || !hasRedMoved) return false;
+
+            let blueCount = 0;
+            let redCount = 0;
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (board[r][c].owner === PLAYER.BLUE) blueCount++;
+                    if (board[r][c].owner === PLAYER.RED) redCount++;
+                }
+            }
+
+            if (redCount === 0 && blueCount > 0) {
+                triggerVictory(PLAYER.BLUE);
+                return true;
+            } else if (blueCount === 0 && redCount > 0) {
+                triggerVictory(PLAYER.RED);
+                return true;
+            }
+
+            return false;
+        }
+
+        function triggerVictory(winner) {
+            gamePhase = 'ended';
+            playSound('win');
+            triggerVibe([100, 50, 100, 50, 200]);
+
+            const victoryTitle = document.getElementById('victory-title');
+            if (winner === PLAYER.BLUE) {
+                victoryTitle.textContent = (gameMode === 'online' && myOnlineRole === 'blue') ? "YOU WIN!" : "BLUE JITECHE!";
+                victoryTitle.style.color = COLOR.blue;
+            } else {
+                victoryTitle.textContent = (gameMode === 'online' && myOnlineRole === 'red') ? "YOU WIN!" : "RED JITECHE!";
+                victoryTitle.style.color = COLOR.red;
+            }
+
+            setTimeout(() => {
+                overlayVictory.classList.add('active');
+            }, 400);
+        }
+
+        function spawnExplosionParticles(r, c, ownerColor) {
+            const index = r * GRID_SIZE + c;
+            const cellElem = boardElem.children[index];
+            if (!cellElem) return;
+
+            const rect = cellElem.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const dist = Math.max(15, 200 / GRID_SIZE);
+
+            const directions = [
+                { x: 0, y: -dist },
+                { x: 0, y: dist },
+                { x: -dist, y: 0 },
+                { x: dist, y: 0 }
+            ];
+
+            directions.forEach(dir => {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.backgroundColor = COLOR[ownerColor];
+                p.style.left = `${centerX - 3}px`;
+                p.style.top = `${centerY - 3}px`;
+                document.body.appendChild(p);
+
+                const anim = p.animate([
+                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                    { transform: `translate(${dir.x}px, ${dir.y}px) scale(0.2)`, opacity: 0 }
+                ], {
+                    duration: 220,
+                    easing: 'ease-out'
+                });
+
+                anim.onfinish = () => p.remove();
+            });
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        let currentTutorialStep = 0;
+        const tutorialSteps = [
+            {
+                text: "Prothom turn-e board-er je kono faka room-e apnar prothom orb place korun.",
+                render: () => `
+                    <div style="display:flex; gap:16px; align-items:center;">
+                        <div class="cell" style="width:50px; height:50px;"><div class="circle blue spawn"><div class="dots-container val-1"><div class="dot"></div></div></div></div>
+                        <span style="font-size:24px; font-weight:900;">VS</span>
+                        <div class="cell" style="width:50px; height:50px;"><div class="circle red spawn"><div class="dots-container val-1"><div class="dot"></div></div></div></div>
+                    </div>`
+            },
+            {
+                text: "Erporer turn theke sudhu nijer orb-e click kore er value barate parben. Critical mass (4) e poulale orb fute charidike choriye porbe.",
+                render: () => `
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                        <div class="cell" style="width:54px; height:54px;"><div class="circle blue grow"><div class="dots-container val-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
+                        <div style="font-size:12px; font-weight:800; color:#19B9E8;">💥 EXPLODES AT 4 ORBS</div>
+                    </div>`
+            },
+            {
+                text: "Sob enemy orb conquer kore puraba board nijer dokhole neoyai apnar main goal.",
+                render: () => `
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div class="cell" style="width:44px; height:44px;"><div class="circle red"><div class="dots-container val-1"><div class="dot"></div></div></div></div>
+                        <span style="font-size:18px;">➡️</span>
+                        <div class="cell" style="width:44px; height:44px;"><div class="circle blue conquer"><div class="dots-container val-2"><div class="dot"></div><div class="dot"></div></div></div></div>
+                    </div>`
+            }
+        ];
+
+        function showTutorialStep(stepIdx) {
+            currentTutorialStep = stepIdx;
+            const textElem = document.getElementById('tutorial-text');
+            const illustrElem = document.getElementById('tutorial-illustration');
+            const dots = document.querySelectorAll('.carousel-dot');
+
+            textElem.textContent = tutorialSteps[stepIdx].text;
+            illustrElem.innerHTML = tutorialSteps[stepIdx].render();
+
+            dots.forEach((dot, idx) => {
+                if (idx === stepIdx) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+        }
+
+        // START NEW MATCH WITH RANDOM TURN ANNOUNCEMENT
+        function startNewMatch(mode = 'pvp', forcedFirstTurn = null) {
+            gameMode = mode;
+            createBoardState();
+            hasBlueMoved = false;
+            hasRedMoved = false;
+            inputLocked = false;
+            gamePhase = 'playing';
+
+            if (forcedFirstTurn) {
+                currentTurn = forcedFirstTurn;
+            } else {
+                currentTurn = (Math.random() < 0.5) ? PLAYER.BLUE : PLAYER.RED;
+            }
+
+            if (gameMode === 'online' && myOnlineRole === 'blue' && peerConn && !forcedFirstTurn) {
+                peerConn.send({ type: 'FIRST_TURN_SYNC', firstTurn: currentTurn, gridSize: GRID_SIZE });
+            }
+
+            renderBoard();
+            updateUI();
+
+            announceFirstTurn(currentTurn);
+        }
+
+        function announceFirstTurn(firstPlayer) {
+            const tossBadge = document.getElementById('toss-badge');
+            const tossDesc = document.getElementById('toss-desc');
+
+            if (firstPlayer === PLAYER.BLUE) {
+                tossBadge.className = 'coin-toss-badge blue';
+                tossBadge.textContent = '🔵';
+                tossDesc.textContent = (gameMode === 'online' && myOnlineRole === 'blue') ? "YOU GO FIRST!" : "BLUE GOES FIRST!";
+                tossDesc.style.color = COLOR.blue;
+            } else {
+                tossBadge.className = 'coin-toss-badge red';
+                tossBadge.textContent = '🔴';
+                tossDesc.textContent = (gameMode === 'online' && myOnlineRole === 'red') ? "YOU GO FIRST!" : "RED GOES FIRST!";
+                tossDesc.style.color = COLOR.red;
+            }
+
+            overlayCoinToss.classList.add('active');
+        }
+
+        function bindConnectionEvents(conn) {
+            conn.on('open', () => {
+                overlayOnline.classList.remove('active');
+                if (myOnlineRole === 'blue') {
+                    startNewMatch('online');
+                }
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'MOVE') {
+                    handleCellClick(data.r, data.c, false);
+                } else if (data.type === 'FIRST_TURN_SYNC') {
+                    GRID_SIZE = data.gridSize;
+                    sliderGridSize.value = GRID_SIZE;
+                    sliderSizeVal.textContent = `${GRID_SIZE} x ${GRID_SIZE}`;
+                    startNewMatch('online', data.firstTurn);
+                } else if (data.type === 'CHANGE_BOARD_SIZE') {
+                    GRID_SIZE = data.newSize;
+                    sliderGridSize.value = GRID_SIZE;
+                    sliderSizeVal.textContent = `${GRID_SIZE} x ${GRID_SIZE}`;
+                    startNewMatch('online');
+                }
+            });
+
+            conn.on('close', () => {
+                alert('Opponent disconnected!');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            createBoardState();
+            renderBoard();
+
+            const tutorialSeen = localStorage.getItem('colorWarsTutorialSeen');
+
+            sliderGridSize.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                GRID_SIZE = val;
+                sliderSizeVal.textContent = `${val} x ${val}`;
+
+                if (gameMode === 'online' && myOnlineRole === 'blue' && peerConn) {
+                    peerConn.send({ type: 'CHANGE_BOARD_SIZE', newSize: GRID_SIZE });
+                }
+
+                startNewMatch(gameMode);
+            });
+
+            document.getElementById('btn-start-toss-game').addEventListener('click', () => {
+                overlayCoinToss.classList.remove('active');
+                if (gameMode === 'ai' && currentTurn === PLAYER.RED) {
+                    setTimeout(() => makeAIMove(), 500);
+                }
+            });
+
+            document.getElementById('btn-start-ai').addEventListener('click', () => {
+                overlayMenu.classList.remove('active');
+                if (!tutorialSeen) {
+                    showTutorialStep(0);
+                    overlayTutorial.classList.add('active');
+                } else {
+                    startNewMatch('ai');
+                }
+            });
+
+            document.getElementById('btn-start-pvp').addEventListener('click', () => {
+                overlayMenu.classList.remove('active');
+                if (!tutorialSeen) {
+                    showTutorialStep(0);
+                    overlayTutorial.classList.add('active');
+                } else {
+                    startNewMatch('pvp');
+                }
+            });
+
+            document.getElementById('btn-start-online').addEventListener('click', () => {
+                overlayMenu.classList.remove('active');
+                overlayOnline.classList.add('active');
+            });
+
+            document.getElementById('btn-close-online').addEventListener('click', () => {
+                overlayOnline.classList.remove('active');
+                overlayMenu.classList.add('active');
+            });
+
+            // ONLINE: CREATE ROOM (HOST)
+            document.getElementById('btn-create-room').addEventListener('click', () => {
+                const modalBody = document.getElementById('online-modal-body');
+                modalBody.innerHTML = `<p style="font-weight:800; color:#18B9E5;">GENERATING ROOM CODE...</p>`;
+
+                const fourDigitCode = Math.floor(1000 + Math.random() * 9000).toString();
+                const fullPeerId = 'CW-ROOM-' + fourDigitCode;
+
+                if (peer) peer.destroy();
+                peer = new Peer(fullPeerId, PEER_CONFIG);
+
+                peer.on('open', () => {
+                    modalBody.innerHTML = `
+                        <p style="font-size:13px; font-weight:700; color:#334760;">SHARE CODE WITH YOUR FRIEND:</p>
+                        <div class="code-display-row">
+                            <div class="code-pill-box">${fourDigitCode}</div>
+                            <button id="btn-copy-code" class="btn btn-cyan btn-copy">COPY</button>
+                        </div>
+                        <p style="font-size:12px; font-weight:800; color:#8A9BAE; margin-top:8px;">WAITING FOR FRIEND TO JOIN...</p>
+                    `;
+
+                    document.getElementById('btn-copy-code').addEventListener('click', () => {
+                        navigator.clipboard.writeText(fourDigitCode);
+                        const copyBtn = document.getElementById('btn-copy-code');
+                        copyBtn.textContent = 'COPIED!';
+                        setTimeout(() => copyBtn.textContent = 'COPY', 2000);
+                    });
+                });
+
+                peer.on('connection', (conn) => {
+                    peerConn = conn;
+                    myOnlineRole = 'blue';
+                    bindConnectionEvents(conn);
+                });
+
+                peer.on('error', (err) => {
+                    if (err.type === 'network') {
+                        setTimeout(() => peer.reconnect(), 1500);
+                    } else {
+                        alert('Server Error: ' + err.type);
+                        overlayOnline.classList.remove('active');
+                        overlayMenu.classList.add('active');
+                    }
+                });
+            });
+
+            // ONLINE: JOIN ROOM (CLIENT)
+            document.getElementById('btn-join-room').addEventListener('click', () => {
+                const codeInput = document.getElementById('input-room-code').value.trim();
+                if (!codeInput || codeInput.length !== 4) {
+                    alert('Please enter a valid 4-Digit Room Code!');
+                    return;
+                }
+
+                const modalBody = document.getElementById('online-modal-body');
+                modalBody.innerHTML = `<p style="font-weight:800; color:#18B9E5;">CONNECTING TO HOST (${codeInput})...</p>`;
+
+                const targetPeerId = 'CW-ROOM-' + codeInput;
+
+                if (peer) peer.destroy();
+                peer = new Peer(PEER_CONFIG);
+
+                peer.on('open', () => {
+                    peerConn = peer.connect(targetPeerId, { reliable: true });
+                    myOnlineRole = 'red';
+
+                    bindConnectionEvents(peerConn);
+                });
+
+                peer.on('error', (err) => {
+                    if (err.type === 'network') {
+                        setTimeout(() => peer.reconnect(), 1500);
+                    } else {
+                        alert('Could not join room ' + codeInput + '! Please check the code.');
+                        overlayOnline.classList.remove('active');
+                        overlayMenu.classList.add('active');
+                    }
+                });
+            });
+
+            document.getElementById('btn-open-tutorial').addEventListener('click', () => {
+                showTutorialStep(0);
+                overlayTutorial.classList.add('active');
+            });
+
+            document.getElementById('btn-tutorial-next').addEventListener('click', () => {
+                if (currentTutorialStep < tutorialSteps.length - 1) {
+                    showTutorialStep(currentTutorialStep + 1);
+                } else {
+                    localStorage.setItem('colorWarsTutorialSeen', 'true');
+                    overlayTutorial.classList.remove('active');
+                    if (gamePhase === 'menu') {
+                        overlayMenu.classList.remove('active');
+                        startNewMatch(gameMode);
+                    }
+                }
+            });
+
+            document.getElementById('btn-open-settings').addEventListener('click', () => {
+                if (gameMode === 'online' && myOnlineRole === 'red') {
+                    sliderGridSize.disabled = true;
+                    sliderHostHint.style.display = 'block';
+                } else {
+                    sliderGridSize.disabled = false;
+                    sliderHostHint.style.display = 'none';
+                }
+                overlaySettings.classList.add('active');
+            });
+
+            document.getElementById('btn-settings').addEventListener('click', () => {
+                if (gameMode === 'online' && myOnlineRole === 'red') {
+                    sliderGridSize.disabled = true;
+                    sliderHostHint.style.display = 'block';
+                } else {
+                    sliderGridSize.disabled = false;
+                    sliderHostHint.style.display = 'none';
+                }
+                overlaySettings.classList.add('active');
+            });
+
+            document.getElementById('btn-close-settings').addEventListener('click', () => {
+                overlaySettings.classList.remove('active');
+            });
+
+            document.getElementById('btn-replay-tutorial').addEventListener('click', () => {
+                overlaySettings.classList.remove('active');
+                showTutorialStep(0);
+                overlayTutorial.classList.add('active');
+            });
+
+            const toggleSound = document.getElementById('toggle-sound');
+            toggleSound.addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                toggleSound.classList.toggle('on', soundEnabled);
+            });
+
+            const toggleVibe = document.getElementById('toggle-vibe');
+            toggleVibe.addEventListener('click', () => {
+                vibeEnabled = !vibeEnabled;
+                toggleVibe.classList.toggle('on', vibeEnabled);
+            });
+
+            document.getElementById('btn-restart').addEventListener('click', () => {
+                startNewMatch(gameMode);
+            });
+
+            document.getElementById('btn-play-again').addEventListener('click', () => {
+                overlayVictory.classList.remove('active');
+                startNewMatch(gameMode);
+            });
+
+            document.getElementById('btn-victory-menu').addEventListener('click', () => {
+                overlayVictory.classList.remove('active');
+                overlayMenu.classList.add('active');
+                gamePhase = 'menu';
+            });
+        });
+    </script>
+</body>
+
+</html>
