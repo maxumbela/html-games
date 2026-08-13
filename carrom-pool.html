@@ -1031,6 +1031,7 @@
 
         this.gameMode = '2P';
         this.currentPlayer = 1;
+        this.mySlot = 1;
         this.pucks = [];
         this.striker = null;
         this.gameActive = false;
@@ -1041,6 +1042,7 @@
         this.aimCurrentPos = { x: 0, y: 0 };
         this.shotInProgress = false;
         this.waitingForAI = false;
+        this.remoteAim = { sliderVal: 50, aimCurrentPos: null, aiming: false };
 
         this.scores = { 1: 6, 2: 6 };
         this.totalShots = 0;
@@ -1061,9 +1063,10 @@
         this.canvas.height = Math.round(BOARD_SIZE * dpr);
       }
 
-      initGame(mode = '2P') {
+      initGame(mode = '2P', onlineConfig = null) {
         this.gameMode = mode;
         this.currentPlayer = 1;
+        this.mySlot = 1;
         this.scores = { 1: 6, 2: 6 };
         this.totalShots = 0;
         this.shotsByPlayer = { 1: 0, 2: 0 };
@@ -1073,12 +1076,28 @@
         this.gameActive = true;
         this.gameOver = false;
         this.aiming = false;
+        this.remoteAim = { sliderVal: 50, aimCurrentPos: null, aiming: false };
         this.turnSettleTimer = 0;
 
         document.getElementById('score-p1').textContent = '6';
         document.getElementById('score-p2').textContent = '6';
-        document.getElementById('name-p2').textContent = mode === 'AI' ? 'Computer Bot' : 'Player 2';
-        document.getElementById('avatar-p2').textContent = mode === 'AI' ? '🤖' : '👥';
+
+        if (this.gameMode === 'ONLINE' && onlineConfig) {
+          this.mySlot = onlineConfig.mySlot || 1;
+          this.currentPlayer = onlineConfig.firstTurn || 1;
+          const hostName = (onlineConfig.room?.host_name || 'Player 1').toUpperCase();
+          const guestName = (onlineConfig.room?.guest_name || 'Player 2').toUpperCase();
+          document.getElementById('name-p1').textContent = hostName;
+          document.getElementById('name-p2').textContent = guestName;
+          document.getElementById('avatar-p1').textContent = '⚪';
+          document.getElementById('avatar-p2').textContent = '⚫';
+        } else {
+          document.getElementById('name-p1').textContent = 'Player 1';
+          document.getElementById('name-p2').textContent = mode === 'AI' ? 'Computer Bot' : 'Player 2';
+          document.getElementById('avatar-p1').textContent = '👤';
+          document.getElementById('avatar-p2').textContent = mode === 'AI' ? '🤖' : '👥';
+        }
+
         document.getElementById('aim-instruction-text').textContent = '👆 Drag back from striker to aim & shoot!';
 
         this.setupBoardPucks();
@@ -1098,25 +1117,17 @@
         const count = 12;
         const ringRadius = 34;
         for (let i = 0; i < count; i++) {
-          const angle = (i * Math.PI * 2) / count;
-          const px = cx + Math.cos(angle) * ringRadius;
-          const py = cy + Math.sin(angle) * ringRadius;
-          const type = (i % 2 === 0) ? 'white' : 'black';
-          const color = type === 'white' ? '#ffffff' : '#222222';
-          this.pucks.push(new Puck(px, py, PUCK_RADIUS, color, type));
+          const angle = (i / count) * Math.PI * 2;
+          const x = cx + Math.cos(angle) * ringRadius;
+          const y = cy + Math.sin(angle) * ringRadius;
+          const isWhite = i % 2 === 0;
+          this.pucks.push(new Puck(x, y, PUCK_RADIUS, isWhite ? '#f5f6fa' : '#2f3640', isWhite ? 'white' : 'black'));
         }
-
-        this.striker = new Puck(cx, BASELINE_Y_BOTTOM, STRIKER_RADIUS, '#ffc83b', 'striker');
       }
 
       resetStriker() {
-        if (!this.striker) return;
-        this.striker.potted = false;
-        this.striker.pottedThisTurn = false;
-        this.striker.scale = 1;
-        this.striker.vx = 0;
-        this.striker.vy = 0;
-
+        const baselineY = this.currentPlayer === 1 ? BASELINE_Y_BOTTOM : BASELINE_Y_TOP;
+        this.striker = new Puck(BOARD_SIZE / 2, baselineY, STRIKER_RADIUS, '#f1c40f', 'striker');
         const slider = document.getElementById('strikerPositionSlider');
         slider.value = 50;
         this.positionStrikerFromSlider(50);
@@ -1129,6 +1140,14 @@
         const targetX = BASELINE_X_MIN + (val / 100) * (BASELINE_X_MAX - BASELINE_X_MIN);
         this.striker.x = targetX;
         this.striker.y = this.currentPlayer === 1 ? BASELINE_Y_BOTTOM : BASELINE_Y_TOP;
+
+        if (this.gameMode === 'ONLINE' && this.currentPlayer === this.mySlot) {
+          SupabaseMultiplayer.sendEvent('aim_update', {
+            sliderVal: val,
+            aiming: this.aiming,
+            slot: this.mySlot
+          });
+        }
       }
 
       /* ------------------------------------------------------------------
@@ -1138,6 +1157,7 @@
         const slider = document.getElementById('strikerPositionSlider');
         slider.addEventListener('input', (e) => {
           if (!this.gameActive || this.gameOver) return;
+          if (this.gameMode === 'ONLINE' && this.currentPlayer !== this.mySlot) return;
           this.positionStrikerFromSlider(parseFloat(e.target.value));
         });
 
@@ -1156,6 +1176,7 @@
           if (!this.gameActive || this.gameOver) return;
           if (this.shotInProgress || this.waitingForAI) return;
           if (this.gameMode === 'AI' && this.currentPlayer === 2) return;
+          if (this.gameMode === 'ONLINE' && this.currentPlayer !== this.mySlot) return;
 
           const pos = getCanvasCoords(e);
           const dx = pos.x - this.striker.x;
@@ -1165,6 +1186,15 @@
             this.aimStartPos = { x: this.striker.x, y: this.striker.y };
             this.aimCurrentPos = { x: pos.x, y: pos.y };
             sound.init();
+
+            if (this.gameMode === 'ONLINE') {
+              SupabaseMultiplayer.sendEvent('aim_update', {
+                sliderVal: parseFloat(slider.value),
+                aimCurrentPos: this.aimCurrentPos,
+                aiming: true,
+                slot: this.mySlot
+              });
+            }
           }
         };
 
@@ -1173,6 +1203,15 @@
           e.preventDefault();
           const pos = getCanvasCoords(e);
           this.aimCurrentPos = { x: pos.x, y: pos.y };
+
+          if (this.gameMode === 'ONLINE') {
+            SupabaseMultiplayer.sendEvent('aim_update', {
+              sliderVal: parseFloat(slider.value),
+              aimCurrentPos: this.aimCurrentPos,
+              aiming: true,
+              slot: this.mySlot
+            });
+          }
         };
 
         const endAim = (e) => {
@@ -1184,6 +1223,16 @@
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist > 15) {
+            if (this.gameMode === 'ONLINE') {
+              SupabaseMultiplayer.sendEvent('shoot_striker', {
+                sliderVal: parseFloat(slider.value),
+                dx: dx,
+                dy: dy,
+                dist: dist,
+                slot: this.mySlot,
+                shotId: Date.now()
+              });
+            }
             this.executeShot(dx, dy, dist);
           }
         };
@@ -1450,10 +1499,7 @@
             this.scores[this.currentPlayer]++;
           } else {
             // If no previously potted puck, return a just-potted one
-            const justPotted = this.pucks.find(p =>
-              p.pottedThisTurn && p.type === penaltyType
-            );
-            if (justPotted) {
+if (justPotted) {
               this.returnPuckToCenter(justPotted);
               this.scores[this.currentPlayer]++;
             }
@@ -1463,17 +1509,20 @@
         this.updateHUD();
 
         // --- WIN CHECK ---
-        if (this.scores[1] === 0) {
+        if (this.scores[1] === 0 || this.scores[2] === 0) {
           this.gameOver = true;
           this.gameActive = false;
-          setTimeout(() => this.showWinModal('Player 1'), 400);
-          return;
-        }
-        if (this.scores[2] === 0) {
-          this.gameOver = true;
-          this.gameActive = false;
-          const name = this.gameMode === 'AI' ? 'Computer Bot' : 'Player 2';
-          setTimeout(() => this.showWinModal(name), 400);
+          const winnerSlot = this.scores[1] === 0 ? 1 : 2;
+          let winnerName = winnerSlot === 1 ? 'Player 1' : (this.gameMode === 'AI' ? 'Computer Bot' : 'Player 2');
+
+          if (this.gameMode === 'ONLINE') {
+            const hostName = (onlineRoom?.host_name || 'Player 1').toUpperCase();
+            const guestName = (onlineRoom?.guest_name || 'Player 2').toUpperCase();
+            winnerName = winnerSlot === 1 ? hostName : guestName;
+            SupabaseMultiplayer.recordMatchResult('carrom-pool', winnerSlot, 6 - this.scores[1], 6 - this.scores[2]);
+          }
+
+          setTimeout(() => this.showWinModal(winnerName), 400);
           return;
         }
 
@@ -1557,15 +1606,27 @@
         const card1 = document.getElementById('card-p1');
         const card2 = document.getElementById('card-p2');
         const turnText = document.getElementById('turn-text');
+        const instructionText = document.getElementById('aim-instruction-text');
 
         if (this.currentPlayer === 1) {
           card1.classList.add('active-turn');
           card2.classList.remove('active-turn');
-          turnText.textContent = 'P1 Turn (White)';
         } else {
           card2.classList.add('active-turn');
           card1.classList.remove('active-turn');
-          turnText.textContent = `${this.gameMode === 'AI' ? 'Bot' : 'P2'} Turn (Black)`;
+        }
+
+        if (this.gameMode === 'ONLINE') {
+          const isMyTurn = (this.currentPlayer === this.mySlot);
+          if (isMyTurn) {
+            turnText.textContent = '🟢 YOUR TURN';
+            instructionText.textContent = '👆 Drag back from striker to aim & shoot!';
+          } else {
+            turnText.textContent = "⌛ OPPONENT'S TURN";
+            instructionText.textContent = 'Opponent is aiming their striker...';
+          }
+        } else {
+          turnText.textContent = this.currentPlayer === 1 ? 'P1 Turn (White)' : `${this.gameMode === 'AI' ? 'Bot' : 'P2'} Turn (Black)`;
         }
       }
 
@@ -1601,10 +1662,45 @@
           this.drawPuck(this.striker);
         }
 
-        // Draw Aim Line on top
+        // Draw Local Aim Line
         if (this.aiming && !this.shotInProgress) {
           this.drawAimLine();
         }
+
+        // Draw Remote Opponent Aim Line
+        if (this.gameMode === 'ONLINE' && this.currentPlayer !== this.mySlot && this.remoteAim && this.remoteAim.aiming && !this.shotInProgress) {
+          this.drawRemoteAimLine();
+        }
+      }
+
+      drawRemoteAimLine() {
+        if (!this.remoteAim.aimCurrentPos) return;
+        const ctx = this.ctx;
+        const startX = this.striker.x;
+        const startY = this.striker.y;
+        const dx = startX - this.remoteAim.aimCurrentPos.x;
+        const dy = startY - this.remoteAim.aimCurrentPos.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 10) return;
+
+        const angle = Math.atan2(dy, dx);
+        const aimLength = Math.min(dist * 2, 200);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([6, 4]);
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(startX + Math.cos(angle) * aimLength, startY + Math.sin(angle) * aimLength);
+        ctx.strokeStyle = '#ec4899';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+        ctx.font = '900 12px var(--font-display)';
+        ctx.fillStyle = '#ec4899';
+        ctx.textAlign = 'center';
+        ctx.fillText('🎯 OPPONENT AIMING', startX, startY - 26);
+        ctx.restore();
       }
 
       drawCarromBoard() {
@@ -1652,14 +1748,63 @@
 
         ctx.beginPath();
         ctx.arc(cx, cy, 14, 0, Math.PI * 2);
-        ctx.fillStyle = '#e74c3c';
+        ctx.fillStyle = '#c0392b';
         ctx.fill();
-        ctx.strokeStyle = '#c0392b';
-        ctx.stroke();
 
-        // Baselines
-        this.drawBaseline(cx, BASELINE_Y_BOTTOM);
-        this.drawBaseline(cx, BASELINE_Y_TOP);
+        // 4 Baseline Striking Rows
+        const drawBaseline = (y, isTop) => {
+          ctx.beginPath();
+          ctx.moveTo(BASELINE_X_MIN, y);
+          ctx.lineTo(BASELINE_X_MAX, y);
+          ctx.strokeStyle = '#8b5a2b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // End Circles
+          [BASELINE_X_MIN, BASELINE_X_MAX].forEach(bx => {
+            ctx.beginPath();
+            ctx.arc(bx, y, 14, 0, Math.PI * 2);
+            ctx.fillStyle = '#f4ecd8';
+            ctx.fill();
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(bx, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#c0392b';
+            ctx.fill();
+          });
+        };
+
+        drawBaseline(BASELINE_Y_BOTTOM, false);
+        drawBaseline(BASELINE_Y_TOP, true);
+
+        // 4 Diagonal Corner Foul Lines
+        const cornerOffset = 45;
+        const lineLen = 95;
+        [
+          { sx: cornerOffset, sy: cornerOffset, dx: 1, dy: 1 },
+          { sx: BOARD_SIZE - cornerOffset, sy: cornerOffset, dx: -1, dy: 1 },
+          { sx: cornerOffset, sy: BOARD_SIZE - cornerOffset, dx: 1, dy: -1 },
+          { sx: BOARD_SIZE - cornerOffset, sy: BOARD_SIZE - cornerOffset, dx: -1, dy: -1 }
+        ].forEach(l => {
+          ctx.beginPath();
+          ctx.moveTo(l.sx, l.sy);
+          ctx.lineTo(l.sx + l.dx * lineLen, l.sy + l.dy * lineLen);
+          ctx.strokeStyle = '#8b5a2b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Arrow tip circle
+          ctx.beginPath();
+          ctx.arc(l.sx + l.dx * lineLen, l.sy + l.dy * lineLen, 7, 0, Math.PI * 2);
+          ctx.fillStyle = '#f4ecd8';
+          ctx.fill();
+          ctx.strokeStyle = '#8b5a2b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
 
         // Highlight current player's baseline
         if (this.gameActive && !this.shotInProgress && !this.waitingForAI) {
@@ -1749,46 +1894,24 @@
         const powerRatio = power / MAX_SHOT_POWER;
         const aimLength = Math.min(dist * 2, 200);
 
-        const targetX = this.striker.x + Math.cos(angle) * aimLength;
-        const targetY = this.striker.y + Math.sin(angle) * aimLength;
-
-        // Dotted Aim Line
+        ctx.save();
         ctx.beginPath();
-        ctx.setLineDash([8, 6]);
+        ctx.setLineDash([8, 4]);
         ctx.moveTo(this.striker.x, this.striker.y);
-        ctx.lineTo(targetX, targetY);
-        ctx.strokeStyle = `rgba(255, 200, 59, ${0.5 + powerRatio * 0.5})`;
-        ctx.lineWidth = 2 + powerRatio * 2;
+        ctx.lineTo(this.striker.x + Math.cos(angle) * aimLength, this.striker.y + Math.sin(angle) * aimLength);
+
+        const r = Math.round(255 * powerRatio);
+        const g = Math.round(200 * (1 - powerRatio * 0.5));
+        ctx.strokeStyle = `rgb(${r}, ${g}, 50)`;
+        ctx.lineWidth = 3 + powerRatio * 2;
         ctx.stroke();
+
         ctx.setLineDash([]);
-
-        // Ghost Preview
         ctx.beginPath();
-        ctx.arc(targetX, targetY, STRIKER_RADIUS, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 200, 59, 0.4)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Power indicator bar next to striker
-        const barWidth = 6;
-        const barHeight = 60;
-        const barX = this.striker.x + STRIKER_RADIUS + 12;
-        const barY = this.striker.y - barHeight / 2;
-
-        // Background
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(barX, barY, barWidth, barHeight);
-
-        // Filled portion (green -> yellow -> red)
-        const fillHeight = barHeight * powerRatio;
-        const r = Math.min(255, powerRatio * 2 * 255);
-        const g = Math.min(255, (1 - powerRatio * 0.8) * 255);
+        ctx.arc(this.striker.x + Math.cos(angle) * aimLength, this.striker.y + Math.sin(angle) * aimLength, 6, 0, Math.PI * 2);
         ctx.fillStyle = `rgb(${r}, ${g}, 50)`;
-        ctx.fillRect(barX, barY + barHeight - fillHeight, barWidth, fillHeight);
-
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(barX, barY, barWidth, barHeight);
+        ctx.fill();
+        ctx.restore();
       }
     }
 
@@ -1867,8 +1990,15 @@
     document.getElementById('btn-play-again').addEventListener('click', () => {
       sound.playButtonClick();
       document.getElementById('win-modal').classList.remove('active');
-      showScreen('game-screen');
-      game.initGame(game.gameMode);
+      if (game.gameMode === 'ONLINE' && isOnlineMultiplayer) {
+        SupabaseMultiplayer.sendEvent('rematch_request', {});
+        if (localPlayerInfo && localPlayerInfo.slot === 1) {
+          initiateHostCarromMatch();
+        }
+      } else {
+        showScreen('game-screen');
+        game.initGame(game.gameMode);
+      }
     });
 
     document.getElementById('btn-win-menu').addEventListener('click', () => {
@@ -1962,7 +2092,7 @@
       renderConfetti();
     }
 
-    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION (Supabase + WebRTC Hybrid) */
     let isOnlineMultiplayer = false;
     let onlineRoom = null;
     let localPlayerInfo = null;
@@ -1979,17 +2109,78 @@
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
           onBroadcastEvent: (evt) => {
-            if (evt.eventType === 'shoot_striker') {
-              if (evt.sender.slot !== localPlayerInfo.slot && typeof executeRemoteShot === 'function') {
-                executeRemoteShot(evt.sliderVal, evt.vx, evt.vy);
+            if (evt.eventType === 'init_online_match') {
+              startCarromTurnDraw(evt.firstTurn, evt.hostName, evt.guestName);
+            } else if (evt.eventType === 'aim_update') {
+              if (evt.slot !== localPlayerInfo.slot) {
+                game.remoteAim = {
+                  sliderVal: evt.sliderVal,
+                  aimCurrentPos: evt.aimCurrentPos,
+                  aiming: evt.aiming
+                };
+                if (evt.sliderVal !== undefined) {
+                  const targetX = BASELINE_X_MIN + (evt.sliderVal / 100) * (BASELINE_X_MAX - BASELINE_X_MIN);
+                  if (game.striker) {
+                    game.striker.x = targetX;
+                    game.striker.y = game.currentPlayer === 1 ? BASELINE_Y_BOTTOM : BASELINE_Y_TOP;
+                  }
+                }
               }
-            } else if (evt.eventType === 'rematch') {
-              document.getElementById('btn-mode-2p').click();
+            } else if (evt.eventType === 'shoot_striker') {
+              if (evt.slot !== localPlayerInfo.slot) {
+                game.remoteAim.aiming = false;
+                const targetX = BASELINE_X_MIN + (evt.sliderVal / 100) * (BASELINE_X_MAX - BASELINE_X_MIN);
+                if (game.striker) {
+                  game.striker.x = targetX;
+                  game.striker.y = game.currentPlayer === 1 ? BASELINE_Y_BOTTOM : BASELINE_Y_TOP;
+                }
+                game.executeShot(evt.dx, evt.dy, evt.dist);
+              }
+            } else if (evt.eventType === 'rematch_request') {
+              if (localPlayerInfo.slot === 1) {
+                initiateHostCarromMatch();
+              }
             }
           }
         });
 
-        document.getElementById('btn-mode-2p').click();
+        if (localPlayerInfo.slot === 1) {
+          initiateHostCarromMatch();
+        }
+      });
+    }
+
+    function initiateHostCarromMatch() {
+      const firstTurn = Math.random() < 0.5 ? 1 : 2;
+      const hostName = onlineRoom?.host_name || 'Player 1';
+      const guestName = onlineRoom?.guest_name || 'Player 2';
+
+      SupabaseMultiplayer.sendEvent('init_online_match', {
+        firstTurn,
+        hostName,
+        guestName
+      });
+
+      startCarromTurnDraw(firstTurn, hostName, guestName);
+    }
+
+    function startCarromTurnDraw(firstTurn, hostName, guestName) {
+      document.getElementById('win-modal').classList.remove('active');
+      document.getElementById('pause-modal').classList.remove('active');
+
+      SupabaseMultiplayer.runTurnDraw({
+        hostName,
+        guestName,
+        firstTurn,
+        mySlot: localPlayerInfo?.slot || 1,
+        onComplete: (winnerSlot) => {
+          showScreen('game-screen');
+          game.initGame('ONLINE', {
+            mySlot: localPlayerInfo?.slot || 1,
+            firstTurn: winnerSlot,
+            room: onlineRoom
+          });
+        }
       });
     }
   </script>

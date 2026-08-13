@@ -1031,7 +1031,7 @@
         <div class="winner-score-recap" id="winner-recap">Final Score: 10 - 7</div>
 
         <div class="menu-actions">
-          <button class="btn btn-cyan" onclick="startGame()">⚡ REMATCH</button>
+          <button class="btn btn-cyan" id="rematch-btn" onclick="handleRematchClick()">⚡ REMATCH</button>
           <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🎮 MAIN MENU</button>
           <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
         </div>
@@ -1412,8 +1412,16 @@
       });
     }
 
-    function handleTap(playerNum, tappedEmoji, itemEl, wheelEl) {
+    function handleTap(playerNum, tappedEmoji, itemEl, wheelEl, isRemote = false) {
       if (state.roundLocked) return;
+      if (isOnlineMultiplayer && localPlayerInfo && !isRemote) {
+        if (state.currentTurn !== localPlayerInfo.slot) return;
+        SupabaseMultiplayer.sendEvent('remote_tap', {
+          emoji: tappedEmoji,
+          player: localPlayerInfo.slot
+        });
+      }
+
       state.roundLocked = true;
 
       const isCorrect = (tappedEmoji === state.round.matchEmoji);
@@ -1429,29 +1437,42 @@
         playSound('correct');
         if (navigator.vibrate) navigator.vibrate(50);
 
-        const baseScale = parseFloat(itemEl.dataset.scale || 1);
-        const baseRot = parseFloat(itemEl.dataset.rot || 0);
-        itemEl.style.transform = `translate(-50%, -50%) rotate(${baseRot}deg) scale(${baseScale * 1.35})`;
-        itemEl.classList.add('correct-pulse');
+        if (itemEl) {
+          const baseScale = parseFloat(itemEl.dataset.scale || 1);
+          const baseRot = parseFloat(itemEl.dataset.rot || 0);
+          itemEl.style.transform = `translate(-50%, -50%) rotate(${baseRot}deg) scale(${baseScale * 1.35})`;
+          itemEl.classList.add('correct-pulse');
 
-        if (state.mode === 'grayscale') {
-          itemEl.classList.add('revealed-match');
-          spawnSparkles(itemEl);
+          if (state.mode === 'grayscale') {
+            itemEl.classList.add('revealed-match');
+            spawnSparkles(itemEl);
+          }
+
+          spawnToast(wheelEl, "+1", itemEl.offsetLeft, itemEl.offsetTop, false);
         }
-
-        spawnToast(wheelEl, "+1", itemEl.offsetLeft, itemEl.offsetTop, false);
       } else {
         playSound('wrong');
         if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
 
-        wheelEl.classList.add('shake');
-        setTimeout(() => wheelEl.classList.remove('shake'), 400);
+        if (wheelEl) {
+          wheelEl.classList.add('shake');
+          setTimeout(() => wheelEl.classList.remove('shake'), 400);
+        }
 
         const overlayEl = document.getElementById(isP1 ? 'overlay-p1' : 'overlay-p2');
-        overlayEl.classList.add('active');
-        setTimeout(() => overlayEl.classList.remove('active'), 400);
+        if (overlayEl) {
+          overlayEl.classList.add('active');
+          setTimeout(() => overlayEl.classList.remove('active'), 400);
+        }
 
-        spawnToast(wheelEl, "Opponent +1", itemEl.offsetLeft, itemEl.offsetTop, true);
+        if (itemEl && wheelEl) {
+          spawnToast(wheelEl, "Opponent +1", itemEl.offsetLeft, itemEl.offsetTop, true);
+        }
+      }
+
+      // Alternate turn in online mode
+      if (isOnlineMultiplayer) {
+        state.currentTurn = state.currentTurn === 1 ? 2 : 1;
       }
 
       if (state.scores.p1 >= WIN_SCORE || state.scores.p2 >= WIN_SCORE) {
@@ -1460,67 +1481,84 @@
         }, 600);
       } else {
         setTimeout(() => {
-          generateNewRound();
+          if (isOnlineMultiplayer) {
+            if (localPlayerInfo && localPlayerInfo.slot === 1) {
+              generateAndBroadcastNewRound();
+            }
+          } else {
+            generateNewRound();
+          }
         }, 750);
       }
     }
 
-    function spawnToast(parentEl, text, x, y, isWrong) {
-      const toast = document.createElement('div');
-      toast.className = `toast-score ${isWrong ? 'wrong' : ''}`;
-      toast.textContent = text;
-      toast.style.left = `${x}px`;
-      toast.style.top = `${y}px`;
-      parentEl.appendChild(toast);
-      setTimeout(() => toast.remove(), 800);
+    function generateAndBroadcastNewRound() {
+      const matchEmoji = EMOJI_POOL[Math.floor(Math.random() * EMOJI_POOL.length)];
+      const availableForP1 = EMOJI_POOL.filter(e => e !== matchEmoji);
+      shuffle(availableForP1);
+      const p1Decoys = availableForP1.slice(0, 7);
+
+      const availableForP2 = EMOJI_POOL.filter(e => e !== matchEmoji && !p1Decoys.includes(e));
+      shuffle(availableForP2);
+      const p2Decoys = availableForP2.slice(0, 7);
+
+      const p1Objects = shuffle([matchEmoji, ...p1Decoys]);
+      const p2Objects = shuffle([matchEmoji, ...p2Decoys]);
+
+      SupabaseMultiplayer.sendEvent('sync_round', {
+        matchEmoji: matchEmoji,
+        p1Items: p1Objects,
+        p2Items: p2Objects,
+        currentTurn: state.currentTurn
+      });
+
+      applySyncedRound({
+        matchEmoji: matchEmoji,
+        p1Items: p1Objects,
+        p2Items: p2Objects,
+        currentTurn: state.currentTurn
+      });
     }
 
-    function spawnSparkles(itemEl) {
-      const parent = itemEl.parentElement;
-      const x = itemEl.offsetLeft;
-      const y = itemEl.offsetTop;
+    function applySyncedRound(roundData) {
+      state.roundLocked = true;
+      state.round = {
+        matchEmoji: roundData.matchEmoji,
+        p1Items: roundData.p1Items,
+        p2Items: roundData.p2Items
+      };
+      if (roundData.currentTurn) state.currentTurn = roundData.currentTurn;
 
-      for (let i = 0; i < 8; i++) {
-        const star = document.createElement('div');
-        star.className = 'sparkle-particle';
-        star.textContent = '⭐';
-        
-        const angle = (i / 8) * Math.PI * 2;
-        const dist = 40 + Math.random() * 20;
-        const dx = Math.cos(angle) * dist;
-        const dy = Math.sin(angle) * dist;
+      renderWheel('wheel-p1', roundData.p1Items, 1);
+      renderWheel('wheel-p2', roundData.p2Items, 2);
 
-        star.style.left = `${x}px`;
-        star.style.top = `${y}px`;
-        star.style.setProperty('--dx', `${dx}px`);
-        star.style.setProperty('--dy', `${dy}px`);
-
-        parent.appendChild(star);
-        setTimeout(() => star.remove(), 600);
-      }
-    }
-
-    function promptExitGame() {
-      document.getElementById('exit-modal').classList.add('active');
-      playSound('tap');
-    }
-
-    function closeExitModal() {
-      document.getElementById('exit-modal').classList.remove('active');
-      playSound('tap');
-    }
-
-    function confirmExitGame() {
-      closeExitModal();
-      showScreen('screen-menu');
+      setTimeout(() => {
+        state.roundLocked = false;
+      }, 350);
     }
 
     function triggerMatchWin(winnerNum) {
       playSound('win');
 
       const headline = document.getElementById('winner-headline');
-      headline.textContent = `PLAYER ${winnerNum} WINS!`;
-      headline.style.color = winnerNum === 1 ? 'var(--p1-cyan-dark)' : 'var(--p2-coral-dark)';
+      if (isOnlineMultiplayer && localPlayerInfo) {
+        const isWinner = localPlayerInfo.slot === winnerNum;
+        headline.textContent = isWinner ? 'YOU WIN! 🏆' : 'OPPONENT WINS! 👑';
+        headline.style.color = isWinner ? 'var(--p1-cyan-dark)' : 'var(--p2-coral-dark)';
+
+        if (window.SupabaseMultiplayer) {
+          SupabaseMultiplayer.recordMatchResult(
+            'match-emoji',
+            isWinner ? localPlayerInfo.name : 'Opponent',
+            isWinner ? 'win' : 'loss',
+            state.scores.p1,
+            state.scores.p2
+          );
+        }
+      } else {
+        headline.textContent = `PLAYER ${winnerNum} WINS! 🏆`;
+        headline.style.color = winnerNum === 1 ? 'var(--p1-cyan-dark)' : 'var(--p2-coral-dark)';
+      }
 
       document.getElementById('winner-recap').textContent = 
         `Final Score: ${state.scores.p1} - ${state.scores.p2}`;
@@ -1529,82 +1567,7 @@
       startConfetti();
     }
 
-    let confettiAnimId = null;
-
-    function startConfetti() {
-      if (confettiAnimId) {
-        cancelAnimationFrame(confettiAnimId);
-        confettiAnimId = null;
-      }
-      const canvas = document.getElementById('confetti-canvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-
-      const particles = [];
-      const colors = ['#38bdf8', '#f43f5e', '#facc15', '#22c55e', '#8b5cf6'];
-
-      for (let i = 0; i < 45; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 6,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          vx: Math.random() * 4 - 2,
-          vy: Math.random() * 4 + 3,
-          rot: Math.random() * 360,
-          vRot: Math.random() * 6 - 3
-        });
-      }
-
-      function render() {
-        if (state.screen !== 'screen-winner' || document.hidden) {
-          if (confettiAnimId) {
-            cancelAnimationFrame(confettiAnimId);
-            confettiAnimId = null;
-          }
-          return;
-        }
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        let alive = false;
-
-        particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.rot += p.vRot;
-
-          if (p.y < canvas.height) alive = true;
-
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate((p.rot * Math.PI) / 180);
-          ctx.fillStyle = p.color;
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-          ctx.restore();
-        });
-
-        if (alive && state.screen === 'screen-winner') {
-          confettiAnimId = requestAnimationFrame(render);
-        } else {
-          if (confettiAnimId) {
-            cancelAnimationFrame(confettiAnimId);
-            confettiAnimId = null;
-          }
-        }
-      }
-      confettiAnimId = requestAnimationFrame(render);
-    }
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && confettiAnimId) {
-        cancelAnimationFrame(confettiAnimId);
-        confettiAnimId = null;
-      }
-    });
-
-    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION (WebRTC + Turn Draw) */
     let isOnlineMultiplayer = false;
     let onlineRoom = null;
     let localPlayerInfo = null;
@@ -1621,18 +1584,107 @@
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
           onBroadcastEvent: (evt) => {
-            if (evt.eventType === 'tap_emoji') {
-              if (evt.sender.slot !== localPlayerInfo.slot && typeof handleEmojiTap === 'function') {
-                handleEmojiTap(evt.playerSlot, evt.emojiSymbol);
+            if (evt.eventType === 'init_online_match') {
+              startOnlineTurnDrawMatch(evt.data);
+            } else if (evt.eventType === 'sync_round') {
+              applySyncedRound(evt.data);
+            } else if (evt.eventType === 'remote_tap') {
+              if (evt.sender.slot !== localPlayerInfo.slot) {
+                const oppSlot = evt.data.player || (localPlayerInfo.slot === 1 ? 2 : 1);
+                const wheelId = oppSlot === 1 ? 'wheel-p1' : 'wheel-p2';
+                const wheelEl = document.getElementById(wheelId);
+                let itemEl = null;
+                if (wheelEl) {
+                  const items = wheelEl.querySelectorAll('.wheel-item');
+                  items.forEach(el => {
+                    if (el.textContent.includes(evt.data.emoji) || el.innerHTML.includes(evt.data.emoji)) {
+                      itemEl = el;
+                    }
+                  });
+                }
+                handleTap(oppSlot, evt.data.emoji, itemEl, wheelEl, true);
               }
-            } else if (evt.eventType === 'rematch') {
-              startGame();
+            } else if (evt.eventType === 'rematch_request') {
+              if (localPlayerInfo.slot === 1) {
+                const firstTurn = Math.random() < 0.5 ? 1 : 2;
+                SupabaseMultiplayer.sendEvent('init_online_match', {
+                  firstTurn: firstTurn,
+                  hostName: localPlayerInfo.name,
+                  guestName: onlineRoom.guest_name || 'Player 2'
+                });
+                startOnlineTurnDrawMatch({
+                  firstTurn: firstTurn,
+                  hostName: localPlayerInfo.name,
+                  guestName: onlineRoom.guest_name || 'Player 2'
+                });
+              }
             }
           }
         });
 
-        startGame();
+        if (player.slot === 1) {
+          const firstTurn = Math.random() < 0.5 ? 1 : 2;
+          setTimeout(() => {
+            SupabaseMultiplayer.sendEvent('init_online_match', {
+              firstTurn: firstTurn,
+              hostName: player.name,
+              guestName: room.guest_name || 'Player 2'
+            });
+            startOnlineTurnDrawMatch({
+              firstTurn: firstTurn,
+              hostName: player.name,
+              guestName: room.guest_name || 'Player 2'
+            });
+          }, 300);
+        }
       });
+    }
+
+    function startOnlineTurnDrawMatch(matchData) {
+      const firstTurn = matchData.firstTurn || 1;
+      const hostName = matchData.hostName || 'Host';
+      const guestName = matchData.guestName || 'Guest';
+
+      state.scores.p1 = 0;
+      state.scores.p2 = 0;
+      state.currentTurn = firstTurn;
+      updateHUDScore();
+      showScreen('screen-game');
+
+      SupabaseMultiplayer.runTurnDraw({
+        hostName: hostName,
+        guestName: guestName,
+        firstTurn: firstTurn,
+        mySlot: localPlayerInfo ? localPlayerInfo.slot : 1,
+        onComplete: () => {
+          if (localPlayerInfo && localPlayerInfo.slot === 1) {
+            generateAndBroadcastNewRound();
+          }
+        }
+      });
+    }
+
+    function handleRematchClick() {
+      if (isOnlineMultiplayer) {
+        const btn = document.getElementById('rematch-btn');
+        if (btn) btn.textContent = '⏳ REQUESTING REMATCH...';
+        SupabaseMultiplayer.sendEvent('rematch_request', {});
+        if (localPlayerInfo && localPlayerInfo.slot === 1) {
+          const firstTurn = Math.random() < 0.5 ? 1 : 2;
+          SupabaseMultiplayer.sendEvent('init_online_match', {
+            firstTurn: firstTurn,
+            hostName: localPlayerInfo.name,
+            guestName: (onlineRoom && onlineRoom.guest_name) || 'Player 2'
+          });
+          startOnlineTurnDrawMatch({
+            firstTurn: firstTurn,
+            hostName: localPlayerInfo.name,
+            guestName: (onlineRoom && onlineRoom.guest_name) || 'Player 2'
+          });
+        }
+      } else {
+        startGame();
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {

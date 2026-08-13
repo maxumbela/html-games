@@ -876,7 +876,7 @@
         <div class="winner-recap" id="winner-recap">Player 2 ran out of hearts!</div>
 
         <div class="menu-actions">
-          <button class="btn" onclick="startGame()">⚡ REMATCH</button>
+          <button class="btn" id="rematch-btn" onclick="handleRematchClick()">⚡ REMATCH</button>
           <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🎮 MAIN MENU</button>
           <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
         </div>
@@ -1167,7 +1167,7 @@
     function handlePotatoTap(index) {
       if (state.gridLocked) return;
 
-      if (state.phase === 'hide_p1' || state.phase === 'hide_p2') {
+      if (state.phase === 'hide_p1' || state.phase === 'hide_p2' || state.phase === 'hide_online') {
         const idxInTemp = state.tempSelection.indexOf(index);
         if (idxInTemp !== -1) {
           state.tempSelection.splice(idxInTemp, 1);
@@ -1185,6 +1185,11 @@
       } else if (state.phase === 'play') {
         if (state.revealed.includes(index)) return;
         if (state.mode === 'bot' && state.currentTurn === 2) return;
+        if (isOnlineMultiplayer && localPlayerInfo && state.currentTurn !== localPlayerInfo.slot) return;
+
+        if (isOnlineMultiplayer) {
+          SupabaseMultiplayer.sendEvent('remote_pick', { index: index, player: state.currentTurn });
+        }
 
         revealPotato(index);
       }
@@ -1198,6 +1203,27 @@
 
     function confirmHidingSelection() {
       if (state.tempSelection.length !== BOMBS_PER_PLAYER) return;
+
+      if (isOnlineMultiplayer) {
+        state.myOnlineBombs = [...state.tempSelection];
+        document.getElementById('confirm-hide-row').style.display = 'none';
+        const banner = document.getElementById('turn-banner');
+        banner.textContent = '⏳ WAITING FOR OPPONENT TO HIDE BOMBS...';
+        resetHidingVisuals();
+
+        SupabaseMultiplayer.sendEvent('bombs_placed', {
+          slot: localPlayerInfo.slot,
+          bombs: state.myOnlineBombs
+        });
+
+        if (localPlayerInfo.slot === 1) {
+          state.p1Bombs = state.myOnlineBombs;
+          checkOnlineBothReady();
+        } else {
+          state.p2Bombs = state.myOnlineBombs;
+        }
+        return;
+      }
 
       if (state.phase === 'hide_p1') {
         state.p1Bombs = [...state.tempSelection];
@@ -1216,6 +1242,26 @@
         resetHidingVisuals();
         document.getElementById('confirm-hide-row').style.display = 'none';
         startDrawSequence();
+      }
+    }
+
+    function checkOnlineBothReady() {
+      if (localPlayerInfo && localPlayerInfo.slot === 1 && state.p1Bombs.length === 3 && state.p2Bombs.length === 3) {
+        const firstTurn = Math.random() < 0.5 ? 1 : 2;
+        SupabaseMultiplayer.sendEvent('init_online_match', {
+          firstTurn: firstTurn,
+          p1Bombs: state.p1Bombs,
+          p2Bombs: state.p2Bombs,
+          hostName: localPlayerInfo.name,
+          guestName: onlineRoom.guest_name || 'Player 2'
+        });
+        startOnlineTurnDrawMatch({
+          firstTurn: firstTurn,
+          p1Bombs: state.p1Bombs,
+          p2Bombs: state.p2Bombs,
+          hostName: localPlayerInfo.name,
+          guestName: onlineRoom.guest_name || 'Player 2'
+        });
       }
     }
 
@@ -1252,9 +1298,22 @@
     function updateTurnBanner(extraMsg = '') {
       const banner = document.getElementById('turn-banner');
       const isP1 = state.currentTurn === 1;
-      const playerName = isP1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
-      banner.textContent = extraMsg || `${playerName}'S TURN: PICK A POTATO!`;
-      banner.className = `turn-banner ${isP1 ? 'p1-turn' : 'p2-turn'}`;
+      
+      if (isOnlineMultiplayer && localPlayerInfo) {
+        const isMyTurn = state.currentTurn === localPlayerInfo.slot;
+        if (extraMsg) {
+          banner.textContent = extraMsg;
+        } else if (isMyTurn) {
+          banner.textContent = '⚡ YOUR TURN: PICK A POTATO!';
+        } else {
+          banner.textContent = "⌛ OPPONENT'S TURN: WAITING...";
+        }
+        banner.className = `turn-banner ${isMyTurn ? 'p1-turn' : 'p2-turn'}`;
+      } else {
+        const playerName = isP1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
+        banner.textContent = extraMsg || `${playerName}'S TURN: PICK A POTATO!`;
+        banner.className = `turn-banner ${isP1 ? 'p1-turn' : 'p2-turn'}`;
+      }
     }
 
     function triggerScreenShake() {
@@ -1351,16 +1410,33 @@
       playSound('win');
 
       const headline = document.getElementById('winner-headline');
-      if (state.mode === 'bot') {
+      if (isOnlineMultiplayer && localPlayerInfo) {
+        const isWinner = localPlayerInfo.slot === winnerNum;
+        headline.textContent = isWinner ? 'YOU WIN! 🏆' : 'OPPONENT WINS! 👑';
+        headline.style.color = isWinner ? 'var(--p1-cyan)' : 'var(--p2-rose)';
+        const loserName = isWinner ? 'Opponent' : 'You';
+        document.getElementById('winner-recap').textContent = `${loserName} ran out of hearts!`;
+
+        if (window.SupabaseMultiplayer) {
+          SupabaseMultiplayer.recordMatchResult(
+            'potato-bomb',
+            isWinner ? localPlayerInfo.name : 'Opponent',
+            isWinner ? 'win' : 'loss',
+            state.p1Hearts,
+            state.p2Hearts
+          );
+        }
+      } else if (state.mode === 'bot') {
         headline.textContent = winnerNum === 1 ? 'YOU WIN! 🏆' : 'BOT WINS! 🤖';
         headline.style.color = winnerNum === 1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
+        const loserName = winnerNum === 1 ? (state.mode === 'bot' ? 'Bot' : 'Player 2') : 'Player 1';
+        document.getElementById('winner-recap').textContent = `${loserName} ran out of hearts!`;
       } else {
         headline.textContent = `PLAYER ${winnerNum} WINS! 🏆`;
         headline.style.color = winnerNum === 1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
+        const loserName = winnerNum === 1 ? 'Player 2' : 'Player 1';
+        document.getElementById('winner-recap').textContent = `${loserName} ran out of hearts!`;
       }
-
-      const loserName = winnerNum === 1 ? (state.mode === 'bot' ? 'Bot' : 'Player 2') : 'Player 1';
-      document.getElementById('winner-recap').textContent = `${loserName} ran out of hearts!`;
 
       showScreen('screen-winner');
       startConfetti();
@@ -1440,7 +1516,7 @@
       render();
     }
 
-    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION (WebRTC + Turn Draw) */
     let isOnlineMultiplayer = false;
     let onlineRoom = null;
     let localPlayerInfo = null;
@@ -1454,22 +1530,92 @@
         isOnlineMultiplayer = true;
         onlineRoom = room;
         localPlayerInfo = player;
-        state.gameMode = 'p2';
+        state.mode = 'p2';
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
           onBroadcastEvent: (evt) => {
-            if (evt.eventType === 'select_potato') {
-              if (evt.sender.slot !== localPlayerInfo.slot && typeof handlePotatoClick === 'function') {
-                handlePotatoClick(evt.index);
+            if (evt.eventType === 'bombs_placed') {
+              if (evt.data.slot === 1) state.p1Bombs = evt.data.bombs;
+              if (evt.data.slot === 2) state.p2Bombs = evt.data.bombs;
+              checkOnlineBothReady();
+            } else if (evt.eventType === 'init_online_match') {
+              startOnlineTurnDrawMatch(evt.data);
+            } else if (evt.eventType === 'remote_pick') {
+              if (evt.sender.slot !== localPlayerInfo.slot) {
+                revealPotato(evt.data.index);
               }
-            } else if (evt.eventType === 'rematch') {
-              startGame();
+            } else if (evt.eventType === 'rematch_request') {
+              startOnlineHidingPhase();
             }
           }
         });
 
-        startGame();
+        startOnlineHidingPhase();
       });
+    }
+
+    function startOnlineHidingPhase() {
+      state.p1Bombs = [];
+      state.p2Bombs = [];
+      state.tempSelection = [];
+      state.p1Hearts = 3;
+      state.p2Hearts = 3;
+      state.revealed = [];
+      state.gridLocked = false;
+      state.phase = 'hide_online';
+
+      document.getElementById('name-p1').textContent = localPlayerInfo && localPlayerInfo.slot === 1 ? localPlayerInfo.name.toUpperCase() : 'HOST';
+      document.getElementById('name-p2').textContent = localPlayerInfo && localPlayerInfo.slot === 2 ? localPlayerInfo.name.toUpperCase() : 'GUEST';
+
+      updateHeartsHUD();
+      renderGrid();
+      showScreen('screen-game');
+
+      const banner = document.getElementById('turn-banner');
+      banner.textContent = 'SECRETLY HIDE 3 BOMBS IN THE POTATOES!';
+      banner.className = 'turn-banner p1-turn fuse-active';
+      document.getElementById('confirm-hide-row').style.display = 'flex';
+      updateConfirmButton();
+      resetHidingVisuals();
+    }
+
+    function startOnlineTurnDrawMatch(matchData) {
+      const firstTurn = matchData.firstTurn || 1;
+      const hostName = matchData.hostName || 'Host';
+      const guestName = matchData.guestName || 'Guest';
+      state.p1Bombs = matchData.p1Bombs || [];
+      state.p2Bombs = matchData.p2Bombs || [];
+      state.currentTurn = firstTurn;
+      state.phase = 'draw';
+      state.gridLocked = true;
+
+      document.getElementById('name-p1').textContent = hostName.toUpperCase();
+      document.getElementById('name-p2').textContent = guestName.toUpperCase();
+      document.getElementById('confirm-hide-row').style.display = 'none';
+      resetHidingVisuals();
+
+      SupabaseMultiplayer.runTurnDraw({
+        hostName: hostName,
+        guestName: guestName,
+        firstTurn: firstTurn,
+        mySlot: localPlayerInfo ? localPlayerInfo.slot : 1,
+        onComplete: () => {
+          state.phase = 'play';
+          state.gridLocked = false;
+          updateTurnBanner();
+        }
+      });
+    }
+
+    function handleRematchClick() {
+      if (isOnlineMultiplayer) {
+        const btn = document.getElementById('rematch-btn');
+        if (btn) btn.textContent = '⏳ REQUESTING REMATCH...';
+        SupabaseMultiplayer.sendEvent('rematch_request', {});
+        startOnlineHidingPhase();
+      } else {
+        startGame();
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {

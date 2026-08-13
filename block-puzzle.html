@@ -837,7 +837,7 @@
         <div class="winner-recap" id="winner-recap">Player 2 has no space left!</div>
 
         <div class="menu-actions">
-          <button class="btn" onclick="startGame()">⚡ PLAY AGAIN</button>
+          <button class="btn" id="rematch-btn" onclick="handleRematchClick()">⚡ PLAY AGAIN</button>
           <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🎮 MAIN MENU</button>
           <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
         </div>
@@ -1074,8 +1074,16 @@
       }
 
       const isP1 = state.currentTurn === 1;
-      const playerName = isP1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
-      banner.textContent = `${playerName}'S TURN: PLACE 1 BLOCK`;
+      let playerName = isP1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
+      if (isOnlineMultiplayer) {
+        if (state.currentTurn === localPlayerInfo?.slot) {
+          banner.textContent = `YOUR TURN (${playerName}) - PLACE 1 BLOCK`;
+        } else {
+          banner.textContent = `OPPONENT'S TURN (${playerName}) - WAITING...`;
+        }
+      } else {
+        banner.textContent = `${playerName}'S TURN: PLACE 1 BLOCK`;
+      }
       banner.className = `turn-banner ${isP1 ? 'p1-turn' : 'p2-turn'}`;
     }
 
@@ -1155,6 +1163,7 @@
     function startDragShape(slotIndex, e) {
       if (state.gridLocked) return;
       if (state.mode === 'bot' && state.currentTurn === 2) return;
+      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo?.slot) return;
 
       const shape = state.trayShapes[slotIndex];
       if (!shape) return;
@@ -1369,9 +1378,24 @@
           spawnTrayShapes();
         }
 
+        const nextTurn = state.mode === 'single' ? 1 : (state.currentTurn === 1 ? 2 : 1);
+
+        if (isOnlineMultiplayer && localPlayerInfo && state.currentTurn === localPlayerInfo.slot) {
+          SupabaseMultiplayer.sendEvent('remote_place', {
+            slotIndex: slotIndex,
+            shape: shape,
+            startR: startR,
+            startC: startC,
+            trayShapes: state.trayShapes,
+            p1Score: state.p1Score,
+            p2Score: state.p2Score,
+            currentTurn: nextTurn
+          });
+        }
+
         if (state.mode !== 'single') {
           // Pass turn to opponent!
-          state.currentTurn = state.currentTurn === 1 ? 2 : 1;
+          state.currentTurn = nextTurn;
           updateTurnBanner();
           renderTray();
         }
@@ -1382,6 +1406,44 @@
           if (state.mode === 'bot' && state.currentTurn === 2) {
             setTimeout(executeBotTurn, 700);
           }
+        }
+      }, 250);
+    }
+
+    function applyRemotePlacement(evt) {
+      const { slotIndex, shape, startR, startC, trayShapes, p1Score, p2Score, currentTurn } = evt;
+      state.gridLocked = true;
+      const rows = shape.matrix.length;
+      const cols = shape.matrix[0].length;
+      const remoteColor = state.currentTurn === 1 ? '#06b6d4' : '#f43f5e';
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (shape.matrix[r][c]) {
+            state.grid[startR + r][startC + c] = remoteColor;
+          }
+        }
+      }
+
+      state.trayShapes[slotIndex] = null;
+      if (trayShapes) {
+        state.trayShapes = trayShapes;
+      }
+      state.p1Score = p1Score;
+      state.p2Score = p2Score;
+      updateScoreHUD();
+      renderTray();
+      renderGrid();
+      playSound('place');
+
+      checkLineClears();
+
+      setTimeout(() => {
+        state.currentTurn = currentTurn;
+        updateTurnBanner();
+        renderTray();
+        if (!checkTurnNoSpaceLeft()) {
+          state.gridLocked = false;
         }
       }, 250);
     }
@@ -1523,16 +1585,58 @@
         if (state.mode === 'bot') {
           headline.textContent = winnerNum === 1 ? 'YOU WIN! 🏆' : 'BOT WINS! 🤖';
           headline.style.color = winnerNum === 1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
+        } else if (isOnlineMultiplayer && localPlayerInfo) {
+          const isMe = winnerNum === localPlayerInfo.slot;
+          headline.textContent = isMe ? 'YOU WIN! 🏆' : 'OPPONENT WINS! 🎮';
+          headline.style.color = isMe ? 'var(--p1-cyan)' : 'var(--p2-rose)';
         } else {
           headline.textContent = `PLAYER ${winnerNum} WINS! 🏆`;
           headline.style.color = winnerNum === 1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
         }
-        const loserName = winnerNum === 1 ? (state.mode === 'bot' ? 'Bot' : 'Player 2') : 'Player 1';
+        const loserName = winnerNum === 1 ? (state.mode === 'bot' ? 'Bot' : (isOnlineMultiplayer ? 'Opponent' : 'Player 2')) : (isOnlineMultiplayer ? 'Opponent' : 'Player 1');
         document.getElementById('winner-recap').textContent = `${loserName} has no space left!`;
+      }
+
+      if (isOnlineMultiplayer && onlineRoom && localPlayerInfo && localPlayerInfo.isHost) {
+        const p1Score = state.p1Score;
+        const p2Score = state.p2Score;
+        const winnerId = winnerNum === 1 ? onlineRoom.host_id : onlineRoom.guest_id;
+        SupabaseMultiplayer.recordMatchResult(onlineRoom.id, winnerId, { p1: p1Score, p2: p2Score });
       }
 
       showScreen('screen-winner');
       startConfetti();
+    }
+
+    function handleRematchClick() {
+      if (isOnlineMultiplayer && onlineRoom) {
+        if (localPlayerInfo?.isHost) {
+          const firstTurn = Math.random() < 0.5 ? 1 : 2;
+          const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
+          const p2Name = 'Player 2';
+          const initialShapes = [];
+          for (let i = 0; i < 3; i++) {
+            const rShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            initialShapes.push(JSON.parse(JSON.stringify(rShape)));
+          }
+          SupabaseMultiplayer.sendEvent('init_online_match', {
+            firstTurn: firstTurn,
+            trayShapes: initialShapes,
+            hostName: p1Name,
+            guestName: p2Name
+          });
+          startOnlineTurnDrawMatch(firstTurn, initialShapes, p1Name, p2Name);
+        } else {
+          SupabaseMultiplayer.sendEvent('rematch_request', {});
+          const btn = document.getElementById('rematch-btn');
+          if (btn) {
+            btn.textContent = '⏳ WAITING FOR HOST...';
+            btn.disabled = true;
+          }
+        }
+      } else {
+        startGame();
+      }
     }
 
     /* Exit Modal */
@@ -1630,25 +1734,83 @@
         isOnlineMultiplayer = true;
         onlineRoom = room;
         localPlayerInfo = player;
-        state.gameMode = 'p2';
+        state.mode = 'p2';
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
-          onBroadcastEvent: (evt) => {
-            if (evt.eventType === 'place_shape') {
-              if (evt.sender.slot !== localPlayerInfo.slot) {
-                // Apply remote block placement
-                if (typeof placeShapeAt === 'function') {
-                  placeShapeAt(evt.shapeIndex, evt.row, evt.col);
-                }
+          onPlayerJoined: (p) => {
+            if (localPlayerInfo.isHost) {
+              const firstTurn = Math.random() < 0.5 ? 1 : 2;
+              const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
+              const p2Name = p?.name || 'Player 2';
+              const initialShapes = [];
+              for (let i = 0; i < 3; i++) {
+                const rShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+                initialShapes.push(JSON.parse(JSON.stringify(rShape)));
               }
-            } else if (evt.eventType === 'rematch') {
-              startGame();
+              SupabaseMultiplayer.sendEvent('init_online_match', {
+                firstTurn: firstTurn,
+                trayShapes: initialShapes,
+                hostName: p1Name,
+                guestName: p2Name
+              });
+              startOnlineTurnDrawMatch(firstTurn, initialShapes, p1Name, p2Name);
+            }
+          },
+          onBroadcastEvent: (evt) => {
+            if (evt.eventType === 'init_online_match') {
+              startOnlineTurnDrawMatch(evt.firstTurn, evt.trayShapes, evt.hostName, evt.guestName);
+            } else if (evt.eventType === 'remote_place') {
+              applyRemotePlacement(evt);
+            } else if (evt.eventType === 'rematch_request') {
+              if (localPlayerInfo.isHost) {
+                const firstTurn = Math.random() < 0.5 ? 1 : 2;
+                const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
+                const p2Name = 'Player 2';
+                const initialShapes = [];
+                for (let i = 0; i < 3; i++) {
+                  const rShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+                  initialShapes.push(JSON.parse(JSON.stringify(rShape)));
+                }
+                SupabaseMultiplayer.sendEvent('init_online_match', {
+                  firstTurn: firstTurn,
+                  trayShapes: initialShapes,
+                  hostName: p1Name,
+                  guestName: p2Name
+                });
+                startOnlineTurnDrawMatch(firstTurn, initialShapes, p1Name, p2Name);
+              }
             }
           }
         });
-
-        startGame();
       });
+    }
+
+    function startOnlineTurnDrawMatch(firstTurn, initialShapes, p1Name, p2Name) {
+      state.p1Score = 0;
+      state.p2Score = 0;
+      state.gridLocked = true;
+      state.grid = Array(10).fill(null).map(() => Array(10).fill(null));
+      state.trayShapes = initialShapes || [null, null, null];
+
+      document.getElementById('name-p1').textContent = p1Name ? p1Name.toUpperCase() : 'PLAYER 1';
+      document.getElementById('name-p2').textContent = p2Name ? p2Name.toUpperCase() : 'PLAYER 2';
+
+      updateScoreHUD();
+      renderGrid();
+      renderTray();
+      showScreen('screen-game');
+
+      SupabaseMultiplayer.runTurnDraw(
+        firstTurn,
+        p1Name || 'Player 1',
+        p2Name || 'Player 2',
+        (winningTurn) => {
+          state.currentTurn = winningTurn;
+          state.gridLocked = false;
+          updateTurnBanner();
+          renderTray();
+        }
+      );
     }
 
     /* Initialization */

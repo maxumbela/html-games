@@ -918,7 +918,7 @@
         <div class="winner-recap" id="winner-recap">Final Score: 6 - 4</div>
 
         <div class="menu-actions">
-          <button class="btn" onclick="startGame()">⚡ REMATCH</button>
+          <button class="btn" id="rematch-btn" onclick="handleRematchClick()">⚡ REMATCH</button>
           <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🎮 MAIN MENU</button>
           <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
         </div>
@@ -1180,14 +1180,22 @@
     }
 
     function handleCardTap(index) {
-      if (state.gridLocked || (state.mode === 'bot' && state.currentTurn === 2)) return;
+      if (state.gridLocked) return;
+      if (state.mode === 'bot' && state.currentTurn === 2) return;
+      if (isOnlineMultiplayer && localPlayerInfo && state.currentTurn !== localPlayerInfo.slot) return;
       const card = state.cards[index];
       if (card.isFlipped || card.isMatched) return;
+
+      if (isOnlineMultiplayer) {
+        SupabaseMultiplayer.sendEvent('remote_flip', { index: index, player: state.currentTurn });
+      }
+
       flipCard(index);
     }
 
     function flipCard(index) {
       const card = state.cards[index];
+      if (!card || card.isFlipped || card.isMatched) return;
       card.isFlipped = true;
       state.botMemory[index] = card.item;
       playSound('flip');
@@ -1230,91 +1238,77 @@
       }
     }
 
-    function executeBotTurn() {
-      if (state.screen !== 'screen-game' || state.currentTurn !== 2) return;
-      const unrevealed = state.cards.map((c, i) => (!c.isMatched && !c.isFlipped ? i : null)).filter(i => i !== null);
-      if (unrevealed.length === 0) return;
-      let firstPick = null, secondPick = null;
-      const memory = Object.entries(state.botMemory).filter(([idxStr]) => !state.cards[parseInt(idxStr)].isMatched);
-      const itemToIndices = {};
-      memory.forEach(([idxStr, item]) => { const i = parseInt(idxStr); if (!itemToIndices[item]) itemToIndices[item] = []; itemToIndices[item].push(i); });
-      let knownPair = null;
-      for (const item in itemToIndices) if (itemToIndices[item].length === 2) { knownPair = itemToIndices[item]; break; }
-      const recallChance = state.botDiff === 'easy' ? 0.3 : (state.botDiff === 'medium' ? 0.65 : 0.95);
-      if (knownPair && Math.random() < recallChance) { firstPick = knownPair[0]; secondPick = knownPair[1]; } 
-      else {
-        shuffle(unrevealed);
-        firstPick = unrevealed[0];
-        const firstItem = state.cards[firstPick].item;
-        const matchingMem = Object.keys(state.botMemory).find(idxStr => { const i = parseInt(idxStr); return i !== firstPick && !state.cards[i].isMatched && state.cards[i].item === firstItem; });
-        if (matchingMem && Math.random() < recallChance) secondPick = parseInt(matchingMem);
-        else secondPick = unrevealed.filter(i => i !== firstPick)[0];
+    function updateHUD() {
+      document.getElementById('score-p1').textContent = state.scores.p1;
+      document.getElementById('score-p2').textContent = state.scores.p2;
+      const banner = document.getElementById('turn-banner');
+      const isP1 = (state.currentTurn === 1);
+
+      if (isOnlineMultiplayer && localPlayerInfo) {
+        const isMyTurn = state.currentTurn === localPlayerInfo.slot;
+        if (isMyTurn) {
+          banner.textContent = '⚡ YOUR TURN! PICK 2 CARDS';
+          banner.classList.toggle('p2-turn', localPlayerInfo.slot === 2);
+        } else {
+          banner.textContent = "⌛ OPPONENT'S TURN...";
+          banner.classList.toggle('p2-turn', localPlayerInfo.slot === 1);
+        }
+      } else if (state.mode === 'bot') {
+        banner.textContent = isP1 ? 'YOUR TURN' : 'BOT THINKING...';
+        banner.classList.toggle('p2-turn', !isP1);
+      } else {
+        banner.textContent = isP1 ? "PLAYER 1'S TURN" : "PLAYER 2'S TURN";
+        banner.classList.toggle('p2-turn', !isP1);
       }
-      flipCard(firstPick);
-      setTimeout(() => { if (state.screen === 'screen-game' && state.currentTurn === 2) flipCard(secondPick); }, 700);
     }
-
-    function spawnToast(targetEl, text) {
-      if (!targetEl) return;
-      const toast = document.createElement('div');
-      toast.className = 'toast-score';
-      toast.textContent = text;
-      toast.style.left = '50%'; toast.style.top = '10%';
-      targetEl.appendChild(toast);
-      setTimeout(() => toast.remove(), 800);
-    }
-
-    function promptExitGame() { document.getElementById('exit-modal').classList.add('active'); playSound('tap'); }
-    function closeExitModal() { document.getElementById('exit-modal').classList.remove('active'); playSound('tap'); }
-    function confirmExitGame() { closeExitModal(); showScreen('screen-menu'); }
 
     function triggerMatchWin() {
       playSound('win');
       const headline = document.getElementById('winner-headline');
       const p1Won = state.scores.p1 > state.scores.p2, tie = state.scores.p1 === state.scores.p2;
-      if (tie) { headline.textContent = "IT'S A TIE! 🤝"; headline.style.color = "#ffffff"; } 
-      else if (state.mode === 'bot') { headline.textContent = p1Won ? "YOU WIN! 🏆" : "BOT WINS! 🤖"; headline.style.color = p1Won ? "var(--p1-red)" : "var(--p2-cyan)"; }
-      else { headline.textContent = p1Won ? "PLAYER 1 WINS! 🏆" : "PLAYER 2 WINS! 🏆"; headline.style.color = p1Won ? "var(--p1-red)" : "var(--p2-cyan)"; }
+
+      if (isOnlineMultiplayer && localPlayerInfo) {
+        const myScore = localPlayerInfo.slot === 1 ? state.scores.p1 : state.scores.p2;
+        const oppScore = localPlayerInfo.slot === 1 ? state.scores.p2 : state.scores.p1;
+        const isWinner = myScore > oppScore;
+
+        if (tie) {
+          headline.textContent = "IT'S A TIE! 🤝";
+          headline.style.color = "#ffffff";
+        } else if (isWinner) {
+          headline.textContent = "YOU WIN! 🏆";
+          headline.style.color = "var(--p1-red)";
+        } else {
+          headline.textContent = "OPPONENT WINS! 👑";
+          headline.style.color = "var(--p2-cyan)";
+        }
+
+        if (window.SupabaseMultiplayer) {
+          SupabaseMultiplayer.recordMatchResult(
+            'memory-match',
+            isWinner ? localPlayerInfo.name : 'Opponent',
+            tie ? 'tie' : (isWinner ? 'win' : 'loss'),
+            state.scores.p1,
+            state.scores.p2
+          );
+        }
+      } else if (tie) {
+        headline.textContent = "IT'S A TIE! 🤝";
+        headline.style.color = "#ffffff";
+      } else if (state.mode === 'bot') {
+        headline.textContent = p1Won ? "YOU WIN! 🏆" : "BOT WINS! 🤖";
+        headline.style.color = p1Won ? "var(--p1-red)" : "var(--p2-cyan)";
+      } else {
+        headline.textContent = p1Won ? "PLAYER 1 WINS! 🏆" : "PLAYER 2 WINS! 🏆";
+        headline.style.color = p1Won ? "var(--p1-red)" : "var(--p2-cyan)";
+      }
+
       document.getElementById('winner-recap').textContent = `Final Score: ${state.scores.p1} - ${state.scores.p2}`;
       showScreen('screen-winner');
       startConfetti();
     }
 
-    function startConfetti() {
-      if (confettiAnimId) { cancelAnimationFrame(confettiAnimId); confettiAnimId = null; }
-      const canvas = document.getElementById('confetti-canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-      const particles = [], colors = ['#f43f5e', '#06b6d4', '#f59e0b', '#34c759', '#8b5cf6'];
-      for (let i = 0; i < 45; i++) {
-        particles.push({
-          x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 6, color: colors[Math.floor(Math.random() * colors.length)],
-          vx: Math.random() * 4 - 2, vy: Math.random() * 4 + 3, rot: Math.random() * 360, vRot: Math.random() * 6 - 3
-        });
-      }
-      function render() {
-        if (state.screen !== 'screen-winner') {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          confettiAnimId = null;
-          return;
-        }
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        let alive = false;
-        particles.forEach(p => {
-          p.x += p.vx; p.y += p.vy; p.rot += p.vRot;
-          if (p.y < canvas.height) alive = true;
-          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate((p.rot * Math.PI) / 180);
-          ctx.fillStyle = p.color; ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-          ctx.restore();
-        });
-        if (alive && state.screen === 'screen-winner') confettiAnimId = requestAnimationFrame(render);
-        else confettiAnimId = null;
-      }
-      render();
-    }
-
-    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION (WebRTC + Turn Draw) */
     let isOnlineMultiplayer = false;
     let onlineRoom = null;
     let localPlayerInfo = null;
@@ -1328,22 +1322,135 @@
         isOnlineMultiplayer = true;
         onlineRoom = room;
         localPlayerInfo = player;
-        state.gameMode = 'p2';
+        state.mode = 'p2';
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
           onBroadcastEvent: (evt) => {
-            if (evt.eventType === 'flip_card') {
-              if (evt.sender.slot !== localPlayerInfo.slot && typeof handleCardClick === 'function') {
-                handleCardClick(evt.index);
+            if (evt.eventType === 'init_online_match') {
+              startOnlineTurnDrawMatch(evt.data);
+            } else if (evt.eventType === 'remote_flip') {
+              if (evt.sender.slot !== localPlayerInfo.slot) {
+                flipCard(evt.data.index);
               }
-            } else if (evt.eventType === 'rematch') {
-              startGame();
+            } else if (evt.eventType === 'rematch_request') {
+              if (localPlayerInfo.slot === 1) {
+                const firstTurn = Math.random() < 0.5 ? 1 : 2;
+                const availableIcons = [...ICON_POOL];
+                shuffle(availableIcons);
+                const chosenIcons = availableIcons.slice(0, 10);
+                const cardPairs = shuffle([...chosenIcons, ...chosenIcons]);
+
+                SupabaseMultiplayer.sendEvent('init_online_match', {
+                  firstTurn: firstTurn,
+                  cardIcons: cardPairs,
+                  hostName: localPlayerInfo.name,
+                  guestName: onlineRoom.guest_name || 'Player 2'
+                });
+                startOnlineTurnDrawMatch({
+                  firstTurn: firstTurn,
+                  cardIcons: cardPairs,
+                  hostName: localPlayerInfo.name,
+                  guestName: onlineRoom.guest_name || 'Player 2'
+                });
+              }
             }
           }
         });
 
-        startGame();
+        // Host generates the card pair deck and initiates match
+        if (player.slot === 1) {
+          const firstTurn = Math.random() < 0.5 ? 1 : 2;
+          const availableIcons = [...ICON_POOL];
+          shuffle(availableIcons);
+          const chosenIcons = availableIcons.slice(0, 10);
+          const cardPairs = shuffle([...chosenIcons, ...chosenIcons]);
+
+          setTimeout(() => {
+            SupabaseMultiplayer.sendEvent('init_online_match', {
+              firstTurn: firstTurn,
+              cardIcons: cardPairs,
+              hostName: player.name,
+              guestName: room.guest_name || 'Player 2'
+            });
+            startOnlineTurnDrawMatch({
+              firstTurn: firstTurn,
+              cardIcons: cardPairs,
+              hostName: player.name,
+              guestName: room.guest_name || 'Player 2'
+            });
+          }, 300);
+        }
       });
+    }
+
+    function startOnlineTurnDrawMatch(matchData) {
+      const firstTurn = matchData.firstTurn || 1;
+      const hostName = matchData.hostName || 'Host';
+      const guestName = matchData.guestName || 'Guest';
+      const cardIcons = matchData.cardIcons || [];
+
+      state.scores.p1 = 0;
+      state.scores.p2 = 0;
+      state.currentTurn = firstTurn;
+      state.firstFlippedIndex = null;
+      state.secondFlippedIndex = null;
+      state.gridLocked = true; // Lock until turn draw completes
+      state.botMemory = {};
+
+      document.getElementById('hud-p1-name').textContent = hostName.toUpperCase();
+      document.getElementById('hud-p2-name').textContent = guestName.toUpperCase();
+      updateHUD();
+
+      state.cards = cardIcons.map((iconPath, idx) => ({
+        id: idx,
+        item: iconPath,
+        isFlipped: false,
+        isMatched: false,
+        tilt: 0
+      }));
+      renderGrid();
+      showScreen('screen-game');
+
+      SupabaseMultiplayer.runTurnDraw({
+        hostName: hostName,
+        guestName: guestName,
+        firstTurn: firstTurn,
+        mySlot: localPlayerInfo ? localPlayerInfo.slot : 1,
+        onComplete: () => {
+          state.gridLocked = false;
+          updateHUD();
+        }
+      });
+    }
+
+    function handleRematchClick() {
+      if (isOnlineMultiplayer) {
+        const btn = document.getElementById('rematch-btn');
+        if (btn) btn.textContent = '⏳ REQUESTING REMATCH...';
+        SupabaseMultiplayer.sendEvent('rematch_request', {});
+        if (localPlayerInfo && localPlayerInfo.slot === 1) {
+          const firstTurn = Math.random() < 0.5 ? 1 : 2;
+          const availableIcons = [...ICON_POOL];
+          shuffle(availableIcons);
+          const chosenIcons = availableIcons.slice(0, 10);
+          const cardPairs = shuffle([...chosenIcons, ...chosenIcons]);
+
+          SupabaseMultiplayer.sendEvent('init_online_match', {
+            firstTurn: firstTurn,
+            cardIcons: cardPairs,
+            hostName: localPlayerInfo.name,
+            guestName: (onlineRoom && onlineRoom.guest_name) || 'Player 2'
+          });
+          startOnlineTurnDrawMatch({
+            firstTurn: firstTurn,
+            cardIcons: cardPairs,
+            hostName: localPlayerInfo.name,
+            guestName: (onlineRoom && onlineRoom.guest_name) || 'Player 2'
+          });
+        }
+      } else {
+        startGame();
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {

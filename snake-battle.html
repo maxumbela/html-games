@@ -782,7 +782,7 @@
         <div class="winner-recap" id="winner-recap">Rounds: 2 - 1</div>
 
         <div class="menu-actions">
-          <button class="btn" onclick="startGame()">⚡ REMATCH</button>
+          <button class="btn" id="rematch-btn" onclick="handleRematchClick()">⚡ REMATCH</button>
           <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🎮 MAIN MENU</button>
           <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
         </div>
@@ -994,6 +994,7 @@
       constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
+        this.lastInputSendTime = 0;
         this.resize();
         this.resetMatch();
       }
@@ -1026,8 +1027,28 @@
         this.powerups = [];
         this.particles = [];
 
-        for (let i = 0; i < 8; i++) this.spawnFood();
-        this.spawnPowerup();
+        if (!isOnlineMultiplayer || (localPlayerInfo && localPlayerInfo.isHost)) {
+          for (let i = 0; i < 8; i++) this.spawnFood();
+          this.spawnPowerup();
+
+          if (isOnlineMultiplayer && localPlayerInfo?.isHost) {
+            const foodRatios = this.foods.map(f => ({
+              xRatio: f.x / this.width,
+              yRatio: f.y / this.height,
+              type: f.type
+            }));
+            const powerupRatios = this.powerups.map(p => ({
+              xRatio: p.x / this.width,
+              yRatio: p.y / this.height,
+              type: p.type
+            }));
+            SupabaseMultiplayer.sendEvent('sync_round', {
+              foods: foodRatios,
+              powerups: powerupRatios,
+              matchWins: state.matchWins
+            });
+          }
+        }
 
         this.s1 = {
           id: 1,
@@ -1070,6 +1091,51 @@
         }
       }
 
+      applySyncRound(evt) {
+        this.foods = [];
+        this.powerups = [];
+        if (evt.foods) {
+          evt.foods.forEach(f => {
+            this.foods.push({
+              x: f.xRatio * this.width,
+              y: f.yRatio * this.height,
+              radius: 10,
+              type: f.type || 'apple'
+            });
+          });
+        }
+        if (evt.powerups) {
+          evt.powerups.forEach(p => {
+            this.powerups.push({
+              x: p.xRatio * this.width,
+              y: p.yRatio * this.height,
+              radius: 14,
+              type: p.type
+            });
+          });
+        }
+        if (evt.matchWins) {
+          state.matchWins = evt.matchWins;
+          document.getElementById('wins-p1').textContent = state.matchWins.p1;
+          document.getElementById('wins-p2').textContent = state.matchWins.p2;
+        }
+      }
+
+      applySyncRoundEnd(evt) {
+        if (this.roundEnded) return;
+        this.roundEnded = true;
+        state.matchWins.p1 = evt.p1Wins;
+        state.matchWins.p2 = evt.p2Wins;
+        document.getElementById('wins-p1').textContent = state.matchWins.p1;
+        document.getElementById('wins-p2').textContent = state.matchWins.p2;
+
+        if (state.matchWins.p1 >= 2 || state.matchWins.p2 >= 2) {
+          setTimeout(() => triggerMatchWin(state.matchWins.p1 >= 2 ? 1 : 2), 1000);
+        } else {
+          setTimeout(() => this.startRound(), 2000);
+        }
+      }
+
       spawnFood() {
         const margin = this.shrinkMargin + 30;
         this.foods.push({
@@ -1090,6 +1156,52 @@
           radius: 14,
           type: type
         });
+      }
+
+      sendLocalInput(force = false) {
+        if (!isOnlineMultiplayer || !localPlayerInfo) return;
+        const now = performance.now();
+        if (!force && now - this.lastInputSendTime < 35) return;
+        this.lastInputSendTime = now;
+
+        const mySnake = localPlayerInfo.slot === 1 ? this.s1 : this.s2;
+        if (!mySnake) return;
+
+        SupabaseMultiplayer.sendEvent('snake_input', {
+          slot: localPlayerInfo.slot,
+          angle: mySnake.targetAngle !== null ? mySnake.targetAngle : mySnake.angle,
+          boost: mySnake.boostTimer > 0,
+          shield: mySnake.shieldTimer > 0,
+          xRatio: mySnake.x / this.width,
+          yRatio: mySnake.y / this.height
+        });
+      }
+
+      handleRemoteInput(evt) {
+        const remoteSnake = evt.slot === 1 ? this.s1 : this.s2;
+        if (!remoteSnake) return;
+
+        if (evt.angle !== null && evt.angle !== undefined) {
+          remoteSnake.targetAngle = evt.angle;
+        }
+        if (evt.boost && remoteSnake.boostTimer <= 0) {
+          remoteSnake.boostTimer = 180;
+          playSound('powerup');
+        }
+        if (evt.shield && remoteSnake.shieldTimer <= 0) {
+          remoteSnake.shieldTimer = 240;
+          playSound('powerup');
+        }
+
+        if (evt.xRatio !== undefined && evt.yRatio !== undefined) {
+          const targetX = evt.xRatio * this.width;
+          const targetY = evt.yRatio * this.height;
+          const dist = Math.hypot(remoteSnake.x - targetX, remoteSnake.y - targetY);
+          if (dist > 50) {
+            remoteSnake.x = targetX;
+            remoteSnake.y = targetY;
+          }
+        }
       }
 
       update() {
@@ -1137,12 +1249,12 @@
 
         const turnSpeed = 0.09;
 
-        if (s.id === 1) {
-          if (state.keys['KeyA']) s.angle -= turnSpeed;
-          if (state.keys['KeyD']) s.angle += turnSpeed;
-        } else if (s.id === 2 && !s.isBot) {
-          if (state.keys['ArrowLeft']) s.angle -= turnSpeed;
-          if (state.keys['ArrowRight']) s.angle += turnSpeed;
+        if (s.id === 1 && (!isOnlineMultiplayer || localPlayerInfo?.slot === 1)) {
+          if (state.keys['KeyA']) { s.angle -= turnSpeed; this.sendLocalInput(); }
+          if (state.keys['KeyD']) { s.angle += turnSpeed; this.sendLocalInput(); }
+        } else if (s.id === 2 && !s.isBot && (!isOnlineMultiplayer || localPlayerInfo?.slot === 2)) {
+          if (state.keys['ArrowLeft'] || state.keys['KeyA']) { s.angle -= turnSpeed; this.sendLocalInput(); }
+          if (state.keys['ArrowRight'] || state.keys['KeyD']) { s.angle += turnSpeed; this.sendLocalInput(); }
         }
 
         if (s.targetAngle !== null && s.targetAngle !== undefined) {
@@ -1275,6 +1387,14 @@
 
         document.getElementById('wins-p1').textContent = state.matchWins.p1;
         document.getElementById('wins-p2').textContent = state.matchWins.p2;
+
+        if (isOnlineMultiplayer && onlineRoom && localPlayerInfo?.isHost) {
+          SupabaseMultiplayer.sendEvent('sync_round_end', {
+            winnerId: winnerId,
+            p1Wins: state.matchWins.p1,
+            p2Wins: state.matchWins.p2
+          });
+        }
 
         if (state.matchWins.p1 >= 2 || state.matchWins.p2 >= 2) {
           setTimeout(() => triggerMatchWin(state.matchWins.p1 >= 2 ? 1 : 2), 1000);
@@ -1432,19 +1552,45 @@
       document.getElementById('wins-p1').textContent = '0';
       document.getElementById('wins-p2').textContent = '0';
 
-      document.getElementById('name-p1').textContent = 'PLAYER 1';
-      document.getElementById('name-p2').textContent = state.mode === 'bot' ? 'BOT' : 'PLAYER 2';
+      if (!isOnlineMultiplayer) {
+        document.getElementById('name-p1').textContent = 'PLAYER 1';
+        document.getElementById('name-p2').textContent = state.mode === 'bot' ? 'BOT' : 'PLAYER 2';
+      }
+
+      // Adjust control visibility for online match
+      const p1Group = document.querySelector('.p1-ctrl-group');
+      const p2Group = document.querySelector('.p2-ctrl-group');
+      if (p1Group && p2Group) {
+        if (isOnlineMultiplayer && localPlayerInfo) {
+          if (localPlayerInfo.slot === 1) {
+            p1Group.style.display = 'flex';
+            p2Group.style.display = 'none';
+          } else {
+            p1Group.style.display = 'none';
+            p2Group.style.display = 'flex';
+          }
+        } else {
+          p1Group.style.display = 'flex';
+          p2Group.style.display = 'flex';
+        }
+      }
 
       showScreen('screen-game');
       setTimeout(() => {
         battleEngine = new SnakeBattleEngine('game-canvas');
 
         setupVirtualJoystick('p1-joystick-base', 'p1-joystick-knob', (angle) => {
-          if (battleEngine && battleEngine.s1) battleEngine.s1.targetAngle = angle;
+          if (battleEngine && battleEngine.s1) {
+            battleEngine.s1.targetAngle = angle;
+            battleEngine.sendLocalInput();
+          }
         });
 
         setupVirtualJoystick('p2-joystick-base', 'p2-joystick-knob', (angle) => {
-          if (battleEngine && battleEngine.s2 && !battleEngine.s2.isBot) battleEngine.s2.targetAngle = angle;
+          if (battleEngine && battleEngine.s2 && !battleEngine.s2.isBot) {
+            battleEngine.s2.targetAngle = angle;
+            battleEngine.sendLocalInput();
+          }
         });
 
         if (gameLoopAnimId) cancelAnimationFrame(gameLoopAnimId);
@@ -1480,6 +1626,7 @@
       if (battleEngine && battleEngine.s1) {
         battleEngine.s1.boostTimer = 180;
         playSound('powerup');
+        battleEngine.sendLocalInput(true);
       }
     });
 
@@ -1488,6 +1635,7 @@
       if (battleEngine && battleEngine.s2 && !battleEngine.s2.isBot) {
         battleEngine.s2.shieldTimer = 240;
         playSound('powerup');
+        battleEngine.sendLocalInput(true);
       }
     });
 
@@ -1498,14 +1646,49 @@
       if (state.mode === 'bot') {
         headline.textContent = winnerNum === 1 ? 'YOU WIN! 🏆' : 'BOT WINS! 🤖';
         headline.style.color = winnerNum === 1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
+      } else if (isOnlineMultiplayer && localPlayerInfo) {
+        const isMe = winnerNum === localPlayerInfo.slot;
+        headline.textContent = isMe ? 'YOU WIN! 🏆' : 'OPPONENT WINS! 🎮';
+        headline.style.color = isMe ? 'var(--p1-cyan)' : 'var(--p2-rose)';
       } else {
         headline.textContent = `PLAYER ${winnerNum} WINS! 🏆`;
         headline.style.color = winnerNum === 1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
       }
 
       document.getElementById('winner-recap').textContent = `Match Score: ${state.matchWins.p1} - ${state.matchWins.p2}`;
+
+      if (isOnlineMultiplayer && onlineRoom && localPlayerInfo && localPlayerInfo.isHost) {
+        const p1Score = state.matchWins.p1;
+        const p2Score = state.matchWins.p2;
+        const winnerId = winnerNum === 1 ? onlineRoom.host_id : onlineRoom.guest_id;
+        SupabaseMultiplayer.recordMatchResult(onlineRoom.id, winnerId, { p1: p1Score, p2: p2Score });
+      }
+
       showScreen('screen-winner');
       startConfetti();
+    }
+
+    function handleRematchClick() {
+      if (isOnlineMultiplayer && onlineRoom) {
+        if (localPlayerInfo?.isHost) {
+          const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
+          const p2Name = 'Player 2';
+          SupabaseMultiplayer.sendEvent('init_online_match', {
+            hostName: p1Name,
+            guestName: p2Name
+          });
+          startOnlineMatch(p1Name, p2Name);
+        } else {
+          SupabaseMultiplayer.sendEvent('rematch_request', {});
+          const btn = document.getElementById('rematch-btn');
+          if (btn) {
+            btn.textContent = '⏳ WAITING FOR HOST...';
+            btn.disabled = true;
+          }
+        }
+      } else {
+        startGame();
+      }
     }
 
     function promptExitGame() {
@@ -1597,22 +1780,55 @@
         isOnlineMultiplayer = true;
         onlineRoom = room;
         localPlayerInfo = player;
-        state.gameMode = 'p2';
+        state.mode = 'p2';
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
+          onPlayerJoined: (p) => {
+            if (localPlayerInfo.isHost) {
+              const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
+              const p2Name = p?.name || 'Player 2';
+              SupabaseMultiplayer.sendEvent('init_online_match', {
+                hostName: p1Name,
+                guestName: p2Name
+              });
+              startOnlineMatch(p1Name, p2Name);
+            }
+          },
           onBroadcastEvent: (evt) => {
-            if (evt.eventType === 'snake_dir') {
-              if (evt.sender.slot !== localPlayerInfo.slot && battleEngine) {
-                battleEngine.setRemoteDir(evt.snakeIndex, evt.dir);
+            if (evt.eventType === 'init_online_match') {
+              startOnlineMatch(evt.hostName, evt.guestName);
+            } else if (evt.eventType === 'snake_input') {
+              if (evt.slot !== localPlayerInfo.slot && battleEngine) {
+                battleEngine.handleRemoteInput(evt);
               }
-            } else if (evt.eventType === 'rematch') {
-              startGame();
+            } else if (evt.eventType === 'sync_round') {
+              if (!localPlayerInfo.isHost && battleEngine) {
+                battleEngine.applySyncRound(evt);
+              }
+            } else if (evt.eventType === 'sync_round_end') {
+              if (!localPlayerInfo.isHost && battleEngine) {
+                battleEngine.applySyncRoundEnd(evt);
+              }
+            } else if (evt.eventType === 'rematch_request') {
+              if (localPlayerInfo.isHost) {
+                const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
+                const p2Name = 'Player 2';
+                SupabaseMultiplayer.sendEvent('init_online_match', {
+                  hostName: p1Name,
+                  guestName: p2Name
+                });
+                startOnlineMatch(p1Name, p2Name);
+              }
             }
           }
         });
-
-        startGame();
       });
+    }
+
+    function startOnlineMatch(p1Name, p2Name) {
+      document.getElementById('name-p1').textContent = p1Name ? p1Name.toUpperCase() : 'PLAYER 1';
+      document.getElementById('name-p2').textContent = p2Name ? p2Name.toUpperCase() : 'PLAYER 2';
+      startGame();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
