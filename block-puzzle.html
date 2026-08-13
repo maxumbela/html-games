@@ -568,12 +568,17 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      transition: transform 0.1s ease;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+    }
+
+    .hub-back-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #000000;
     }
 
     .hub-back-btn:active {
-      transform: translateY(2px);
-      box-shadow: 0 2px 0 #000000;
+      transform: scale(0.92) translateY(2px);
+      box-shadow: 0 1px 0 #000000;
     }
 
     .sound-toggle {

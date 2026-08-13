@@ -6,15 +6,17 @@
   <title>2 Player Arcade Hub 🎮</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&family=Outfit:wght@700;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-body: #e2e8f0;
-      --header-bg: #4a3a60;
-      --p1-red: #ef4444;
-      --p2-blue: #0284c7;
-      --green-btn: #22c55e;
-      --font-display: 'Fredoka', 'Outfit', system-ui, -apple-system, sans-serif;
+      --bg-body: #0f172a;
+      --bg-gradient: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+      --header-bg: #1e1b4b;
+      --p1-red: #ff3b30;
+      --p2-blue: #007aff;
+      --green-btn: #34c759;
+      --accent-gold: #ffcc00;
+      --font-display: 'Fredoka', 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
     }
 
     * {
@@ -29,11 +31,11 @@
 
     html, body {
       width: 100%;
-      height: 100%;
       min-height: 100dvh;
-      background-color: var(--bg-body);
+      background: #0f172a;
+      background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
       font-family: var(--font-display);
-      color: #000000;
+      color: #ffffff;
       overflow-x: hidden;
     }
 
@@ -42,79 +44,182 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-bottom: 90px;
+      padding-bottom: 100px;
     }
 
     /* TOP HEADER BAR */
     .top-header-bar {
       width: 100%;
-      background: #ffffff;
+      max-width: 540px;
       padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       position: sticky;
       top: 0;
       z-index: 100;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 3px solid #000000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
 
     .icon-btn {
-      width: 44px;
-      height: 44px;
-      background: #64748b;
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, #334155, #1e293b);
       border: 3px solid #000000;
-      border-radius: 14px;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 22px;
       color: #ffffff;
-      box-shadow: 0 3px 0 #000000;
+      box-shadow: 0 4px 0 #000000;
       cursor: pointer;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .icon-btn:active {
-      transform: translateY(2px);
+      transform: scale(0.92) translateY(2px);
       box-shadow: 0 1px 0 #000000;
     }
 
     .remove-ads-pill {
-      background: var(--header-bg);
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
       border: 3px solid #000000;
-      border-radius: 18px;
-      padding: 8px 20px;
+      border-radius: 22px;
+      padding: 8px 18px;
       color: #ffffff;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 900;
       display: flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 3px 0 #000000;
+      box-shadow: 0 4px 0 #000000;
       cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: transform 0.15s ease;
+      animation: pulseGlow 2.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 4px 0 #000000, 0 0 0px rgba(99, 102, 241, 0); }
+      100% { box-shadow: 0 4px 0 #000000, 0 0 15px rgba(99, 102, 241, 0.6); }
+    }
+
+    .remove-ads-pill:active {
+      transform: scale(0.94) translateY(2px);
+      box-shadow: 0 1px 0 #000000;
     }
 
     .country-flag-btn {
-      width: 44px;
-      height: 44px;
-      background: #64748b;
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, #334155, #1e293b);
       border: 3px solid #000000;
-      border-radius: 14px;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 24px;
-      box-shadow: 0 3px 0 #000000;
+      box-shadow: 0 4px 0 #000000;
+      cursor: pointer;
+      transition: transform 0.15s ease;
     }
 
-    /* MAIN TILES GRID CONTAINER */
+    .country-flag-btn:active {
+      transform: scale(0.92) translateY(2px);
+      box-shadow: 0 1px 0 #000000;
+    }
+
+    /* MAIN HUB CONTAINER */
     .hub-content {
       width: 100%;
-      max-width: 520px;
+      max-width: 540px;
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 18px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SEARCH & FILTER BAR */
+    .search-filter-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .search-box {
+      width: 100%;
+      background: #1e293b;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 0 #000000;
+    }
+
+    .search-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #ffffff;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .search-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .category-pills {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+
+    .category-pills::-webkit-scrollbar {
+      display: none;
+    }
+
+    .cat-pill {
+      background: #1e293b;
+      border: 2.5px solid #000000;
+      border-radius: 14px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #cbd5e1;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #000000;
+      transition: all 0.15s ease;
+    }
+
+    .cat-pill.active, .cat-pill:hover {
+      background: #fbbf24;
+      color: #000000;
+      transform: translateY(-2px);
+    }
+
+    .cat-pill:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 0 #000000;
     }
 
     /* 2-COLUMN TILES GRID */
@@ -125,7 +230,7 @@
       width: 100%;
     }
 
-    /* GAME TILE CARD */
+    /* GAME TILE CARD - DOUBLE BEZEL ARCHITECTURE */
     .tile-card {
       width: 100%;
       aspect-ratio: 1;
@@ -133,34 +238,73 @@
       border-radius: 28px;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 6px 0 #000000;
+      box-shadow: 0 7px 0 #000000, 0 12px 20px rgba(0,0,0,0.4);
       text-decoration: none;
       color: #ffffff;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
+      justify-content: space-between;
       padding: 12px;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
       cursor: pointer;
       background-size: cover;
       background-position: center;
+      animation: cardEntrance 0.5s ease-out backwards;
+    }
+
+    @keyframes cardEntrance {
+      from { opacity: 0; transform: translateY(20px) scale(0.94); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .tile-card:nth-child(1) { animation-delay: 0.05s; }
+    .tile-card:nth-child(2) { animation-delay: 0.1s; }
+    .tile-card:nth-child(3) { animation-delay: 0.15s; }
+    .tile-card:nth-child(4) { animation-delay: 0.2s; }
+    .tile-card:nth-child(5) { animation-delay: 0.25s; }
+    .tile-card:nth-child(6) { animation-delay: 0.3s; }
+    .tile-card:nth-child(7) { animation-delay: 0.35s; }
+    .tile-card:nth-child(8) { animation-delay: 0.4s; }
+    .tile-card:nth-child(9) { animation-delay: 0.45s; }
+    .tile-card:nth-child(10) { animation-delay: 0.5s; }
+
+    .tile-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 10px 0 #000000, 0 18px 25px rgba(0,0,0,0.5);
     }
 
     .tile-card:active {
-      transform: translateY(3px);
+      transform: translateY(3px) scale(0.96);
       box-shadow: 0 3px 0 #000000;
     }
 
-    /* Overlay Shadow for Text Readability */
+    /* BADGE TAG OVERLAY */
+    .tile-tag {
+      align-self: flex-start;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      border: 2px solid #ffffff;
+      border-radius: 12px;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 900;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      z-index: 2;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    /* Gradient Overlay for Readable Text */
     .tile-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 55%, transparent 100%);
       pointer-events: none;
       z-index: 1;
     }
 
-    /* Bold Uppercase Tile Title (Matching Reference Image) */
+    /* Bold Uppercase Title */
     .tile-title {
       font-size: 20px;
       font-weight: 900;
@@ -175,30 +319,13 @@
       word-break: break-word;
     }
 
-    /* Custom Vector Background Styles for Games without static JPGs */
-    .tile-snake {
-      background: radial-gradient(circle at center, #10b981 0%, #047857 100%);
-    }
-
-    .tile-memory {
-      background: radial-gradient(circle at center, #78350f 0%, #3a2b2b 100%);
-    }
-
-    .tile-emoji {
-      background: radial-gradient(circle at center, #3b82f6 0%, #1d4ed8 100%);
-    }
-
-    .tile-carrom {
-      background: radial-gradient(circle at center, #d97706 0%, #78350f 100%);
-    }
-
-    .tile-color {
-      background: radial-gradient(circle at center, #ec4899 0%, #831843 100%);
-    }
-
-    .tile-dirt {
-      background: radial-gradient(circle at center, #eab308 0%, #854d0e 100%);
-    }
+    /* Vector Backgrounds */
+    .tile-snake { background: radial-gradient(circle at center, #10b981 0%, #047857 100%); }
+    .tile-memory { background: radial-gradient(circle at center, #854d0e 0%, #3a2b2b 100%); }
+    .tile-emoji { background: radial-gradient(circle at center, #3b82f6 0%, #1d4ed8 100%); }
+    .tile-carrom { background: radial-gradient(circle at center, #d97706 0%, #78350f 100%); }
+    .tile-color { background: radial-gradient(circle at center, #ec4899 0%, #831843 100%); }
+    .tile-dirt { background: radial-gradient(circle at center, #eab308 0%, #854d0e 100%); }
 
     .vector-art-illustration {
       position: absolute;
@@ -209,22 +336,29 @@
       font-size: 64px;
       z-index: 0;
       filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5));
+      transition: transform 0.3s ease;
     }
 
-    /* BOTTOM TOURNAMENT & PLAYER FOOTER BAR */
+    .tile-card:hover .vector-art-illustration {
+      transform: scale(1.15) rotate(3deg);
+    }
+
+    /* BOTTOM TOURNAMENT & PLAYER FOOTER */
     .bottom-player-bar {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      background: #334155;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-top: 4px solid #000000;
-      padding: 10px 16px;
+      padding: 12px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       z-index: 100;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 -6px 20px rgba(0,0,0,0.6);
     }
 
     .player-score-badge {
@@ -232,8 +366,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 56px;
-      height: 56px;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
       border: 3.5px solid #000000;
       box-shadow: 0 4px 0 #000000;
@@ -241,27 +375,24 @@
       font-size: 22px;
       font-weight: 900;
       position: relative;
+      transition: transform 0.15s ease;
     }
 
-    .badge-p1 {
-      background: var(--p1-red);
-    }
-
-    .badge-p2 {
-      background: var(--p2-blue);
-    }
+    .badge-p1 { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .badge-p2 { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 
     .player-avatar-icon {
       position: absolute;
-      top: -8px;
+      top: -10px;
       font-size: 16px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
     }
 
     .tournament-btn {
-      background: linear-gradient(135deg, #22c55e, #15803d);
+      background: linear-gradient(135deg, #22c55e, #16a34a);
       border: 3.5px solid #000000;
-      border-radius: 20px;
-      padding: 10px 24px;
+      border-radius: 22px;
+      padding: 12px 24px;
       color: #ffffff;
       font-family: var(--font-display);
       font-size: 16px;
@@ -273,6 +404,12 @@
       cursor: pointer;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+    }
+
+    .tournament-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #000000;
     }
 
     .tournament-btn:active {
@@ -297,69 +434,93 @@
 
     <!-- MAIN HUB CONTENT -->
     <main class="hub-content">
-      <!-- 2-COLUMN TILES GRID (Matching Reference Image) -->
-      <div class="tiles-grid">
+      <!-- SEARCH & CATEGORY FILTER -->
+      <div class="search-filter-wrapper">
+        <div class="search-box">
+          <span style="font-size:18px;">🔍</span>
+          <input type="text" id="search-input" class="search-input" placeholder="Search 10 Arcade Games..." oninput="filterGames()">
+        </div>
+        <div class="category-pills">
+          <button class="cat-pill active" onclick="selectCategory('all', this)">🔥 ALL</button>
+          <button class="cat-pill" onclick="selectCategory('action', this)">⚡ ACTION</button>
+          <button class="cat-pill" onclick="selectCategory('puzzle', this)">🧩 PUZZLE</button>
+          <button class="cat-pill" onclick="selectCategory('arcade', this)">🎯 ARCADE</button>
+        </div>
+      </div>
+
+      <!-- 2-COLUMN TILES GRID -->
+      <div class="tiles-grid" id="tiles-grid">
         <!-- 1. Suika Fruit Merge -->
-        <a href="suika-merge.html" class="tile-card" style="background-image: url('cover_suika.jpg');">
+        <a href="suika-merge.html" class="tile-card" data-title="suika merge" data-cat="puzzle" style="background-image: url('cover_suika.jpg');">
+          <span class="tile-tag">2P MERGE</span>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">SUIKA<br>MERGE</h2>
         </a>
 
         <!-- 2. Block Puzzle Blitz -->
-        <a href="block-puzzle.html" class="tile-card" style="background-image: url('cover_block.jpg');">
+        <a href="block-puzzle.html" class="tile-card" data-title="block puzzle" data-cat="puzzle" style="background-image: url('cover_block.jpg');">
+          <span class="tile-tag">PASS & PLAY</span>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">BLOCK<br>PUZZLE</h2>
         </a>
 
         <!-- 3. Potato Bomb Duel -->
-        <a href="potato-bomb.html" class="tile-card" style="background-image: url('cover_potato.jpg');">
+        <a href="potato-bomb.html" class="tile-card" data-title="potato bomb" data-cat="action" style="background-image: url('cover_potato.jpg');">
+          <span class="tile-tag">VS BOMB</span>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">POTATO<br>BOMB</h2>
         </a>
 
         <!-- 4. Tower Stacker -->
-        <a href="tower-stacker.html" class="tile-card" style="background-image: url('cover_tower.jpg');">
+        <a href="tower-stacker.html" class="tile-card" data-title="tower stacker" data-cat="arcade" style="background-image: url('cover_tower.jpg');">
+          <span class="tile-tag">BUILDER</span>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">TOWER<br>STACKER</h2>
         </a>
 
         <!-- 5. Snake vs Snake -->
-        <a href="snake-battle.html" class="tile-card tile-snake">
+        <a href="snake-battle.html" class="tile-card tile-snake" data-title="snake battle" data-cat="action">
+          <span class="tile-tag">ARENA</span>
           <div class="vector-art-illustration">🐍 🍎</div>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">SNAKE<br>BATTLE</h2>
         </a>
 
         <!-- 6. Memory Match -->
-        <a href="memory-match.html" class="tile-card tile-memory">
+        <a href="memory-match.html" class="tile-card tile-memory" data-title="memory match" data-cat="puzzle">
+          <span class="tile-tag">BRAIN</span>
           <div class="vector-art-illustration">🎴 👑</div>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">MEMORY<br>MATCH</h2>
         </a>
 
         <!-- 7. Spot & Tap Emoji -->
-        <a href="match-emoji.html" class="tile-card tile-emoji">
+        <a href="match-emoji.html" class="tile-card tile-emoji" data-title="spot emoji" data-cat="arcade">
+          <span class="tile-tag">REFLEX</span>
           <div class="vector-art-illustration">🎯 🦄</div>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">SPOT<br>EMOJI</h2>
         </a>
 
         <!-- 8. Carrom Pool Clash -->
-        <a href="carrom-pool.html" class="tile-card tile-carrom">
+        <a href="carrom-pool.html" class="tile-card tile-carrom" data-title="carrom pool" data-cat="arcade">
+          <span class="tile-tag">PHYSICS</span>
           <div class="vector-art-illustration">🎱 ⚪</div>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">CARROM<br>POOL</h2>
         </a>
 
         <!-- 9. Color Wars -->
-        <a href="color-wars.html" class="tile-card tile-color">
+        <a href="color-wars.html" class="tile-card tile-color" data-title="color wars" data-cat="action">
+          <span class="tile-tag">TERRITORY</span>
           <div class="vector-art-illustration">🎨 🟦</div>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">COLOR<br>WARS</h2>
         </a>
 
         <!-- 10. Dirt Rally Battle -->
-        <a href="dirt-game.html" class="tile-card tile-dirt">
+        <a href="dirt-game.html" class="tile-card tile-dirt" data-title="dirt rally" data-cat="action">
+          <span class="tile-tag">DARTS 301</span>
           <div class="vector-art-illustration">🏎️ 💨</div>
           <div class="tile-overlay"></div>
           <h2 class="tile-title">DIRT<br>RALLY</h2>
@@ -367,7 +528,7 @@
       </div>
     </main>
 
-    <!-- BOTTOM TOURNAMENT & PLAYER FOOTER BAR (Matching Reference Image) -->
+    <!-- BOTTOM TOURNAMENT & PLAYER FOOTER BAR -->
     <footer class="bottom-player-bar">
       <!-- Player 1 Score Badge -->
       <div class="player-score-badge badge-p1">
@@ -392,6 +553,7 @@
 
   <script>
     let soundEnabled = true;
+    let currentCategory = 'all';
 
     /* Web Audio Synthesizer */
     let audioCtx = null;
@@ -433,16 +595,40 @@
       btn.textContent = soundEnabled ? '⚙️' : '🔇';
     }
 
+    function selectCategory(cat, el) {
+      playSound('click');
+      currentCategory = cat;
+      document.querySelectorAll('.cat-pill').forEach(pill => pill.classList.remove('active'));
+      el.classList.add('active');
+      filterGames();
+    }
+
+    function filterGames() {
+      const query = document.getElementById('search-input').value.toLowerCase().trim();
+      document.querySelectorAll('.tile-card').forEach(card => {
+        const title = card.getAttribute('data-title') || '';
+        const cat = card.getAttribute('data-cat') || '';
+        const matchesSearch = title.includes(query);
+        const matchesCat = currentCategory === 'all' || cat === currentCategory;
+
+        if (matchesSearch && matchesCat) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
     function playTournament() {
       playSound('click');
-      // Launch random game for tournament
       const games = [
         'suika-merge.html',
         'block-puzzle.html',
         'potato-bomb.html',
         'tower-stacker.html',
         'snake-battle.html',
-        'memory-match.html'
+        'memory-match.html',
+        'carrom-pool.html'
       ];
       const randomGame = games[Math.floor(Math.random() * games.length)];
       window.location.href = randomGame;
