@@ -489,6 +489,73 @@
       color: #ffffff;
     }
 
+    .turn-banner.opponent-turn {
+      background: #334155;
+      color: #cbd5e1;
+      border-color: #000000;
+    }
+
+    /* TURN DRAW OVERLAY (Online Multiplayer Turn Determination) */
+    .turn-draw-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.95);
+      z-index: 250;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .turn-draw-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .turn-draw-card {
+      width: calc(100% - 40px);
+      max-width: 380px;
+      background: #ffffff;
+      border: 4px solid #000000;
+      border-radius: 28px;
+      padding: 28px 20px;
+      box-shadow: 0 8px 0 #000000;
+      text-align: center;
+      color: var(--text-dark);
+      will-change: transform;
+      animation: popModal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .turn-draw-badge {
+      font-size: 56px;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+    .turn-draw-badge.spinning {
+      animation: spinBadge 0.7s infinite linear;
+    }
+    @keyframes spinBadge {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.12); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    .turn-draw-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      color: #000000;
+      text-transform: uppercase;
+    }
+    .turn-draw-result {
+      font-size: 20px;
+      font-weight: 800;
+      padding: 10px 18px;
+      border-radius: 18px;
+      border: 3px solid #000000;
+      margin-top: 14px;
+      display: none;
+      box-shadow: 0 4px 0 #000000;
+    }
+
     .next-fruit-preview {
       font-size: 22px;
       background: rgba(0,0,0,0.18);
@@ -738,7 +805,7 @@
         <div class="winner-recap" id="winner-recap">Player 2 overflowed the container!</div>
 
         <div class="menu-actions">
-          <button class="btn" onclick="startGame()">⚡ REMATCH</button>
+          <button class="btn" onclick="handleRematchClick()">⚡ REMATCH</button>
           <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🎮 MAIN MENU</button>
           <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
         </div>
@@ -755,6 +822,16 @@
           <button class="btn btn-secondary" onclick="openHowToInGame()">❓ HOW TO PLAY</button>
           <button class="btn btn-secondary" onclick="confirmExitGame()">🚪 QUIT TO MENU</button>
         </div>
+      </div>
+    </div>
+
+    <!-- TURN DRAW OVERLAY (Online Multiplayer Turn Determination) -->
+    <div id="turn-draw-overlay" class="turn-draw-overlay">
+      <div class="turn-draw-card">
+        <div id="turn-draw-badge" class="turn-draw-badge spinning">🎰</div>
+        <h2 id="turn-draw-title" class="turn-draw-title">DRAWING TURN...</h2>
+        <p id="turn-draw-sub" style="font-size: 14px; font-weight: 700; color: #475569;">Selecting who drops first</p>
+        <div id="turn-draw-result" class="turn-draw-result"></div>
       </div>
     </div>
   </div>
@@ -1361,7 +1438,14 @@
     /* ==========================================================================
        GAMEPLAY ENGINE & GAME FLOW
        ========================================================================== */
+    /* ==========================================================================
+       GAMEPLAY ENGINE & GAME FLOW
+       ========================================================================== */
     function startGame() {
+      isOnlineMultiplayer = false;
+      onlineRoom = null;
+      localPlayerInfo = null;
+
       state.p1Score = 0;
       state.p2Score = 0;
       state.currentTurn = 1;
@@ -1386,17 +1470,57 @@
       }, 60);
     }
 
+    function startOnlineGame(hostName, guestName) {
+      state.p1Score = 0;
+      state.p2Score = 0;
+      state.canDrop = state.currentTurn === localPlayerInfo.slot;
+      state.running = false;
+
+      document.getElementById('name-p1').textContent = (hostName || 'PLAYER 1').toUpperCase();
+      document.getElementById('name-p2').textContent = (guestName || 'PLAYER 2').toUpperCase();
+
+      updateScoreHUD();
+      updateTurnBanner();
+
+      showScreen('screen-game');
+
+      setTimeout(() => {
+        physicsEngine = new SuikaPhysicsEngine('suika-canvas');
+        state.running = true;
+        if (suikaAnimId) cancelAnimationFrame(suikaAnimId);
+        suikaAnimId = requestAnimationFrame(gameLoop);
+      }, 60);
+    }
+
     function updateTurnBanner() {
       const banner = document.getElementById('turn-banner');
       const textEl = document.getElementById('turn-text');
       const nextEl = document.getElementById('next-fruit-icon');
+      const dropBtn = document.querySelector('.drop-btn');
 
-      const nextEmoji = FRUITS[state.nextFruitLevel].emoji;
+      const nextEmoji = FRUITS[state.nextFruitLevel] ? FRUITS[state.nextFruitLevel].emoji : '🍒';
       nextEl.textContent = `NEXT: ${nextEmoji}`;
 
       if (state.mode === 'single') {
         banner.className = 'turn-banner p1-turn';
         textEl.textContent = 'SINGLE PLAYER MODE';
+        if (dropBtn) { dropBtn.disabled = false; dropBtn.textContent = '👇 DROP FRUIT'; }
+        return;
+      }
+
+      if (isOnlineMultiplayer && localPlayerInfo) {
+        const isMyTurn = state.currentTurn === localPlayerInfo.slot;
+        const activeName = state.currentTurn === 1 ? (onlineRoom?.host_name || 'Player 1') : (onlineRoom?.guest_name || 'Player 2');
+
+        if (isMyTurn) {
+          banner.className = `turn-banner ${localPlayerInfo.slot === 1 ? 'p1-turn' : 'p2-turn'}`;
+          textEl.textContent = `🟢 YOUR TURN — DROP FRUIT`;
+          if (dropBtn) { dropBtn.disabled = false; dropBtn.textContent = '⚡ DROP FRUIT'; }
+        } else {
+          banner.className = 'turn-banner opponent-turn';
+          textEl.textContent = `⌛ ${activeName.toUpperCase()}'S TURN — WAITING...`;
+          if (dropBtn) { dropBtn.disabled = true; dropBtn.textContent = "⌛ OPPONENT'S TURN"; }
+        }
         return;
       }
 
@@ -1404,6 +1528,7 @@
       const playerName = isP1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
       banner.className = `turn-banner ${isP1 ? 'p1-turn' : 'p2-turn'}`;
       textEl.textContent = `${playerName}'S TURN: DROP FRUIT`;
+      if (dropBtn) { dropBtn.disabled = false; dropBtn.textContent = '👇 DROP FRUIT'; }
     }
 
     function updateScoreHUD() {
@@ -1417,15 +1542,23 @@
         }
         document.getElementById('score-p2').textContent = state.bestScore;
       } else {
-        document.getElementById('name-p1').textContent = 'PLAYER 1';
+        if (isOnlineMultiplayer && onlineRoom) {
+          document.getElementById('name-p1').textContent = (onlineRoom.host_name || 'PLAYER 1').toUpperCase();
+          document.getElementById('name-p2').textContent = (onlineRoom.guest_name || 'PLAYER 2').toUpperCase();
+        } else {
+          document.getElementById('name-p1').textContent = 'PLAYER 1';
+          document.getElementById('name-p2').textContent = state.mode === 'bot' ? 'BOT' : 'PLAYER 2';
+        }
         document.getElementById('score-p1').textContent = state.p1Score;
-        document.getElementById('name-p2').textContent = state.mode === 'bot' ? 'BOT' : 'PLAYER 2';
         document.getElementById('score-p2').textContent = state.p2Score;
       }
     }
 
     function executeDrop(x) {
       if (!state.canDrop || !physicsEngine || !state.running) return;
+
+      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo.slot) return;
+
       state.canDrop = false;
 
       // Drop current fruit
@@ -1442,15 +1575,31 @@
       state.nextFruitLevel = state.upcomingFruitLevel;
       state.upcomingFruitLevel = Math.floor(Math.random() * 4);
 
+      if (isOnlineMultiplayer) {
+        SupabaseMultiplayer.sendEvent('player_drop', {
+          xRatio: x / physicsEngine.width,
+          droppedLevel: droppedLevel,
+          nextLevel: state.nextFruitLevel,
+          upcomingLevel: state.upcomingFruitLevel,
+          slot: localPlayerInfo.slot,
+          p1Score: state.p1Score,
+          p2Score: state.p2Score
+        });
+      }
+
       setTimeout(() => {
         if (state.mode !== 'single') {
           state.currentTurn = state.currentTurn === 1 ? 2 : 1;
         }
         updateTurnBanner();
-        state.canDrop = true;
 
-        if (state.mode === 'bot' && state.currentTurn === 2) {
-          setTimeout(executeBotTurn, 800);
+        if (isOnlineMultiplayer) {
+          state.canDrop = (state.currentTurn === localPlayerInfo.slot);
+        } else {
+          state.canDrop = true;
+          if (state.mode === 'bot' && state.currentTurn === 2) {
+            setTimeout(executeBotTurn, 800);
+          }
         }
       }, 600);
     }
@@ -1517,16 +1666,19 @@
 
     containerEl.addEventListener('pointermove', (e) => {
       if (state.mode === 'bot' && state.currentTurn === 2) return;
+      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo.slot) return;
       updateDropperFromPointer(e);
     });
 
     containerEl.addEventListener('pointerdown', (e) => {
       if (state.mode === 'bot' && state.currentTurn === 2) return;
+      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo.slot) return;
       updateDropperFromPointer(e);
     });
 
     containerEl.addEventListener('pointerup', (e) => {
       if (state.mode === 'bot' && state.currentTurn === 2) return;
+      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo.slot) return;
       updateDropperFromPointer(e);
       executeDrop(state.dropperX);
     });
@@ -1539,11 +1691,49 @@
       }
       playSound('over');
 
+      if (isOnlineMultiplayer) {
+        SupabaseMultiplayer.sendEvent('game_over', {
+          foulPlayer: foulPlayer
+        });
+      }
+
+      renderWinnerScreen(foulPlayer);
+    }
+
+    function handleMatchOverflowRemote(foulPlayer) {
+      state.running = false;
+      if (suikaAnimId) {
+        cancelAnimationFrame(suikaAnimId);
+        suikaAnimId = null;
+      }
+      playSound('over');
+      renderWinnerScreen(foulPlayer);
+    }
+
+    function renderWinnerScreen(foulPlayer) {
       const headline = document.getElementById('winner-headline');
+      const recap = document.getElementById('winner-recap');
+
       if (state.mode === 'single') {
         headline.textContent = 'GAME OVER!';
         headline.style.color = 'var(--fruit-gold)';
-        document.getElementById('winner-recap').textContent = `Final Score: ${state.p1Score}`;
+        recap.textContent = `Final Score: ${state.p1Score}`;
+      } else if (isOnlineMultiplayer && localPlayerInfo) {
+        const winnerSlot = foulPlayer === 1 ? 2 : 1;
+        const isIWin = winnerSlot === localPlayerInfo.slot;
+        const winnerName = winnerSlot === 1 ? (onlineRoom?.host_name || 'Player 1') : (onlineRoom?.guest_name || 'Player 2');
+        const loserName = foulPlayer === 1 ? (onlineRoom?.host_name || 'Player 1') : (onlineRoom?.guest_name || 'Player 2');
+
+        if (isIWin) {
+          headline.textContent = 'YOU WIN! 🏆';
+          headline.style.color = 'var(--fruit-gold)';
+          recap.textContent = `${loserName} overflowed the container!`;
+          playSound('win');
+        } else {
+          headline.textContent = `${winnerName.toUpperCase()} WINS! 🏆`;
+          headline.style.color = 'var(--p2-rose)';
+          recap.textContent = `You overflowed the container!`;
+        }
       } else {
         const winnerNum = foulPlayer === 1 ? 2 : 1;
         const loserName = foulPlayer === 1 ? 'Player 1' : (state.mode === 'bot' ? 'Bot' : 'Player 2');
@@ -1551,12 +1741,23 @@
 
         headline.textContent = `${winnerName} WINS! 🏆`;
         headline.style.color = winnerNum === 1 ? 'var(--p1-cyan-dark)' : 'var(--p2-rose-dark)';
-        document.getElementById('winner-recap').textContent = `${loserName} overflowed the container!`;
+        recap.textContent = `${loserName} overflowed the container!`;
         playSound('win');
       }
 
       showScreen('screen-winner');
       startConfetti();
+    }
+
+    function handleRematchClick() {
+      if (isOnlineMultiplayer && localPlayerInfo) {
+        SupabaseMultiplayer.sendEvent('rematch_request', {});
+        if (localPlayerInfo.slot === 1) {
+          initiateHostOnlineMatch();
+        }
+      } else {
+        startGame();
+      }
     }
 
     /* Pause / Exit Modal */
@@ -1660,23 +1861,103 @@
         isOnlineMultiplayer = true;
         onlineRoom = room;
         localPlayerInfo = player;
-        state.gameMode = 'p2';
+        state.mode = 'p2';
 
         // Subscribe to real-time events
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
           onBroadcastEvent: (evt) => {
-            if (evt.eventType === 'drop_fruit') {
-              if (evt.sender.slot !== localPlayerInfo.slot && physicsEngine) {
-                physicsEngine.spawnFruitAt(evt.x, evt.fruitLevel);
+            if (evt.eventType === 'init_online_match') {
+              startTurnDraw(evt.firstTurn, evt.seed1, evt.seed2, evt.hostName, evt.guestName);
+            } else if (evt.eventType === 'player_drop') {
+              if (evt.slot !== localPlayerInfo.slot && physicsEngine) {
+                const remoteX = evt.xRatio * physicsEngine.width;
+                state.dropperX = remoteX;
+                physicsEngine.spawnFruit(remoteX, evt.droppedLevel, evt.slot);
+                state.p1Score = evt.p1Score;
+                state.p2Score = evt.p2Score;
+                updateScoreHUD();
+
+                state.nextFruitLevel = evt.nextLevel;
+                state.upcomingFruitLevel = evt.upcomingLevel;
+
+                state.currentTurn = localPlayerInfo.slot;
+                updateTurnBanner();
+                state.canDrop = true;
               }
-            } else if (evt.eventType === 'rematch') {
-              startGame();
+            } else if (evt.eventType === 'game_over') {
+              handleMatchOverflowRemote(evt.foulPlayer);
+            } else if (evt.eventType === 'rematch_request') {
+              if (localPlayerInfo.slot === 1) {
+                initiateHostOnlineMatch();
+              }
             }
           }
         });
 
-        startGame();
+        if (localPlayerInfo.slot === 1) {
+          initiateHostOnlineMatch();
+        }
       });
+    }
+
+    function initiateHostOnlineMatch() {
+      const firstTurn = Math.random() < 0.5 ? 1 : 2;
+      const seed1 = Math.floor(Math.random() * 4);
+      const seed2 = Math.floor(Math.random() * 4);
+      const hostName = onlineRoom?.host_name || 'Player 1';
+      const guestName = onlineRoom?.guest_name || 'Player 2';
+
+      SupabaseMultiplayer.sendEvent('init_online_match', {
+        firstTurn,
+        seed1,
+        seed2,
+        hostName,
+        guestName
+      });
+
+      startTurnDraw(firstTurn, seed1, seed2, hostName, guestName);
+    }
+
+    function startTurnDraw(firstTurn, seed1, seed2, hostName, guestName) {
+      const overlay = document.getElementById('turn-draw-overlay');
+      const badge = document.getElementById('turn-draw-badge');
+      const title = document.getElementById('turn-draw-title');
+      const sub = document.getElementById('turn-draw-sub');
+      const result = document.getElementById('turn-draw-result');
+
+      overlay.classList.add('active');
+      badge.classList.add('spinning');
+      badge.textContent = '🎰';
+      title.textContent = 'DRAWING FIRST TURN...';
+      sub.textContent = `${hostName} VS ${guestName}`;
+      result.style.display = 'none';
+
+      playSound('tap');
+
+      setTimeout(() => {
+        badge.classList.remove('spinning');
+        const isP1 = firstTurn === 1;
+        const winnerName = isP1 ? hostName : guestName;
+        badge.textContent = isP1 ? '🔵' : '🔴';
+        title.textContent = `${winnerName.toUpperCase()} GOES FIRST!`;
+        sub.textContent = 'Turn draw complete';
+
+        const isMyTurn = firstTurn === localPlayerInfo.slot;
+        result.style.display = 'block';
+        result.style.background = isP1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
+        result.style.color = isP1 ? '#000000' : '#ffffff';
+        result.textContent = isMyTurn ? '⚡ YOUR TURN FIRST!' : `⌛ OPPONENT'S TURN FIRST!`;
+
+        playSound('win');
+
+        setTimeout(() => {
+          overlay.classList.remove('active');
+          state.currentTurn = firstTurn;
+          state.nextFruitLevel = seed1;
+          state.upcomingFruitLevel = seed2;
+          startOnlineGame(hostName, guestName);
+        }, 1600);
+      }, 1400);
     }
 
     /* Initialization */
