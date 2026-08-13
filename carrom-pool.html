@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <style>
     /* ==========================================================================
        DESIGN SYSTEM & COLOR PALETTE (Matching Workspace Games UI)
@@ -672,6 +674,9 @@
         <div class="mode-select-grid">
           <button class="btn btn-cyan" id="btn-mode-2p">
             <span>👥</span> Pass & Play (2P)
+          </button>
+          <button class="btn btn-cyan" onclick="openMultiplayerModal()" style="background: linear-gradient(135deg, #0284c7, #0369a1); color:#fff;">
+            <span>🌐</span> Online Multiplayer
           </button>
           <button class="btn btn-coral" id="btn-mode-ai">
             <span>🤖</span> vs Computer (AI)
@@ -1955,6 +1960,37 @@
       }
 
       renderConfetti();
+    }
+
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+    let isOnlineMultiplayer = false;
+    let onlineRoom = null;
+    let localPlayerInfo = null;
+
+    function openMultiplayerModal() {
+      if (!window.SupabaseMultiplayer) {
+        alert('Supabase Multiplayer engine is loading. Please try again in a moment!');
+        return;
+      }
+      SupabaseMultiplayer.renderUI('carrom-pool', 'Carrom Pool Duel', (room, player) => {
+        isOnlineMultiplayer = true;
+        onlineRoom = room;
+        localPlayerInfo = player;
+
+        SupabaseMultiplayer.subscribeToRoom(room.room_code, {
+          onBroadcastEvent: (evt) => {
+            if (evt.eventType === 'shoot_striker') {
+              if (evt.sender.slot !== localPlayerInfo.slot && typeof executeRemoteShot === 'function') {
+                executeRemoteShot(evt.sliderVal, evt.vx, evt.vy);
+              }
+            } else if (evt.eventType === 'rematch') {
+              document.getElementById('btn-mode-2p').click();
+            }
+          }
+        });
+
+        document.getElementById('btn-mode-2p').click();
+      });
     }
   </script>
 </body>

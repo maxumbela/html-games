@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <style>
     /* ==========================================================================
        RESET & DESIGN TOKENS (3D Neumorphic Arcade Styling)
@@ -847,6 +849,7 @@
 
         <div class="menu-actions">
           <button class="btn btn-cyan" onclick="startGame()">▶ PLAY MATCH</button>
+          <button class="btn btn-cyan" onclick="openMultiplayerModal()" style="background: linear-gradient(135deg, #0284c7, #0369a1); color:#fff;">🌐 ONLINE MULTIPLAYER</button>
           <button class="btn btn-secondary" onclick="openHowTo()">❓ HOW TO PLAY</button>
           <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
         </div>
@@ -1600,6 +1603,37 @@
         confettiAnimId = null;
       }
     });
+
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+    let isOnlineMultiplayer = false;
+    let onlineRoom = null;
+    let localPlayerInfo = null;
+
+    function openMultiplayerModal() {
+      if (!window.SupabaseMultiplayer) {
+        alert('Supabase Multiplayer engine is loading. Please try again in a moment!');
+        return;
+      }
+      SupabaseMultiplayer.renderUI('match-emoji', 'Spot & Tap Emoji', (room, player) => {
+        isOnlineMultiplayer = true;
+        onlineRoom = room;
+        localPlayerInfo = player;
+
+        SupabaseMultiplayer.subscribeToRoom(room.room_code, {
+          onBroadcastEvent: (evt) => {
+            if (evt.eventType === 'tap_emoji') {
+              if (evt.sender.slot !== localPlayerInfo.slot && typeof handleEmojiTap === 'function') {
+                handleEmojiTap(evt.playerSlot, evt.emojiSymbol);
+              }
+            } else if (evt.eventType === 'rematch') {
+              startGame();
+            }
+          }
+        });
+
+        startGame();
+      });
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       let seenHowTo = false;

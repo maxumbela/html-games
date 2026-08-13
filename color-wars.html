@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     <!-- PeerJS WebRTC Library for Serverless Internet Multiplayer -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -1966,12 +1968,47 @@
                 startNewMatch(gameMode);
             });
 
+            document.getElementById('btn-start-online').addEventListener('click', () => {
+                openMultiplayerModal();
+            });
+
             document.getElementById('btn-victory-menu').addEventListener('click', () => {
                 overlayVictory.classList.remove('active');
                 overlayMenu.classList.add('active');
                 gamePhase = 'menu';
             });
         });
+
+        /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+        let isOnlineMultiplayer = false;
+        let onlineRoom = null;
+        let localPlayerInfo = null;
+
+        function openMultiplayerModal() {
+            if (!window.SupabaseMultiplayer) {
+                alert('Supabase Multiplayer engine is loading. Please try again in a moment!');
+                return;
+            }
+            SupabaseMultiplayer.renderUI('color-wars', 'Color Wars', (room, player) => {
+                isOnlineMultiplayer = true;
+                onlineRoom = room;
+                localPlayerInfo = player;
+
+                SupabaseMultiplayer.subscribeToRoom(room.room_code, {
+                    onBroadcastEvent: (evt) => {
+                        if (evt.eventType === 'cell_click') {
+                            if (evt.sender.slot !== localPlayerInfo.slot && typeof handleCellClick === 'function') {
+                                handleCellClick(evt.r, evt.c);
+                            }
+                        } else if (evt.eventType === 'rematch') {
+                            startNewMatch('pvp');
+                        }
+                    }
+                });
+
+                startNewMatch('pvp');
+            });
+        }
     </script>
 </body>
 

@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <!-- PeerJS for WebRTC Online Multiplayer -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
@@ -470,7 +472,7 @@
         <div class="btn-group" style="flex-direction: column; gap: 12px;">
           <button class="btn btn-cyan" id="btn-mode-vs">🤖 1 PLAYER (VS BOT)</button>
           <button class="btn btn-green" id="btn-mode-local">👥 2 PLAYER LOCAL (PASS & PLAY)</button>
-          <button class="btn btn-purple" id="btn-mode-webrtc">🌐 2 PLAYER ONLINE (WebRTC)</button>
+          <button class="btn btn-purple" onclick="openMultiplayerModal()">🌐 ONLINE MULTIPLAYER</button>
           <a href="index.html" class="btn" style="background:#ffffff;color:#000000;">🏠 BACK TO HUB</a>
         </div>
       </div>
@@ -1600,6 +1602,37 @@
     }
 
     animFrameId = requestAnimationFrame(gameLoop);
+
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+    let isOnlineMultiplayer = false;
+    let onlineRoom = null;
+    let localPlayerInfo = null;
+
+    function openMultiplayerModal() {
+      if (!window.SupabaseMultiplayer) {
+        alert('Supabase Multiplayer engine is loading. Please try again in a moment!');
+        return;
+      }
+      SupabaseMultiplayer.renderUI('dirt-game', '301 Darts Rally', (room, player) => {
+        isOnlineMultiplayer = true;
+        onlineRoom = room;
+        localPlayerInfo = player;
+
+        SupabaseMultiplayer.subscribeToRoom(room.room_code, {
+          onBroadcastEvent: (evt) => {
+            if (evt.eventType === 'throw_dart') {
+              if (evt.sender.slot !== localPlayerInfo.slot && typeof handleRemoteDartThrow === 'function') {
+                handleRemoteDartThrow(evt.x, evt.y, evt.score);
+              }
+            } else if (evt.eventType === 'rematch') {
+              document.getElementById('btn-mode-local').click();
+            }
+          }
+        });
+
+        document.getElementById('btn-mode-local').click();
+      });
+    }
   </script>
 </body>
 </html>

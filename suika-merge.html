@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -629,6 +631,7 @@
 
         <div class="menu-actions">
           <button class="btn" onclick="startGame()">▶ PLAY MATCH</button>
+          <button class="btn" onclick="openMultiplayerModal()" style="background: linear-gradient(135deg, #0284c7, #0369a1);">🌐 ONLINE MULTIPLAYER</button>
           <button class="btn btn-secondary" onclick="openHowTo()">❓ HOW TO PLAY</button>
           <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
         </div>
@@ -1642,6 +1645,39 @@
         physicsEngine.resize();
       }
     });
+
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
+    let isOnlineMultiplayer = false;
+    let onlineRoom = null;
+    let localPlayerInfo = null;
+
+    function openMultiplayerModal() {
+      if (!window.SupabaseMultiplayer) {
+        alert('Supabase Multiplayer engine is loading. Please try again in a moment!');
+        return;
+      }
+      SupabaseMultiplayer.renderUI('suika-merge', 'Suika Fruit Merge', (room, player) => {
+        isOnlineMultiplayer = true;
+        onlineRoom = room;
+        localPlayerInfo = player;
+        state.gameMode = 'p2';
+
+        // Subscribe to real-time events
+        SupabaseMultiplayer.subscribeToRoom(room.room_code, {
+          onBroadcastEvent: (evt) => {
+            if (evt.eventType === 'drop_fruit') {
+              if (evt.sender.slot !== localPlayerInfo.slot && physicsEngine) {
+                physicsEngine.spawnFruitAt(evt.x, evt.fruitLevel);
+              }
+            } else if (evt.eventType === 'rematch') {
+              startGame();
+            }
+          }
+        });
+
+        startGame();
+      });
+    }
 
     /* Initialization */
     document.addEventListener('DOMContentLoaded', () => {
