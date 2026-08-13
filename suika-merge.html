@@ -1052,18 +1052,26 @@
     }
 
     /* ==========================================================================
-       SUIKA PHYSICS ENGINE WITH MICRO-ANIMATIONS
+       SUIKA PHYSICS ENGINE WITH MICRO-ANIMATIONS & FIXED VIRTUAL BOARD
        ========================================================================== */
+    const VIRTUAL_WIDTH = 380;
+    const VIRTUAL_HEIGHT = 560;
+
     class SuikaPhysicsEngine {
       constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
-        this.width = 0;
-        this.height = 0;
+        this.virtualWidth = VIRTUAL_WIDTH;
+        this.virtualHeight = VIRTUAL_HEIGHT;
+        this.canvasWidth = 380;
+        this.canvasHeight = 560;
+        this.scale = 1;
+        this.offsetX = 0;
+        this.offsetY = 0;
         this.gravity = 0.45;
         this.friction = 0.98;
         this.bounce = 0.25;
-        this.dangerLineY = 95;
+        this.dangerLineY = 90;
 
         this.fruits = [];
         this.particles = [];
@@ -1081,39 +1089,83 @@
 
       resize() {
         const rect = this.canvas.getBoundingClientRect();
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
-        this.width = rect.width || 360;
-        this.height = rect.height || 540;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        this.canvasWidth = rect.width || 380;
+        this.canvasHeight = rect.height || 560;
 
-        this.canvas.width = Math.floor(this.width * dpr);
-        this.canvas.height = Math.floor(this.height * dpr);
+        this.canvas.width = Math.floor(this.canvasWidth * dpr);
+        this.canvas.height = Math.floor(this.canvasHeight * dpr);
+
+        // Uniform aspect ratio fit inside container canvas
+        this.scale = Math.min(this.canvasWidth / this.virtualWidth, this.canvasHeight / this.virtualHeight);
+        this.offsetX = (this.canvasWidth - this.virtualWidth * this.scale) / 2;
+        this.offsetY = (this.canvasHeight - this.virtualHeight * this.scale) / 2;
+
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        state.dropperX = this.width / 2;
+        if (!state.dropperX || state.dropperX < 30 || state.dropperX > this.virtualWidth - 30) {
+          state.dropperX = this.virtualWidth / 2;
+        }
       }
 
       spawnFruit(x, level, playerOwner) {
-        const fruitDef = FRUITS[level];
+        const fruitDef = FRUITS[level] || FRUITS[0];
+        const minX = fruitDef.radius + 10;
+        const maxX = this.virtualWidth - fruitDef.radius - 10;
+        const clampedX = Math.max(minX, Math.min(maxX, x));
+
         const newFruit = {
           id: Math.random().toString(36).substring(2),
           level: level,
           radius: fruitDef.radius,
-          x: Math.max(fruitDef.radius + 10, Math.min(this.width - fruitDef.radius - 10, x)),
+          x: clampedX,
           y: 55,
           vx: 0,
           vy: 1.5,
           player: playerOwner,
           age: 0,
-          scalePop: 1.2
+          scalePop: 1.25
         };
         this.fruits.push(newFruit);
         playSound('drop');
       }
 
+      serializeFruits() {
+        return this.fruits.map(f => ({
+          id: f.id,
+          level: f.level,
+          x: Math.round(f.x * 10) / 10,
+          y: Math.round(f.y * 10) / 10,
+          vx: Math.round(f.vx * 100) / 100,
+          vy: Math.round(f.vy * 100) / 100,
+          player: f.player,
+          age: f.age
+        }));
+      }
+
+      syncFruits(remoteFruits) {
+        if (!Array.isArray(remoteFruits)) return;
+        this.fruits = remoteFruits.map(rf => {
+          const fruitDef = FRUITS[rf.level] || FRUITS[0];
+          return {
+            id: rf.id || Math.random().toString(36).substring(2),
+            level: rf.level,
+            radius: fruitDef.radius,
+            x: rf.x,
+            y: rf.y,
+            vx: rf.vx || 0,
+            vy: rf.vy || 0,
+            player: rf.player || 1,
+            age: rf.age || 10,
+            scalePop: 1.0
+          };
+        });
+      }
+
       update() {
         const numFruits = this.fruits.length;
 
-        // 1. Position & Velocity Updates (Gravity)
+        // 1. Position & Velocity Updates (Gravity in Fixed Virtual World)
         for (let i = 0; i < numFruits; i++) {
           const f = this.fruits[i];
           f.age += 1;
@@ -1129,25 +1181,25 @@
             f.scalePop = Math.max(1.0, f.scalePop - 0.04);
           }
 
-          // Wall Collisions
+          // Wall Collisions (Virtual Width Bounds)
           if (f.x - f.radius < 0) {
             f.x = f.radius;
             f.vx = -f.vx * this.bounce;
-          } else if (f.x + f.radius > this.width) {
-            f.x = this.width - f.radius;
+          } else if (f.x + f.radius > this.virtualWidth) {
+            f.x = this.virtualWidth - f.radius;
             f.vx = -f.vx * this.bounce;
           }
 
-          // Floor Collision
-          if (f.y + f.radius > this.height - 10) {
-            f.y = this.height - 10 - f.radius;
+          // Floor Collision (Virtual Height Bounds)
+          if (f.y + f.radius > this.virtualHeight - 10) {
+            f.y = this.virtualHeight - 10 - f.radius;
             f.vy = -f.vy * this.bounce;
             f.vx *= 0.85;
           }
 
-          // Resting velocity threshold damping (prevents micro-shaking)
+          // Damping threshold
           if (Math.abs(f.vx) < 0.12) f.vx = 0;
-          if (Math.abs(f.vy) < 0.12 && f.y + f.radius >= this.height - 15) f.vy = 0;
+          if (Math.abs(f.vy) < 0.12 && f.y + f.radius >= this.virtualHeight - 15) f.vy = 0;
         }
 
         // 2. Fruit-Fruit Collisions & Merges
@@ -1232,7 +1284,7 @@
           }
         }
 
-        // Apply Merges with Micro-Pop Scale Animation
+        // Apply Merges
         if (toRemove.size > 0) {
           this.fruits = this.fruits.filter(f => !toRemove.has(f.id));
           newSpawns.forEach(s => {
@@ -1247,12 +1299,12 @@
               vy: -2.0,
               player: s.player,
               age: 60,
-              scalePop: 1.45 // POP ANIMATION!
+              scalePop: 1.45
             });
           });
         }
 
-        // 3. Overflow Line Check (Only count settled fruits older than 60 frames)
+        // 3. Overflow Line Check
         let isOverflowing = false;
         for (const f of this.fruits) {
           if (f.age > 60 && f.y - f.radius < this.dangerLineY && Math.abs(f.vy) < 0.4) {
@@ -1264,7 +1316,6 @@
         if (isOverflowing) {
           state.overflowTimer += 1 / 60;
           if (state.overflowTimer > 2.2) {
-            // Container Overflowed -> Active Player Loses!
             const foulPlayer = state.currentTurn;
             handleMatchOverflow(foulPlayer);
           }
@@ -1321,27 +1372,36 @@
 
       draw() {
         const ctx = this.ctx;
-        ctx.clearRect(0, 0, this.width, this.height);
+        ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+
+        ctx.save();
+        // Translate and scale to fit virtual board uniformly on any device
+        ctx.translate(this.offsetX, this.offsetY);
+        ctx.scale(this.scale, this.scale);
+
+        // Virtual Board Backdrop & Inner Border
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.fillRect(0, 0, this.virtualWidth, this.virtualHeight);
 
         // Danger Line
-        ctx.save();
         const lineY = this.dangerLineY;
-        ctx.strokeStyle = state.overflowTimer > 0 ? '#ef4444' : 'rgba(239, 68, 68, 0.5)';
+        ctx.save();
+        ctx.strokeStyle = state.overflowTimer > 0 ? '#ef4444' : 'rgba(239, 68, 68, 0.55)';
         ctx.lineWidth = 2;
         ctx.setLineDash([8, 6]);
         ctx.beginPath();
         ctx.moveTo(0, lineY);
-        ctx.lineTo(this.width, lineY);
+        ctx.lineTo(this.virtualWidth, lineY);
         ctx.stroke();
 
         ctx.font = '12px var(--font-display)';
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
         ctx.fillText('⚠️ DANGER LINE', 10, lineY - 6);
         ctx.restore();
 
         // Dropper Guide Line & Active Dropper Fruit Preview
         if (state.canDrop && state.running) {
-          const fruitDef = FRUITS[state.nextFruitLevel];
+          const fruitDef = FRUITS[state.nextFruitLevel] || FRUITS[0];
           const activeColor = state.currentTurn === 1 ? '#06b6d4' : '#f43f5e';
 
           ctx.save();
@@ -1351,7 +1411,7 @@
           ctx.setLineDash([6, 4]);
           ctx.beginPath();
           ctx.moveTo(state.dropperX, 55);
-          ctx.lineTo(state.dropperX, this.height - 10);
+          ctx.lineTo(state.dropperX, this.virtualHeight - 10);
           ctx.stroke();
 
           // Dropper Fruit Preview Circle
@@ -1366,7 +1426,7 @@
           ctx.stroke();
 
           // Emoji overlay
-          const emojiSize = Math.max(22, fruitDef.radius * 1.35);
+          const emojiSize = Math.max(20, fruitDef.radius * 1.35);
           ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -1377,7 +1437,7 @@
 
         // Render Fruits in Container with Scale Pop Animation
         for (const f of this.fruits) {
-          const fruitDef = FRUITS[f.level];
+          const fruitDef = FRUITS[f.level] || FRUITS[0];
           const currentRadius = f.radius * (f.scalePop || 1.0);
 
           ctx.save();
@@ -1397,7 +1457,7 @@
           ctx.fill();
 
           // Fruit Emoji Icon
-          const emojiSize = Math.max(22, currentRadius * 1.35);
+          const emojiSize = Math.max(20, currentRadius * 1.35);
           ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -1430,14 +1490,13 @@
           ctx.fillText(t.text, t.x, t.y);
           ctx.restore();
         }
+
+        ctx.restore();
       }
     }
 
     let physicsEngine = null;
 
-    /* ==========================================================================
-       GAMEPLAY ENGINE & GAME FLOW
-       ========================================================================== */
     /* ==========================================================================
        GAMEPLAY ENGINE & GAME FLOW
        ========================================================================== */
@@ -1561,12 +1620,14 @@
 
       state.canDrop = false;
 
-      // Drop current fruit
+      // Drop current fruit in fixed virtual world
       const droppedLevel = state.nextFruitLevel;
-      physicsEngine.spawnFruit(x, droppedLevel, state.currentTurn);
+      const fruitDef = FRUITS[droppedLevel] || FRUITS[0];
+      const clampedX = Math.max(fruitDef.radius + 10, Math.min(physicsEngine.virtualWidth - fruitDef.radius - 10, x));
+      physicsEngine.spawnFruit(clampedX, droppedLevel, state.currentTurn);
 
       // Score for dropping
-      const dropPts = FRUITS[droppedLevel].score;
+      const dropPts = fruitDef.score;
       if (state.currentTurn === 1) state.p1Score += dropPts;
       else state.p2Score += dropPts;
       updateScoreHUD();
@@ -1577,7 +1638,7 @@
 
       if (isOnlineMultiplayer) {
         SupabaseMultiplayer.sendEvent('player_drop', {
-          xRatio: x / physicsEngine.width,
+          virtualX: clampedX,
           droppedLevel: droppedLevel,
           nextLevel: state.nextFruitLevel,
           upcomingLevel: state.upcomingFruitLevel,
@@ -1595,6 +1656,13 @@
 
         if (isOnlineMultiplayer) {
           state.canDrop = (state.currentTurn === localPlayerInfo.slot);
+
+          // Synchronize exact board fruit positions across all screen sizes
+          SupabaseMultiplayer.sendEvent('board_sync', {
+            fruits: physicsEngine.serializeFruits(),
+            p1Score: state.p1Score,
+            p2Score: state.p2Score
+          });
         } else {
           state.canDrop = true;
           if (state.mode === 'bot' && state.currentTurn === 2) {
@@ -1614,7 +1682,7 @@
       if (!state.running || state.currentTurn !== 2 || !physicsEngine) return;
 
       const nextLevel = state.nextFruitLevel;
-      let targetX = physicsEngine.width / 2;
+      let targetX = physicsEngine.virtualWidth / 2;
 
       // Find matching fruit in container to merge!
       const matchingFruits = physicsEngine.fruits.filter(f => f.level === nextLevel);
@@ -1626,11 +1694,11 @@
         const sorted = [...physicsEngine.fruits].sort((a, b) => b.y - a.y);
         targetX = sorted[0].x + (Math.random() - 0.5) * 40;
       } else {
-        targetX = physicsEngine.width / 2;
+        targetX = physicsEngine.virtualWidth / 2;
       }
 
-      const radius = FRUITS[nextLevel].radius;
-      targetX = Math.max(radius + 15, Math.min(physicsEngine.width - radius - 15, targetX));
+      const radius = (FRUITS[nextLevel] || FRUITS[0]).radius;
+      targetX = Math.max(radius + 15, Math.min(physicsEngine.virtualWidth - radius - 15, targetX));
 
       state.dropperX = targetX;
       executeDrop(targetX);
@@ -1660,8 +1728,15 @@
     function updateDropperFromPointer(e) {
       if (!physicsEngine) return;
       const rect = containerEl.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      state.dropperX = Math.max(30, Math.min(physicsEngine.width - 30, x));
+      const rawX = e.clientX - rect.left;
+
+      // Convert Screen Pixel to Fixed Virtual Board Coordinate
+      const virtualX = (rawX - physicsEngine.offsetX) / (physicsEngine.scale || 1);
+      const fruitDef = FRUITS[state.nextFruitLevel] || FRUITS[0];
+      const minX = fruitDef.radius + 10;
+      const maxX = physicsEngine.virtualWidth - fruitDef.radius - 10;
+
+      state.dropperX = Math.max(minX, Math.min(maxX, virtualX));
     }
 
     containerEl.addEventListener('pointermove', (e) => {
@@ -1870,9 +1945,8 @@
               startTurnDraw(evt.firstTurn, evt.seed1, evt.seed2, evt.hostName, evt.guestName);
             } else if (evt.eventType === 'player_drop') {
               if (evt.slot !== localPlayerInfo.slot && physicsEngine) {
-                const remoteX = evt.xRatio * physicsEngine.width;
-                state.dropperX = remoteX;
-                physicsEngine.spawnFruit(remoteX, evt.droppedLevel, evt.slot);
+                state.dropperX = evt.virtualX;
+                physicsEngine.spawnFruit(evt.virtualX, evt.droppedLevel, evt.slot);
                 state.p1Score = evt.p1Score;
                 state.p2Score = evt.p2Score;
                 updateScoreHUD();
@@ -1883,6 +1957,13 @@
                 state.currentTurn = localPlayerInfo.slot;
                 updateTurnBanner();
                 state.canDrop = true;
+              }
+            } else if (evt.eventType === 'board_sync') {
+              if (physicsEngine && evt.fruits) {
+                physicsEngine.syncFruits(evt.fruits);
+                state.p1Score = evt.p1Score;
+                state.p2Score = evt.p2Score;
+                updateScoreHUD();
               }
             } else if (evt.eventType === 'game_over') {
               handleMatchOverflowRemote(evt.foulPlayer);
