@@ -863,10 +863,14 @@
       p2Score: 0,
       bestScore: 0,
       currentTurn: 1, // 1 = P1, 2 = P2
-      dropperX: 200,
+      dropperX: 190,
+      remoteDropperX: 190,
+      remoteDropperLevel: 0,
+      remoteAiming: false,
       nextFruitLevel: 0,
       upcomingFruitLevel: 1,
       canDrop: true,
+      isDropping: false,
       running: false,
       overflowTimer: 0
     };
@@ -1399,14 +1403,16 @@
         ctx.fillText('⚠️ DANGER LINE', 10, lineY - 6);
         ctx.restore();
 
-        // Dropper Guide Line & Active Dropper Fruit Preview
-        if (state.canDrop && state.running) {
+        // Local Player Dropper Guide Line & Fruit Preview (when it is your turn)
+        const isMyTurn = !isOnlineMultiplayer || (localPlayerInfo && state.currentTurn === localPlayerInfo.slot);
+
+        if (isMyTurn && state.canDrop && !state.isDropping && state.running) {
           const fruitDef = FRUITS[state.nextFruitLevel] || FRUITS[0];
           const activeColor = state.currentTurn === 1 ? '#06b6d4' : '#f43f5e';
 
           ctx.save();
           // Vertical Aim Line
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
           ctx.lineWidth = 2;
           ctx.setLineDash([6, 4]);
           ctx.beginPath();
@@ -1431,6 +1437,49 @@
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(fruitDef.emoji, state.dropperX, 56);
+
+          ctx.restore();
+        }
+
+        // Realtime Opponent Aim Guide & Fruit Preview (when it is opponent's turn in online multiplayer)
+        if (isOnlineMultiplayer && !isMyTurn && state.running) {
+          const opponentFruitDef = FRUITS[state.remoteDropperLevel ?? state.nextFruitLevel] || FRUITS[0];
+          const opponentColor = state.currentTurn === 1 ? '#06b6d4' : '#f43f5e';
+          const oppX = state.remoteDropperX !== undefined ? state.remoteDropperX : (this.virtualWidth / 2);
+
+          ctx.save();
+          // Opponent Aim Line (Animated / Colored)
+          ctx.strokeStyle = opponentColor;
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([8, 5]);
+          ctx.beginPath();
+          ctx.moveTo(oppX, 55);
+          ctx.lineTo(oppX, this.virtualHeight - 10);
+          ctx.stroke();
+
+          // Opponent Aim Indicator Badge Text
+          ctx.setLineDash([]);
+          ctx.font = '700 11px var(--font-display)';
+          ctx.fillStyle = opponentColor;
+          ctx.textAlign = 'center';
+          ctx.fillText('🎯 OPPONENT AIMING', oppX, 22);
+
+          // Opponent Dropper Preview Circle
+          ctx.fillStyle = opponentFruitDef.color;
+          ctx.strokeStyle = opponentColor;
+          ctx.lineWidth = 3;
+
+          ctx.beginPath();
+          ctx.arc(oppX, 55, opponentFruitDef.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Opponent Fruit Emoji
+          const emojiSize = Math.max(20, opponentFruitDef.radius * 1.35);
+          ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(opponentFruitDef.emoji, oppX, 56);
 
           ctx.restore();
         }
@@ -1613,12 +1662,15 @@
       }
     }
 
-    function executeDrop(x) {
-      if (!state.canDrop || !physicsEngine || !state.running) return;
+    let lastProcessedDropId = null;
 
-      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo.slot) return;
+    function executeDrop(x) {
+      if (!state.canDrop || state.isDropping || !physicsEngine || !state.running) return;
+
+      if (isOnlineMultiplayer && localPlayerInfo && state.currentTurn !== localPlayerInfo.slot) return;
 
       state.canDrop = false;
+      state.isDropping = true;
 
       // Drop current fruit in fixed virtual world
       const droppedLevel = state.nextFruitLevel;
@@ -1636,8 +1688,11 @@
       state.nextFruitLevel = state.upcomingFruitLevel;
       state.upcomingFruitLevel = Math.floor(Math.random() * 4);
 
-      if (isOnlineMultiplayer) {
+      if (isOnlineMultiplayer && localPlayerInfo) {
+        const dropId = 'drop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        lastProcessedDropId = dropId;
         SupabaseMultiplayer.sendEvent('player_drop', {
+          dropId: dropId,
           virtualX: clampedX,
           droppedLevel: droppedLevel,
           nextLevel: state.nextFruitLevel,
@@ -1649,17 +1704,19 @@
       }
 
       setTimeout(() => {
+        state.isDropping = false;
         if (state.mode !== 'single') {
           state.currentTurn = state.currentTurn === 1 ? 2 : 1;
         }
         updateTurnBanner();
 
-        if (isOnlineMultiplayer) {
+        if (isOnlineMultiplayer && localPlayerInfo) {
           state.canDrop = (state.currentTurn === localPlayerInfo.slot);
 
           // Synchronize exact board fruit positions across all screen sizes
           SupabaseMultiplayer.sendEvent('board_sync', {
             fruits: physicsEngine.serializeFruits(),
+            slot: localPlayerInfo.slot,
             p1Score: state.p1Score,
             p2Score: state.p2Score
           });
@@ -1669,7 +1726,7 @@
             setTimeout(executeBotTurn, 800);
           }
         }
-      }, 600);
+      }, 650);
     }
 
     function triggerTapDrop() {
@@ -1725,6 +1782,20 @@
     /* Touch & Drag Event Handlers for Container */
     const containerEl = document.getElementById('container-wrapper');
 
+    let lastAimBroadcastTime = 0;
+    function broadcastAimMove(virtualX) {
+      if (!isOnlineMultiplayer || !localPlayerInfo || state.currentTurn !== localPlayerInfo.slot) return;
+      const now = performance.now();
+      if (now - lastAimBroadcastTime > 35) { // ~28 fps smooth aim update
+        lastAimBroadcastTime = now;
+        SupabaseMultiplayer.sendEvent('aim_move', {
+          virtualX: Math.round(virtualX * 10) / 10,
+          fruitLevel: state.nextFruitLevel,
+          slot: localPlayerInfo.slot
+        });
+      }
+    }
+
     function updateDropperFromPointer(e) {
       if (!physicsEngine) return;
       const rect = containerEl.getBoundingClientRect();
@@ -1737,23 +1808,24 @@
       const maxX = physicsEngine.virtualWidth - fruitDef.radius - 10;
 
       state.dropperX = Math.max(minX, Math.min(maxX, virtualX));
+      broadcastAimMove(state.dropperX);
     }
 
     containerEl.addEventListener('pointermove', (e) => {
       if (state.mode === 'bot' && state.currentTurn === 2) return;
-      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo.slot) return;
+      if (isOnlineMultiplayer && (!localPlayerInfo || state.currentTurn !== localPlayerInfo.slot)) return;
       updateDropperFromPointer(e);
     });
 
     containerEl.addEventListener('pointerdown', (e) => {
       if (state.mode === 'bot' && state.currentTurn === 2) return;
-      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo.slot) return;
+      if (isOnlineMultiplayer && (!localPlayerInfo || state.currentTurn !== localPlayerInfo.slot)) return;
       updateDropperFromPointer(e);
     });
 
     containerEl.addEventListener('pointerup', (e) => {
       if (state.mode === 'bot' && state.currentTurn === 2) return;
-      if (isOnlineMultiplayer && state.currentTurn !== localPlayerInfo.slot) return;
+      if (isOnlineMultiplayer && (!localPlayerInfo || state.currentTurn !== localPlayerInfo.slot)) return;
       updateDropperFromPointer(e);
       executeDrop(state.dropperX);
     });
@@ -1788,8 +1860,10 @@
     function renderWinnerScreen(foulPlayer) {
       const headline = document.getElementById('winner-headline');
       const recap = document.getElementById('winner-recap');
+      const icon = document.getElementById('winner-icon');
 
       if (state.mode === 'single') {
+        if (icon) icon.textContent = '💀';
         headline.textContent = 'GAME OVER!';
         headline.style.color = 'var(--fruit-gold)';
         recap.textContent = `Final Score: ${state.p1Score}`;
@@ -1800,11 +1874,13 @@
         const loserName = foulPlayer === 1 ? (onlineRoom?.host_name || 'Player 1') : (onlineRoom?.guest_name || 'Player 2');
 
         if (isIWin) {
+          if (icon) icon.textContent = '🏆';
           headline.textContent = 'YOU WIN! 🏆';
           headline.style.color = 'var(--fruit-gold)';
           recap.textContent = `${loserName} overflowed the container!`;
           playSound('win');
         } else {
+          if (icon) icon.textContent = '💀';
           headline.textContent = `${winnerName.toUpperCase()} WINS! 🏆`;
           headline.style.color = 'var(--p2-rose)';
           recap.textContent = `You overflowed the container!`;
@@ -1814,6 +1890,7 @@
         const loserName = foulPlayer === 1 ? 'Player 1' : (state.mode === 'bot' ? 'Bot' : 'Player 2');
         const winnerName = winnerNum === 1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
 
+        if (icon) icon.textContent = '🏆';
         headline.textContent = `${winnerName} WINS! 🏆`;
         headline.style.color = winnerNum === 1 ? 'var(--p1-cyan-dark)' : 'var(--p2-rose-dark)';
         recap.textContent = `${loserName} overflowed the container!`;
@@ -1943,9 +2020,22 @@
           onBroadcastEvent: (evt) => {
             if (evt.eventType === 'init_online_match') {
               startTurnDraw(evt.firstTurn, evt.seed1, evt.seed2, evt.hostName, evt.guestName);
+            } else if (evt.eventType === 'aim_move') {
+              if (evt.slot !== localPlayerInfo.slot) {
+                state.remoteDropperX = evt.virtualX;
+                state.remoteDropperLevel = evt.fruitLevel;
+                state.remoteAiming = true;
+              }
             } else if (evt.eventType === 'player_drop') {
               if (evt.slot !== localPlayerInfo.slot && physicsEngine) {
-                state.dropperX = evt.virtualX;
+                if (evt.dropId && evt.dropId === lastProcessedDropId) return; // Prevent duplicate
+                lastProcessedDropId = evt.dropId;
+
+                state.remoteDropperX = evt.virtualX;
+                state.remoteDropperLevel = evt.droppedLevel;
+                state.remoteAiming = false;
+
+                // Spawn opponent's fruit once
                 physicsEngine.spawnFruit(evt.virtualX, evt.droppedLevel, evt.slot);
                 state.p1Score = evt.p1Score;
                 state.p2Score = evt.p2Score;
@@ -1954,16 +2044,22 @@
                 state.nextFruitLevel = evt.nextLevel;
                 state.upcomingFruitLevel = evt.upcomingLevel;
 
-                state.currentTurn = localPlayerInfo.slot;
-                updateTurnBanner();
-                state.canDrop = true;
+                setTimeout(() => {
+                  state.currentTurn = localPlayerInfo.slot;
+                  updateTurnBanner();
+                  state.canDrop = true;
+                  state.isDropping = false;
+                }, 650);
               }
             } else if (evt.eventType === 'board_sync') {
-              if (physicsEngine && evt.fruits) {
-                physicsEngine.syncFruits(evt.fruits);
-                state.p1Score = evt.p1Score;
-                state.p2Score = evt.p2Score;
-                updateScoreHUD();
+              if (evt.slot !== localPlayerInfo.slot && physicsEngine && evt.fruits) {
+                // Synchronize board without interrupting active drop
+                if (!state.isDropping) {
+                  physicsEngine.syncFruits(evt.fruits);
+                  state.p1Score = evt.p1Score;
+                  state.p2Score = evt.p2Score;
+                  updateScoreHUD();
+                }
               }
             } else if (evt.eventType === 'game_over') {
               handleMatchOverflowRemote(evt.foulPlayer);
