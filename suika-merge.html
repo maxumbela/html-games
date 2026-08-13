@@ -11,13 +11,14 @@
     :root {
       --bg-dark: #0f172a;
       --card-bg: #1e293b;
-      --card-light: #f5ebe0;
+      --card-light: #dceaf5;
       --text-dark: #2d3142;
       --p1-cyan: #06b6d4;
       --p1-cyan-dark: #0891b2;
       --p2-rose: #f43f5e;
       --p2-rose-dark: #e11d48;
       --fruit-gold: #f59e0b;
+      --purple-btn: #6d28d9;
       --font-display: 'Fredoka', 'Outfit', system-ui, -apple-system, sans-serif;
     }
 
@@ -48,7 +49,7 @@
       height: 100dvh;
       position: relative;
       overflow: hidden;
-      background: radial-gradient(circle at center, #14532d 0%, #052e16 100%);
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -74,14 +75,27 @@
       pointer-events: auto;
     }
 
-    /* Common Card Container */
+    /* Modal Entrance Animation */
+    @keyframes popModal {
+      0% { transform: scale(0.85) translateY(20px); opacity: 0; }
+      70% { transform: scale(1.02) translateY(-4px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .screen.active .card-container,
+    .modal-overlay.active .card-container {
+      animation: popModal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* Common Card Container - 3D Neumorphic Arcade Styling */
     .card-container {
       width: calc(100% - 32px);
       max-width: 420px;
       background-color: var(--card-light);
-      border-radius: 32px;
+      border: 3px solid #000000;
+      border-radius: 28px;
       padding: 24px 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 0 #000000;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -89,6 +103,8 @@
       position: relative;
       z-index: 2;
       color: var(--text-dark);
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .card-title {
@@ -100,29 +116,31 @@
       text-transform: uppercase;
     }
 
-    /* Buttons */
+    /* Standard Arcade Buttons with Tactile Feedback */
     .btn {
       background: linear-gradient(135deg, #16a34a, #15803d);
       color: #ffffff;
       font-family: var(--font-display);
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 700;
       border: 3px solid #000000;
-      border-radius: 18px;
-      padding: 12px 28px;
+      border-radius: 24px;
+      padding: 12px 24px;
+      min-height: 48px;
       cursor: pointer;
-      box-shadow: 0 4px 0 #000000;
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      box-shadow: 0 5px 0 #000000;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       text-decoration: none;
+      touch-action: manipulation;
     }
 
     .btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #000000;
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
     }
 
     .btn-secondary {
@@ -133,14 +151,15 @@
     .btn-icon {
       padding: 10px 18px;
       font-size: 20px;
-      border-radius: 14px;
+      border-radius: 20px;
+      min-width: 48px;
     }
 
     .btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
       transform: none !important;
-      box-shadow: 0 4px 0 #000000 !important;
+      box-shadow: 0 5px 0 #000000 !important;
     }
 
     .link-btn {
@@ -153,21 +172,97 @@
       margin-top: 14px;
       cursor: pointer;
       text-decoration: underline;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Standard Top Header Bar */
+    .top-header-bar {
+      position: absolute;
+      top: env(safe-area-inset-top, 12px);
+      left: 12px;
+      right: 12px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+      pointer-events: auto;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .hub-back-btn {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 24px;
+      padding: 8px 16px;
+      min-height: 48px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 5px 0 #000000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      touch-action: manipulation;
+    }
+
+    .hub-back-btn:active {
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
+    }
+
+    .header-btn, .sound-toggle {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 24px;
+      min-width: 48px;
+      min-height: 48px;
+      height: 48px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #000000;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      touch-action: manipulation;
+    }
+
+    .header-btn:active, .sound-toggle:active {
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
+    }
+
+    .header-right-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     /* MAIN MENU */
     #screen-menu .game-logo {
-      width: 110px;
-      height: 110px;
+      width: 100px;
+      height: 100px;
       background: linear-gradient(135deg, #22c55e, #15803d);
-      border: 4px solid #ffffff;
+      border: 3.5px solid #ffffff;
       border-radius: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 56px;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 12px 24px rgba(0,0,0,0.4);
+      font-size: 52px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 0 #000000;
       transform: rotate(-3deg);
     }
 
@@ -183,7 +278,7 @@
       font-size: 15px;
       color: #15803d;
       font-weight: 600;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     .menu-actions {
@@ -197,8 +292,8 @@
     .segmented-control {
       display: flex;
       background: rgba(0, 0, 0, 0.08);
-      border: 2px solid rgba(0, 0, 0, 0.15);
-      border-radius: 16px;
+      border: 3px solid #000000;
+      border-radius: 24px;
       padding: 4px;
       margin-bottom: 14px;
       width: 100%;
@@ -206,71 +301,31 @@
 
     .segmented-opt {
       flex: 1;
-      padding: 10px 0;
+      min-height: 44px;
+      padding: 8px 0;
       font-size: 13px;
-      font-weight: 700;
-      border-radius: 12px;
+      font-weight: 800;
+      border-radius: 18px;
       border: none;
       background: transparent;
       color: #14532d;
       cursor: pointer;
       transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    .segmented-opt:active {
+      transform: scale(0.96);
     }
 
     .segmented-opt.active {
       background: #ffffff;
       color: var(--text-dark);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 0 0 2px #000000;
-    }
-
-    /* Sound & Hub Back Toggle */
-    .hub-back-btn {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: #ffffff;
-      color: #000000;
-      border: 3px solid #000000;
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-family: var(--font-display);
-      font-size: 15px;
-      font-weight: 800;
-      text-decoration: none;
-      box-shadow: 0 4px 0 #000000;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-    }
-
-    .hub-back-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 0 #000000;
-    }
-
-    .hub-back-btn:active {
-      transform: scale(0.92) translateY(2px);
-      box-shadow: 0 1px 0 #000000;
-    }
-
-    .sound-toggle {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: #ffffff;
-      border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #000;
-      z-index: 100;
+      border: 2.5px solid #000000;
+      box-shadow: 0 3px 0 #000000;
     }
 
     /* HOW TO PLAY CAROUSEL */
@@ -296,7 +351,7 @@
 
     .demo-box {
       width: 100%;
-      height: 220px;
+      height: 200px;
       background-color: #052e16;
       border-radius: 20px;
       border: 3px solid #000000;
@@ -304,23 +359,23 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       overflow: hidden;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.7);
+      box-shadow: 0 4px 0 #000000;
     }
 
     .card-desc {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--text-dark);
       line-height: 1.35;
-      min-height: 52px;
+      min-height: 48px;
     }
 
     .carousel-dots {
       display: flex;
       gap: 8px;
-      margin: 14px 0;
+      margin: 12px 0;
     }
 
     .dot {
@@ -348,30 +403,36 @@
     /* GAME PLAY AREA & CONTAINER */
     #screen-game {
       padding: 12px;
+      padding-top: calc(env(safe-area-inset-top, 12px) + 60px);
+      padding-bottom: env(safe-area-inset-bottom, 12px);
       justify-content: flex-start;
+      height: 100%;
+      height: 100dvh;
     }
 
     .game-hud {
       width: 100%;
-      max-width: 440px;
+      max-width: 420px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: env(safe-area-inset-top, 12px);
       margin-bottom: 10px;
       z-index: 10;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .score-badge {
-      background: rgba(5, 46, 22, 0.9);
+      background: rgba(15, 23, 42, 0.95);
       border: 3px solid #000000;
       border-radius: 20px;
       padding: 6px 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 0 #000000;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .hud-p1 { border-color: var(--p1-cyan); }
@@ -400,9 +461,9 @@
       background: #ffffff;
       color: var(--text-dark);
       border: 3px solid #000000;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 8px 14px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       text-align: center;
       margin-bottom: 10px;
@@ -412,6 +473,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .turn-banner.p1-turn {
@@ -425,25 +488,31 @@
     }
 
     .next-fruit-preview {
-      font-size: 24px;
-      background: rgba(0,0,0,0.15);
+      font-size: 22px;
+      background: rgba(0,0,0,0.18);
       padding: 2px 10px;
       border-radius: 12px;
     }
 
-    /* SUIKA CONTAINER CANVAS */
+    /* SUIKA CONTAINER CANVAS - DYNAMIC AUTO-SCALE */
     .container-wrapper {
       width: 100%;
       max-width: 420px;
       flex: 1;
-      max-height: 560px;
-      background: linear-gradient(135deg, rgba(20,83,45,0.7), rgba(5,46,22,0.9));
-      border: 5px solid #000000;
+      min-height: 280px;
+      max-height: calc(100dvh - 220px);
+      background: linear-gradient(135deg, rgba(20,83,45,0.75), rgba(5,46,22,0.92));
+      border: 4px solid #000000;
       border-radius: 28px;
       position: relative;
       overflow: hidden;
-      box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 12px 32px rgba(0,0,0,0.7);
+      box-shadow: 0 4px 0 #000000;
       touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     #suika-canvas {
@@ -452,13 +521,35 @@
       display: block;
     }
 
+    /* Mobile Drop Action Bar */
+    .drop-control-bar {
+      width: 100%;
+      max-width: 420px;
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .drop-btn {
+      flex: 1;
+      min-height: 48px;
+      font-size: 18px;
+      font-weight: 800;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
     /* MODAL OVERLAYS */
     .modal-overlay {
       position: absolute;
       inset: 0;
-      background-color: rgba(5, 46, 22, 0.85);
-      backdrop-filter: blur(6px);
-      z-index: 50;
+      background-color: rgba(15, 23, 42, 0.95);
+      z-index: 200;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -495,8 +586,9 @@
       font-weight: 700;
       background: rgba(0,0,0,0.06);
       padding: 8px 16px;
-      border-radius: 12px;
-      margin-bottom: 24px;
+      border-radius: 14px;
+      margin-bottom: 22px;
+      border: 2px solid rgba(0,0,0,0.1);
     }
 
     /* Confetti Canvas */
@@ -504,7 +596,7 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      z-index: 48;
+      z-index: 150;
     }
   </style>
 </head>
@@ -512,9 +604,14 @@
   <div id="app">
     <canvas id="confetti-canvas"></canvas>
 
-    <!-- Floating Navigation & Sound Controls -->
-    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
-    <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+    <!-- Standard Top Header Bar -->
+    <header class="top-header-bar">
+      <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+      <div class="header-right-group">
+        <button class="header-btn" id="pause-btn" aria-label="Pause Game" onclick="openPauseModal()">⏸️</button>
+        <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+      </div>
+    </header>
 
     <!-- MAIN MENU SCREEN -->
     <section class="screen active" id="screen-menu">
@@ -607,8 +704,6 @@
           <span class="badge-score" id="score-p1">0</span>
         </div>
 
-        <button class="btn btn-secondary btn-icon" onclick="promptExitGame()">EXIT</button>
-
         <div class="score-badge hud-p2">
           <span class="badge-title title-p2" id="name-p2">PLAYER 2</span>
           <span class="badge-score" id="score-p2">0</span>
@@ -624,6 +719,11 @@
       <!-- Suika Container Viewport -->
       <div class="container-wrapper" id="container-wrapper">
         <canvas id="suika-canvas"></canvas>
+      </div>
+
+      <!-- Mobile Drop Action Button -->
+      <div class="drop-control-bar">
+        <button class="btn drop-btn" onclick="triggerTapDrop()">👇 DROP FRUIT</button>
       </div>
     </section>
 
@@ -642,14 +742,15 @@
       </div>
     </section>
 
-    <!-- EXIT CONFIRMATION MODAL -->
-    <div class="modal-overlay" id="exit-modal">
+    <!-- PAUSE / EXIT MODAL -->
+    <div class="modal-overlay" id="pause-modal">
       <div class="card-container">
-        <h3 class="card-title">Quit Game?</h3>
-        <p class="card-desc" style="min-height:auto;margin-bottom:16px;">Current match progress will be lost.</p>
-        <div class="carousel-nav-row">
-          <button class="btn btn-secondary" onclick="closeExitModal()">Cancel</button>
-          <button class="btn" onclick="confirmExitGame()">Quit</button>
+        <h3 class="card-title">GAME PAUSED</h3>
+        <p class="card-desc" style="min-height:auto;margin-bottom:16px;">Current match is paused.</p>
+        <div class="menu-actions">
+          <button class="btn" onclick="closePauseModal()">▶ RESUME</button>
+          <button class="btn btn-secondary" onclick="openHowToInGame()">❓ HOW TO PLAY</button>
+          <button class="btn btn-secondary" onclick="confirmExitGame()">🚪 QUIT TO MENU</button>
         </div>
       </div>
     </div>
@@ -797,6 +898,7 @@
 
     document.getElementById('sound-btn').addEventListener('click', (e) => {
       e.stopPropagation();
+      getAudioContext();
       state.soundEnabled = !state.soundEnabled;
       document.getElementById('sound-btn').textContent = state.soundEnabled ? '🔊' : '🔇';
     });
@@ -810,6 +912,14 @@
       if (target) {
         target.classList.add('active');
         state.screen = screenId;
+      }
+      if (screenId !== 'screen-game' && suikaAnimId) {
+        cancelAnimationFrame(suikaAnimId);
+        suikaAnimId = null;
+      }
+      if (screenId !== 'screen-winner' && confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
       }
     }
 
@@ -830,6 +940,7 @@
     }
 
     function openHowToInGame() {
+      closePauseModal();
       previousScreenBeforeHowTo = state.screen;
       state.howtoIndex = 0;
       updateCarousel();
@@ -861,7 +972,7 @@
     }
 
     /* ==========================================================================
-       SUIKA PHYSICS ENGINE
+       SUIKA PHYSICS ENGINE WITH MICRO-ANIMATIONS
        ========================================================================== */
     class SuikaPhysicsEngine {
       constructor(canvasId) {
@@ -876,6 +987,7 @@
 
         this.fruits = [];
         this.particles = [];
+        this.floatingTexts = [];
         this.reset();
       }
 
@@ -883,18 +995,19 @@
         this.resize();
         this.fruits = [];
         this.particles = [];
+        this.floatingTexts = [];
         state.overflowTimer = 0;
       }
 
       resize() {
         const rect = this.canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
         this.width = rect.width || 360;
         this.height = rect.height || 540;
 
         this.canvas.width = Math.floor(this.width * dpr);
         this.canvas.height = Math.floor(this.height * dpr);
-        this.ctx.scale(dpr, dpr);
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         state.dropperX = this.width / 2;
       }
@@ -910,7 +1023,8 @@
           vx: 0,
           vy: 1.5,
           player: playerOwner,
-          age: 0
+          age: 0,
+          scalePop: 1.2
         };
         this.fruits.push(newFruit);
         playSound('drop');
@@ -929,6 +1043,11 @@
 
           f.x += f.vx;
           f.y += f.vy;
+
+          // Scale Pop Decay Micro-Animation
+          if (f.scalePop && f.scalePop > 1.0) {
+            f.scalePop = Math.max(1.0, f.scalePop - 0.04);
+          }
 
           // Wall Collisions
           if (f.x - f.radius < 0) {
@@ -992,6 +1111,7 @@
 
                 playSound('merge', nextLevel);
                 this.spawnSparkles(midX, midY, FRUITS[nextLevel].color);
+                this.spawnFloatingText(midX, midY, `+${pts}`, FRUITS[nextLevel].color);
               } else {
                 // ELASTIC COLLISION IMPULSE & SEPARATION
                 const overlap = minDist - (dist || 0.0001);
@@ -1032,7 +1152,7 @@
           }
         }
 
-        // Apply Merges
+        // Apply Merges with Micro-Pop Scale Animation
         if (toRemove.size > 0) {
           this.fruits = this.fruits.filter(f => !toRemove.has(f.id));
           newSpawns.forEach(s => {
@@ -1044,9 +1164,10 @@
               x: s.x,
               y: s.y,
               vx: (Math.random() - 0.5) * 1.5,
-              vy: -1.5,
+              vy: -2.0,
               player: s.player,
-              age: 60
+              age: 60,
+              scalePop: 1.45 // POP ANIMATION!
             });
           });
         }
@@ -1079,12 +1200,20 @@
           p.life -= 0.03;
           if (p.life <= 0) this.particles.splice(i, 1);
         }
+
+        // 5. Update Floating Text Animations
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+          const t = this.floatingTexts[i];
+          t.y -= 1.2;
+          t.life -= 0.025;
+          if (t.life <= 0) this.floatingTexts.splice(i, 1);
+        }
       }
 
       spawnSparkles(cx, cy, color) {
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < 12; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 4 + 1.5;
+          const speed = Math.random() * 4.5 + 1.5;
           this.particles.push({
             x: cx,
             y: cy,
@@ -1095,6 +1224,19 @@
             color: color
           });
         }
+        if (this.particles.length > 45) {
+          this.particles.splice(0, this.particles.length - 45);
+        }
+      }
+
+      spawnFloatingText(cx, cy, text, color) {
+        this.floatingTexts.push({
+          x: cx,
+          y: cy,
+          text: text,
+          color: color,
+          life: 1.0
+        });
       }
 
       draw() {
@@ -1143,7 +1285,7 @@
           ctx.fill();
           ctx.stroke();
 
-          // Emoji overlay (Super crisp & visible!)
+          // Emoji overlay
           const emojiSize = Math.max(22, fruitDef.radius * 1.35);
           ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
           ctx.textAlign = 'center';
@@ -1153,9 +1295,10 @@
           ctx.restore();
         }
 
-        // Render Fruits in Container
+        // Render Fruits in Container with Scale Pop Animation
         for (const f of this.fruits) {
           const fruitDef = FRUITS[f.level];
+          const currentRadius = f.radius * (f.scalePop || 1.0);
 
           ctx.save();
           ctx.fillStyle = fruitDef.color;
@@ -1163,18 +1306,18 @@
           ctx.lineWidth = 3;
 
           ctx.beginPath();
-          ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+          ctx.arc(f.x, f.y, currentRadius, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
           // Bevel Highlight
           ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
           ctx.beginPath();
-          ctx.arc(f.x - f.radius * 0.3, f.y - f.radius * 0.3, f.radius * 0.35, 0, Math.PI * 2);
+          ctx.arc(f.x - currentRadius * 0.3, f.y - currentRadius * 0.3, currentRadius * 0.35, 0, Math.PI * 2);
           ctx.fill();
 
-          // Fruit Emoji Icon (Super crisp & visible!)
-          const emojiSize = Math.max(22, f.radius * 1.35);
+          // Fruit Emoji Icon
+          const emojiSize = Math.max(22, currentRadius * 1.35);
           ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -1193,6 +1336,20 @@
           ctx.fill();
           ctx.restore();
         }
+
+        // Render Floating Score Texts
+        for (const t of this.floatingTexts) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, t.life);
+          ctx.font = '700 22px var(--font-display)';
+          ctx.textAlign = 'center';
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 4;
+          ctx.strokeText(t.text, t.x, t.y);
+          ctx.fillStyle = t.color;
+          ctx.fillText(t.text, t.x, t.y);
+          ctx.restore();
+        }
       }
     }
 
@@ -1207,7 +1364,7 @@
       state.currentTurn = 1;
       state.canDrop = true;
       state.running = false;
-      state.nextFruitLevel = Math.floor(Math.random() * 4); // Cherries to Oranges
+      state.nextFruitLevel = Math.floor(Math.random() * 4);
       state.upcomingFruitLevel = Math.floor(Math.random() * 4);
 
       document.getElementById('name-p1').textContent = 'PLAYER 1';
@@ -1221,7 +1378,8 @@
       setTimeout(() => {
         physicsEngine = new SuikaPhysicsEngine('suika-canvas');
         state.running = true;
-        requestAnimationFrame(gameLoop);
+        if (suikaAnimId) cancelAnimationFrame(suikaAnimId);
+        suikaAnimId = requestAnimationFrame(gameLoop);
       }, 60);
     }
 
@@ -1294,6 +1452,11 @@
       }, 600);
     }
 
+    function triggerTapDrop() {
+      if (!physicsEngine) return;
+      executeDrop(state.dropperX);
+    }
+
     /* Smart Bot AI Turn */
     function executeBotTurn() {
       if (!state.running || state.currentTurn !== 2 || !physicsEngine) return;
@@ -1305,18 +1468,15 @@
       const matchingFruits = physicsEngine.fruits.filter(f => f.level === nextLevel);
 
       if (matchingFruits.length > 0) {
-        // Aim for matching fruit
         matchingFruits.sort((a, b) => b.y - a.y);
         targetX = matchingFruits[0].x;
       } else if (physicsEngine.fruits.length > 0) {
-        // Aim for fruit with lowest Y (shallowest spot)
         const sorted = [...physicsEngine.fruits].sort((a, b) => b.y - a.y);
         targetX = sorted[0].x + (Math.random() - 0.5) * 40;
       } else {
         targetX = physicsEngine.width / 2;
       }
 
-      // Clamp targetX to container bounds
       const radius = FRUITS[nextLevel].radius;
       targetX = Math.max(radius + 15, Math.min(physicsEngine.width - radius - 15, targetX));
 
@@ -1324,15 +1484,22 @@
       executeDrop(targetX);
     }
 
+    let suikaAnimId = null;
     function gameLoop() {
-      if (!state.running || state.screen !== 'screen-game') return;
+      if (!state.running || state.screen !== 'screen-game') {
+        if (suikaAnimId) {
+          cancelAnimationFrame(suikaAnimId);
+          suikaAnimId = null;
+        }
+        return;
+      }
 
       if (physicsEngine) {
         physicsEngine.update();
         physicsEngine.draw();
       }
 
-      requestAnimationFrame(gameLoop);
+      suikaAnimId = requestAnimationFrame(gameLoop);
     }
 
     /* Touch & Drag Event Handlers for Container */
@@ -1363,6 +1530,10 @@
 
     function handleMatchOverflow(foulPlayer) {
       state.running = false;
+      if (suikaAnimId) {
+        cancelAnimationFrame(suikaAnimId);
+        suikaAnimId = null;
+      }
       playSound('over');
 
       const headline = document.getElementById('winner-headline');
@@ -1385,25 +1556,34 @@
       startConfetti();
     }
 
-    /* Exit Modal */
-    function promptExitGame() {
-      document.getElementById('exit-modal').classList.add('active');
+    /* Pause / Exit Modal */
+    function openPauseModal() {
+      document.getElementById('pause-modal').classList.add('active');
       playSound('tap');
     }
 
-    function closeExitModal() {
-      document.getElementById('exit-modal').classList.remove('active');
+    function closePauseModal() {
+      document.getElementById('pause-modal').classList.remove('active');
       playSound('tap');
     }
 
     function confirmExitGame() {
-      closeExitModal();
+      closePauseModal();
       state.running = false;
+      if (suikaAnimId) {
+        cancelAnimationFrame(suikaAnimId);
+        suikaAnimId = null;
+      }
       showScreen('screen-menu');
     }
 
     /* Confetti Canvas */
+    let confettiAnimId = null;
     function startConfetti() {
+      if (confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+      }
       const canvas = document.getElementById('confetti-canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = window.innerWidth;
@@ -1412,7 +1592,7 @@
       const particles = [];
       const colors = ['#22c55e', '#ef4444', '#f97316', '#06b6d4', '#f43f5e', '#facc15'];
 
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < 45; i++) {
         particles.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
@@ -1445,11 +1625,23 @@
         });
 
         if (alive && state.screen === 'screen-winner') {
-          requestAnimationFrame(render);
+          confettiAnimId = requestAnimationFrame(render);
+        } else {
+          if (confettiAnimId) {
+            cancelAnimationFrame(confettiAnimId);
+            confettiAnimId = null;
+          }
         }
       }
-      render();
+      confettiAnimId = requestAnimationFrame(render);
     }
+
+    /* Window Resize Handler for Mobile Ergonomics */
+    window.addEventListener('resize', () => {
+      if (physicsEngine) {
+        physicsEngine.resize();
+      }
+    });
 
     /* Initialization */
     document.addEventListener('DOMContentLoaded', () => {

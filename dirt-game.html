@@ -2,59 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>301 Darts - Multiplayer & WebRTC Online</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>301 Darts - 3D Arcade Edition</title>
+  <!-- Google Fonts: Fredoka & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <!-- PeerJS for WebRTC Online Multiplayer -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
+    /* ==========================================================================
+       RESET & DESIGN TOKENS (3D Neumorphic Arcade Styling)
+       ========================================================================== */
     * {
       box-sizing: border-box;
       user-select: none;
       -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
       margin: 0;
       padding: 0;
     }
-    body, html {
+
+    :root {
+      --bg-gradient: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
+      --card-bg: #ffffff;
+      --font-main: 'Fredoka', 'Outfit', system-ui, sans-serif;
+      --p1-color: #ff5252;
+      --p2-color: #38bdf8;
+      --btn-purple: #8b5cf6;
+      --btn-green: #22c55e;
+      --btn-cyan: #38bdf8;
+    }
+
+    html, body {
       width: 100%;
       height: 100%;
+      height: 100dvh;
       overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121212;
+      font-family: var(--font-main);
+      background: var(--bg-gradient);
       display: flex;
       justify-content: center;
       align-items: center;
+      touch-action: manipulation;
+      color: #0f172a;
+    }
+
+    .top-header-bar,
+    .card-container,
+    .modal-card,
+    .stat-card,
+    #dartCanvas,
+    #game-container {
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     #game-container {
       position: relative;
-      width: 100%;
-      max-width: 450px;
-      height: 100%;
-      max-height: 850px;
-      background: repeating-linear-gradient(
-        90deg,
-        #e28761,
-        #e28761 28px,
-        #d17651 28px,
-        #d17651 56px
-      );
-      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      max-width: 440px;
+      max-height: 900px;
+      background: radial-gradient(circle at 50% 10%, #2e1065 0%, #0f172a 75%);
+      border: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
+      border-radius: 28px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    /* Floor at bottom */
+    /* Wooden Floor Accent at Bottom */
     #game-container::after {
       content: '';
       position: absolute;
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 22%;
-      background: linear-gradient(to bottom, #91512f, #633318);
-      border-top: 5px solid #4a240f;
+      height: 20%;
+      background: linear-gradient(to bottom, #78350f, #451a03);
+      border-top: 4px solid #000000;
       z-index: 1;
+      pointer-events: none;
     }
 
     canvas {
@@ -66,117 +98,169 @@
       z-index: 2;
     }
 
-    /* Top HUD / Score Board */
-    .hud-header {
+    /* ==========================================================================
+       STANDARD TOP HEADER BAR
+       ========================================================================== */
+    .top-header-bar {
       position: absolute;
-      top: 15px;
-      left: 0;
-      right: 0;
+      top: 12px;
+      left: 12px;
+      right: 12px;
       display: flex;
-      justify-content: center;
       align-items: center;
-      z-index: 10;
-      pointer-events: none;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 20;
     }
 
-    .score-badge {
-      background: #28212e;
-      border: 3px solid #3f3647;
+    .hub-back-btn {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
       border-radius: 20px;
-      padding: 8px 20px;
+      padding: 8px 16px;
+      min-height: 48px;
+      min-width: 48px;
+      font-family: var(--font-main);
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 5px 0 #000000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      touch-action: manipulation;
+    }
+
+    .hub-back-btn:active {
+      transform: scale(0.94) translateY(3px) !important;
+      box-shadow: 0 2px 0 #000000 !important;
+    }
+
+    .hud-score-badge {
+      background: #ffffff;
+      border: 3px solid #000000;
+      border-radius: 24px;
+      padding: 6px 16px;
       display: flex;
       align-items: center;
-      gap: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      color: #fff;
+      gap: 12px;
+      box-shadow: 0 5px 0 #000000;
+      color: #000000;
       font-weight: 900;
-      font-size: 1.2rem;
     }
 
     .player-box {
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-width: 70px;
+      min-width: 60px;
     }
 
     .player-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       text-transform: uppercase;
       letter-spacing: 1px;
       opacity: 0.8;
-      margin-bottom: 2px;
     }
 
     .score-val {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: 900;
+      line-height: 1;
     }
 
-    .p1 { color: #ff5252; }
-    .p2 { color: #40c4ff; }
-    .vs { color: #aaa; font-size: 0.8rem; font-weight: bold; }
+    .p1 { color: var(--p1-color); }
+    .p2 { color: var(--p2-color); }
+    .vs { color: #64748b; font-size: 0.75rem; font-weight: 900; }
 
     .active-player {
-      transform: scale(1.1);
-      transition: transform 0.2s;
+      transform: scale(1.08);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .active-player .score-val {
       text-shadow: 0 0 10px currentColor;
     }
 
-    .top-btn {
-      position: absolute;
-      top: 15px;
-      background: #ffffff;
-      border: none;
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-weight: 900;
-      color: #3f3647;
-      font-size: 0.85rem;
-      cursor: pointer;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-      z-index: 10;
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .exit-btn { right: 15px; }
 
+    .header-btn {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      width: 48px;
+      height: 48px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #000000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      touch-action: manipulation;
+    }
+
+    .header-btn:active {
+      transform: scale(0.94) translateY(3px) !important;
+      box-shadow: 0 2px 0 #000000 !important;
+    }
+
+    /* Bottom HUD Controls */
     .help-btn {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
-      width: 42px;
-      height: 42px;
+      bottom: 18px;
+      left: 18px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      background: #7a6354;
-      color: #fff;
-      font-size: 1.4rem;
-      font-weight: bold;
-      border: 3px solid #574438;
+      background: #ffffff;
+      color: #000000;
+      font-size: 1.3rem;
+      font-weight: 900;
+      border: 3px solid #000000;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       z-index: 10;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      box-shadow: 0 5px 0 #000000;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .help-btn:active {
+      transform: scale(0.94) translateY(3px) !important;
+      box-shadow: 0 2px 0 #000000 !important;
     }
 
     .turn-indicator-box {
       position: absolute;
-      bottom: 20px;
-      right: 20px;
+      bottom: 18px;
+      right: 18px;
       z-index: 10;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 4px;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 3px solid #000000;
+      border-radius: 18px;
+      padding: 8px 14px;
+      box-shadow: 0 5px 0 #000000;
     }
 
     .turn-text {
-      color: #fff;
-      font-size: 0.75rem;
+      color: #ffffff;
+      font-size: 0.8rem;
       font-weight: 800;
-      text-shadow: 1px 1px 2px #000;
+      letter-spacing: 0.5px;
     }
 
     .dart-icons {
@@ -185,54 +269,68 @@
     }
 
     .dart-icon {
-      width: 12px;
+      width: 14px;
       height: 24px;
       background: #ff5252;
+      border: 1px solid #000;
       border-radius: 3px;
       clip-path: polygon(50% 0%, 100% 40%, 70% 100%, 30% 100%, 0% 40%);
-      opacity: 0.2;
+      opacity: 0.25;
       transition: opacity 0.2s;
     }
     .dart-icon.active { opacity: 1; }
 
-    /* Modal Overlay & Card Style */
+    /* ==========================================================================
+       MODALS & OVERLAYS (.card-container / .modal-card)
+       ========================================================================== */
     .modal-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(4px);
+      background: rgba(15, 23, 42, 0.95);
       display: flex;
       justify-content: center;
       align-items: center;
       z-index: 100;
       padding: 20px;
+      opacity: 1;
+      transition: opacity 0.25s ease;
     }
-    .modal-card {
-      background: #eaf4f8;
+    .modal-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+      display: none;
+    }
+
+    @keyframes popModal {
+      0% { transform: scale(0.85) translateY(20px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .card-container, .modal-card {
+      background: var(--card-bg);
       border-radius: 28px;
       width: 100%;
       max-width: 360px;
-      padding: 24px 20px;
+      padding: 26px 20px;
       text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-      border: 4px solid #ffffff;
-      animation: popIn 0.25s ease-out;
+      border: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
+      animation: popModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
-    @keyframes popIn {
-      0% { transform: scale(0.85); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
+
     .modal-title {
-      color: #2c3e50;
-      font-size: 1.6rem;
+      color: #0f172a;
+      font-size: 1.7rem;
       font-weight: 900;
       margin-bottom: 12px;
       letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
+
     .modal-body {
-      color: #34495e;
+      color: #334155;
       font-size: 0.95rem;
-      line-height: 1.4;
+      line-height: 1.45;
       font-weight: 700;
       margin-bottom: 20px;
     }
@@ -240,18 +338,18 @@
     .input-box {
       width: 100%;
       padding: 12px;
-      border: 2px solid #b0bec5;
-      border-radius: 12px;
+      border: 3px solid #000000;
+      border-radius: 18px;
+      box-shadow: 0 3px 0 #000000;
       font-size: 1.1rem;
-      font-weight: 800;
+      font-weight: 900;
       text-align: center;
       letter-spacing: 2px;
       text-transform: uppercase;
       margin-bottom: 12px;
       outline: none;
-    }
-    .input-box:focus {
-      border-color: #00bcd4;
+      font-family: var(--font-main);
+      background: #ffffff;
     }
 
     .btn-group {
@@ -259,115 +357,102 @@
       justify-content: center;
       gap: 10px;
     }
+
     .btn {
-      background: #5c3a6b;
-      color: #fff;
-      border: none;
-      border-radius: 16px;
+      background: #ffffff;
+      color: #0f172a;
+      border: 3px solid #000000;
+      border-radius: 20px;
       padding: 12px 20px;
+      min-height: 48px;
+      min-width: 48px;
       font-size: 1rem;
       font-weight: 900;
+      font-family: var(--font-main);
       cursor: pointer;
-      box-shadow: 0 4px 0 #3d2547;
-      transition: transform 0.1s;
+      box-shadow: 0 5px 0 #000000;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
       flex: 1;
+      touch-action: manipulation;
     }
+
     .btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #3d2547;
+      transform: scale(0.94) translateY(3px) !important;
+      box-shadow: 0 2px 0 #000000 !important;
     }
-    .btn-green { background: #2e7d32; box-shadow: 0 4px 0 #1b5e20; }
-    .btn-blue { background: #0288d1; box-shadow: 0 4px 0 #01579b; }
+
+    .btn-purple { background: var(--btn-purple); color: #ffffff; }
+    .btn-green { background: var(--btn-green); color: #ffffff; }
+    .btn-cyan { background: var(--btn-cyan); color: #0f172a; }
 
     .dots {
       display: flex;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 15px;
+      margin-bottom: 16px;
     }
     .dot {
       width: 10px;
       height: 10px;
-      background: #bdc3c7;
+      background: #cbd5e1;
+      border: 2px solid #000;
       border-radius: 50%;
+      transition: all 0.25s ease;
     }
-    .dot.active { background: #00bcd4; }
-    .hidden { display: none !important; }
+    .dot.active { background: var(--btn-cyan); width: 24px; border-radius: 10px; }
 
     .code-display {
-      background: #263238;
-      color: #00e676;
+      background: #0f172a;
+      color: #4ade80;
       font-family: monospace;
       font-size: 1.6rem;
-      font-weight: bold;
+      font-weight: 900;
       padding: 10px;
-      border-radius: 12px;
+      border-radius: 16px;
+      border: 3px dashed #000000;
       letter-spacing: 4px;
-      margin: 8px 0;
+      margin: 10px 0;
       word-break: break-all;
-    }
-    /* Sound & Hub Back Toggle */
-    .hub-back-btn {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: #ffffff;
-      color: #000000;
-      border: 3px solid #000000;
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-family: inherit;
-      font-size: 15px;
-      font-weight: 800;
-      text-decoration: none;
-      box-shadow: 0 4px 0 #000000;
-      z-index: 150;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-    }
-
-    .hub-back-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 0 #000000;
-    }
-
-    .hub-back-btn:active {
-      transform: scale(0.92) translateY(2px);
-      box-shadow: 0 1px 0 #000000;
     }
   </style>
 </head>
 <body>
 
   <div id="game-container">
-    <!-- Floating Navigation Control -->
-    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+    <!-- STANDARD TOP HEADER BAR -->
+    <header class="top-header-bar">
+      <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
 
-    <!-- Top HUD -->
-    <div class="hud-header">
-      <div class="score-badge">
+      <div class="hud-score-badge">
         <div class="player-box p1 active-player" id="p1-box">
-          <span class="player-label" id="p1-label">P1</span>
+          <span class="player-label" id="p1-label">YOU</span>
           <span class="score-val" id="p1-score-display">301</span>
         </div>
         <span class="vs">VS</span>
         <div class="player-box p2" id="p2-box">
-          <span class="player-label" id="p2-label">P2</span>
+          <span class="player-label" id="p2-label">BOT</span>
           <span class="score-val" id="p2-score-display">301</span>
         </div>
       </div>
-    </div>
-    <button class="top-btn exit-btn" id="btn-exit">EXIT</button>
+
+      <div class="header-actions">
+        <button class="header-btn sound-toggle" id="btn-header-sound" aria-label="Toggle Sound">🔊</button>
+        <button class="header-btn exit-btn" id="btn-exit" aria-label="Exit Game">⚙️</button>
+      </div>
+    </header>
     
     <!-- Game Canvas -->
     <canvas id="dartCanvas"></canvas>
 
     <!-- Bottom Controls/Info -->
-    <div class="help-btn" id="btn-help">?</div>
+    <div class="help-btn" id="btn-help" aria-label="How to play">❓</div>
     <div class="turn-indicator-box">
-      <div class="turn-text" id="turn-status">P1 TURN</div>
+      <div class="turn-text" id="turn-status">YOUR TURN</div>
       <div class="dart-icons" id="dart-indicators">
         <div class="dart-icon active"></div>
         <div class="dart-icon active"></div>
@@ -377,52 +462,52 @@
 
     <!-- Main Menu Modal -->
     <div class="modal-overlay" id="menu-modal">
-      <div class="modal-card">
+      <div class="card-container">
         <div class="modal-title">301 DARTS</div>
         <div class="modal-body">
-          Select Game Mode
+          Select Game Mode to Throw!
         </div>
-        <div class="btn-group" style="flex-direction: column; gap: 10px;">
-          <button class="btn" id="btn-mode-vs">1 PLAYER (VS AI)</button>
-          <button class="btn btn-green" id="btn-mode-local">2 PLAYER LOCAL (PASS & PLAY)</button>
-          <button class="btn btn-blue" id="btn-mode-webrtc">2 PLAYER ONLINE (WebRTC)</button>
-          <a href="index.html" class="btn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;background:#ffffff;color:#000000;box-shadow:0 4px 0 #333;">🏠 BACK TO HUB</a>
+        <div class="btn-group" style="flex-direction: column; gap: 12px;">
+          <button class="btn btn-cyan" id="btn-mode-vs">🤖 1 PLAYER (VS BOT)</button>
+          <button class="btn btn-green" id="btn-mode-local">👥 2 PLAYER LOCAL (PASS & PLAY)</button>
+          <button class="btn btn-purple" id="btn-mode-webrtc">🌐 2 PLAYER ONLINE (WebRTC)</button>
+          <a href="index.html" class="btn" style="background:#ffffff;color:#000000;">🏠 BACK TO HUB</a>
         </div>
       </div>
     </div>
 
     <!-- WebRTC Online Lobby Modal -->
     <div class="modal-overlay hidden" id="webrtc-modal">
-      <div class="modal-card">
-        <div class="modal-title">ONLINE MULTIPLAYER</div>
+      <div class="card-container">
+        <div class="modal-title">ONLINE LOBBY</div>
         <div class="modal-body" id="webrtc-status">
           Host a room or enter code to join friend!
         </div>
         
         <div id="webrtc-host-section" class="hidden">
-          <div>Your Room Code:</div>
+          <div style="font-weight:700;">YOUR ROOM CODE:</div>
           <div class="code-display" id="my-peer-code">----</div>
-          <button class="btn btn-green" id="btn-copy-code" style="margin-bottom: 8px; padding: 8px 16px; font-size: 0.9rem;">📋 COPY CODE</button>
-          <p style="font-size:0.8rem; color:#666;">Share this code with your friend</p>
+          <button class="btn btn-green" id="btn-copy-code" style="margin-bottom: 8px; font-size: 0.9rem; flex: none; width: 100%;">📋 COPY CODE</button>
+          <p style="font-size:0.8rem; color:#64748b;">Share code with your friend</p>
         </div>
 
         <div id="webrtc-join-section">
           <input type="text" id="join-code-input" class="input-box" placeholder="ENTER ROOM CODE" maxlength="6">
-          <button class="btn btn-green" id="btn-connect-peer">JOIN ROOM</button>
+          <button class="btn btn-green" id="btn-connect-peer" style="width:100%;">JOIN ROOM</button>
         </div>
 
-        <div style="margin-top: 15px;">
-          <button class="btn btn-blue" id="btn-host-room">CREATE ROOM</button>
+        <div style="margin-top: 12px;">
+          <button class="btn btn-purple" id="btn-host-room" style="width:100%;">CREATE ROOM</button>
         </div>
         <div style="margin-top: 10px;">
-          <button class="btn" id="btn-back-menu" style="background:#78909c; box-shadow:0 4px 0 #455a64;">BACK</button>
+          <button class="btn" id="btn-back-menu" style="width:100%;">BACK TO MENU</button>
         </div>
       </div>
     </div>
 
     <!-- Tutorial Modal -->
     <div class="modal-overlay hidden" id="tutorial-modal">
-      <div class="modal-card">
+      <div class="card-container">
         <div class="modal-title">HOW TO PLAY</div>
         <div class="modal-body" id="tutorial-text">
           Your score starts at 301. Each dart subtracts points. First player to get their score down to zero wins!
@@ -435,23 +520,24 @@
           <div class="dot"></div>
         </div>
         <div class="btn-group">
-          <button class="btn" id="tut-prev" style="flex:0 0 45px;">❮</button>
-          <button class="btn" id="tut-ok">OK</button>
-          <button class="btn" id="tut-next" style="flex:0 0 45px;">❯</button>
+          <button class="btn" id="tut-prev" style="flex:0 0 52px;">❮</button>
+          <button class="btn btn-cyan" id="tut-ok">OK</button>
+          <button class="btn" id="tut-next" style="flex:0 0 52px;">❯</button>
         </div>
       </div>
     </div>
 
     <!-- Game Over Modal -->
     <div class="modal-overlay hidden" id="gameover-modal">
-      <div class="modal-card">
-        <div class="modal-title" id="winner-title">🎉 CONGRATULATIONS!</div>
+      <div class="card-container">
+        <div style="font-size:60px; margin-bottom:10px;">🏆</div>
+        <div class="modal-title" id="winner-title">CONGRATULATIONS!</div>
         <div class="modal-body" id="winner-body">
           You Win!
         </div>
-        <div class="btn-group" style="flex-direction:column;gap:10px;">
-          <button class="btn btn-green" id="btn-restart">PLAY AGAIN</button>
-          <a href="index.html" class="btn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;background:#ffffff;color:#000000;box-shadow:0 4px 0 #333;">🏠 BACK TO HUB</a>
+        <div class="btn-group" style="flex-direction:column; gap:10px;">
+          <button class="btn btn-cyan" id="btn-restart" style="width:100%;">PLAY AGAIN</button>
+          <a href="index.html" class="btn" style="background:#ffffff;color:#000000;width:100%;">🏠 BACK TO HUB</a>
         </div>
       </div>
     </div>
@@ -464,14 +550,16 @@
     const container = document.getElementById('game-container');
 
     function resizeCanvas() {
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+      canvas.width = container.clientWidth * dpr;
+      canvas.height = container.clientHeight * dpr;
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
     // --- Web Audio API Sound Synthesizer ---
     let audioCtx = null;
+    let soundEnabled = true;
 
     function initAudio() {
       if (!audioCtx) {
@@ -482,7 +570,15 @@
       }
     }
 
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('btn-header-sound');
+      if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+    }
+
     function playThrowSound() {
+      if (!soundEnabled) return;
+      initAudio();
       if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -498,6 +594,8 @@
     }
 
     function playHitSound(isSpecial = false) {
+      if (!soundEnabled) return;
+      initAudio();
       if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -531,6 +629,8 @@
     }
 
     function playBustSound() {
+      if (!soundEnabled) return;
+      initAudio();
       if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -549,20 +649,19 @@
     const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
     
     // --- Game State Vars ---
-    let gameMode = 'VS'; // 'VS', 'LOCAL', 'WEBRTC'
+    let gameMode = 'VS';
     let scores = [301, 301];
     let dartsRemaining = [3, 3];
-    let currentPlayer = 0; // 0: P1, 1: P2
-    let myPlayerIdx = 0; // Host = 0, Guest = 1
+    let currentPlayer = 0;
+    let myPlayerIdx = 0;
 
-    // States: 'IDLE', 'AIM_H', 'AIM_V', 'THROWING', 'AI_THINKING', 'GAME_OVER'
     let state = 'IDLE';
 
     function getBoardCenter() {
       return { x: canvas.width / 2, y: canvas.height * 0.38 };
     }
     function getBoardRadius() {
-      return canvas.width * 0.35;
+      return Math.min(canvas.width, canvas.height) * 0.35;
     }
 
     // Gauges / Aiming Variables
@@ -584,7 +683,7 @@
       progress: 0
     };
 
-    let stuckDarts = []; // { x, y, color, owner }
+    let stuckDarts = [];
     let particles = [];
     let scorePopups = [];
 
@@ -650,7 +749,7 @@
       "Your score starts at 301. Each dart subtracts points. First player to get their score down to zero wins!",
       "Players alternate turns ONE BY ONE after each throw!",
       "Previous player's darts automatically vanish when the opponent throws to keep the board neat and clean!",
-      "Target score highlights on the board in pulsing yellow when you get close to finishing (e.g. Score 4 highlights Double 2 and Single 4)!",
+      "Target score highlights on the board in pulsing yellow when you get close to finishing!",
       "Outer ring DOUBLES points, inner ring TRIPLES points!"
     ];
     let tutPageIndex = 0;
@@ -665,6 +764,7 @@
     }
 
     // --- DOM Event Listeners ---
+    document.getElementById('btn-header-sound').onclick = toggleSound;
     document.getElementById('btn-mode-vs').onclick = () => startGame('VS');
     document.getElementById('btn-mode-local').onclick = () => startGame('LOCAL');
     document.getElementById('btn-mode-webrtc').onclick = () => {
@@ -689,9 +789,7 @@
         navigator.clipboard.writeText(code).then(() => {
           const copyBtn = document.getElementById('btn-copy-code');
           copyBtn.innerText = '✅ COPIED!';
-          setTimeout(() => {
-            copyBtn.innerText = '📋 COPY CODE';
-          }, 2000);
+          setTimeout(() => { copyBtn.innerText = '📋 COPY CODE'; }, 2000);
         }).catch(() => {
           const input = document.createElement('input');
           input.value = code;
@@ -701,9 +799,7 @@
           document.body.removeChild(input);
           const copyBtn = document.getElementById('btn-copy-code');
           copyBtn.innerText = '✅ COPIED!';
-          setTimeout(() => {
-            copyBtn.innerText = '📋 COPY CODE';
-          }, 2000);
+          setTimeout(() => { copyBtn.innerText = '📋 COPY CODE'; }, 2000);
         });
       }
     };
@@ -862,7 +958,6 @@
       state = 'THROWING';
       playThrowSound();
 
-      // Clear previous thrower's darts to keep board clean
       stuckDarts = stuckDarts.filter(d => d.owner === currentPlayer);
 
       const center = getBoardCenter();
@@ -887,7 +982,7 @@
     function onThrowComplete(hitX, hitY) {
       const result = calculateScore(hitX, hitY);
       const currentScore = scores[currentPlayer];
-      const pColor = currentPlayer === 0 ? '#ff5252' : '#40c4ff';
+      const pColor = currentPlayer === 0 ? '#ff5252' : '#38bdf8';
 
       const isSpecial = result.type === 'DOUBLE' || result.type === 'TRIPLE' || result.type === 'BULLSEYE';
 
@@ -908,7 +1003,6 @@
       stuckDarts.push({ x: hitX, y: hitY, color: pColor, owner: currentPlayer });
       dartsRemaining[currentPlayer]--;
 
-      // WIN CHECK & CUSTOMIZED CONGRATULATIONS SCREEN
       if (scores[currentPlayer] === 0) {
         state = 'GAME_OVER';
         const winTitle = document.getElementById('winner-title');
@@ -943,7 +1037,6 @@
         dartsRemaining = [3, 3];
       }
 
-      // ALTERNATING CHANCE SWITCH
       currentPlayer = currentPlayer === 0 ? 1 : 0;
 
       setTimeout(startTurn, 700);
@@ -965,7 +1058,9 @@
 
     // --- Particle & Score Popup Visual Systems ---
     function spawnParticles(x, y, color, count) {
-      for (let i = 0; i < count; i++) {
+      const actualCount = Math.min(count, 45);
+      for (let i = 0; i < actualCount; i++) {
+        if (particles.length >= 45) particles.shift();
         const angle = Math.random() * Math.PI * 2;
         const speed = 2 + Math.random() * 6;
         particles.push({
@@ -1030,16 +1125,38 @@
 
     // --- Main Game Loop & Rendering ---
     let lastTime = performance.now();
+    let animFrameId = null;
 
     function gameLoop(now) {
+      if (document.hidden) {
+        if (animFrameId) {
+          cancelAnimationFrame(animFrameId);
+          animFrameId = null;
+        }
+        return;
+      }
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
       update(dt, now);
       render(now);
 
-      requestAnimationFrame(gameLoop);
+      animFrameId = requestAnimationFrame(gameLoop);
     }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (animFrameId) {
+          cancelAnimationFrame(animFrameId);
+          animFrameId = null;
+        }
+      } else {
+        if (!animFrameId) {
+          lastTime = performance.now();
+          animFrameId = requestAnimationFrame(gameLoop);
+        }
+      }
+    });
 
     function update(dt, now) {
       if (state === 'AIM_H') {
@@ -1088,10 +1205,8 @@
       const center = getBoardCenter();
       const R = getBoardRadius();
 
-      // Render Dartboard
       drawDartboard(ctx, center.x, center.y, R, now);
 
-      // Render Observation Dot preview during aiming
       if (state === 'AIM_H' || state === 'AIM_V') {
         const currentH = (state === 'AIM_H') ? gaugeH : lockedH;
         const currentV = (state === 'AIM_H' || state === 'AIM_V') ? gaugeV : lockedV;
@@ -1102,25 +1217,21 @@
         drawObservationDot(ctx, aimX, aimY);
       }
 
-      // Render Aim Gauges
       if (state === 'AIM_H' || state === 'AIM_V' || state === 'THROWING') {
         drawGauges(ctx, center, R);
       }
 
-      // Render Stuck Darts
       stuckDarts.forEach(d => drawDart(ctx, d.x, d.y, 0.45, d.color));
 
-      // Render Flying / Ready Dart
       if (state === 'THROWING' && dartAnim.active) {
         const scale = 1 - dartAnim.progress * 0.55;
-        const color = currentPlayer === 0 ? '#ff5252' : '#40c4ff';
+        const color = currentPlayer === 0 ? '#ff5252' : '#38bdf8';
         drawDart(ctx, dartAnim.currentX, dartAnim.currentY, scale, color);
       } else if (state === 'AIM_H' || state === 'AIM_V') {
-        const color = currentPlayer === 0 ? '#ff5252' : '#40c4ff';
+        const color = currentPlayer === 0 ? '#ff5252' : '#38bdf8';
         drawDart(ctx, canvas.width / 2, canvas.height * 0.82, 1.0, color);
       }
 
-      // Render Particles
       particles.forEach(p => {
         ctx.save();
         ctx.globalAlpha = p.alpha;
@@ -1131,14 +1242,13 @@
         ctx.restore();
       });
 
-      // Render Score Popups
       scorePopups.forEach(p => {
         ctx.save();
         ctx.globalAlpha = Math.max(0, p.alpha);
         ctx.translate(p.x, p.y);
         ctx.scale(p.scale, p.scale);
 
-        ctx.font = '900 22px sans-serif';
+        ctx.font = '900 22px var(--font-main)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
@@ -1153,7 +1263,6 @@
       });
     }
 
-    // --- Observation / Aim Dot Drawing ---
     function drawObservationDot(ctx, x, y) {
       ctx.save();
       ctx.beginPath();
@@ -1174,7 +1283,6 @@
       ctx.restore();
     }
 
-    // --- Target Finish Highlight Resolver ---
     function getCheckoutHighlights(score) {
       if (score > 60 || score <= 0) return [];
       
@@ -1193,12 +1301,11 @@
       return highlights;
     }
 
-    // --- Drawing Helper Functions ---
     function drawDartboard(ctx, cx, cy, R, now = 0) {
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, R * 1.15, 0, Math.PI * 2);
-      ctx.fillStyle = '#111';
+      ctx.fillStyle = '#000';
       ctx.shadowColor = 'rgba(0,0,0,0.6)';
       ctx.shadowBlur = 15;
       ctx.fill();
@@ -1238,7 +1345,6 @@
       ctx.fillStyle = '#e53935';
       ctx.fill();
 
-      // DYNAMIC YELLOW HIGHLIGHT ANIMATION FOR FINISHING SCORES
       const currentScore = scores[currentPlayer];
       const targets = getCheckoutHighlights(currentScore);
 
@@ -1288,7 +1394,7 @@
       });
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = `900 ${R * 0.13}px sans-serif`;
+      ctx.font = `900 ${R * 0.13}px var(--font-main)`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
@@ -1319,10 +1425,10 @@
 
       ctx.beginPath();
       ctx.roundRect(hBarX, hBarY, barW, barH, 7);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fill();
       ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.stroke();
 
       ctx.beginPath();
@@ -1343,9 +1449,9 @@
 
       ctx.beginPath();
       ctx.roundRect(vBarX, vBarY, barH, barW, 7);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.stroke();
 
       ctx.beginPath();
@@ -1362,7 +1468,6 @@
       ctx.fill();
     }
 
-    // --- HIGH REALISM 3D DART RENDERER ---
     function drawDart(ctx, x, y, scale, color) {
       ctx.save();
       ctx.translate(x, y);
@@ -1398,7 +1503,6 @@
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Grip ridges/knurling on barrel
       ctx.strokeStyle = 'rgba(0,0,0,0.7)';
       ctx.lineWidth = 1.5;
       for (let i = -10; i <= 8; i += 4) {
@@ -1423,12 +1527,10 @@
       ctx.fillStyle = shaftGrad;
       ctx.fill();
 
-      // Gold Locking Ring
       ctx.fillStyle = '#f1c40f';
       ctx.fillRect(-3, 34, 6, 3);
 
-      // 3D Perspective Flight Fins
-      // Left Fin
+      // 3D Flight Fins
       ctx.beginPath();
       ctx.moveTo(0, 38);
       ctx.bezierCurveTo(-12, 42, -22, 52, -24, 68);
@@ -1437,13 +1539,12 @@
       ctx.closePath();
       ctx.fillStyle = color;
       ctx.fill();
-      ctx.fillStyle = 'rgba(0,0,0,0.25)'; // Shadow overlay
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.fill();
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Right Fin
       ctx.beginPath();
       ctx.moveTo(0, 38);
       ctx.bezierCurveTo(12, 42, 22, 52, 24, 68);
@@ -1452,13 +1553,12 @@
       ctx.closePath();
       ctx.fillStyle = color;
       ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.2)'; // Light sheen overlay
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
       ctx.fill();
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Center Blade Fin
       ctx.beginPath();
       ctx.moveTo(0, 37);
       ctx.lineTo(-3, 72);
@@ -1471,7 +1571,6 @@
       ctx.lineWidth = 1.2;
       ctx.stroke();
 
-      // Center Crease Line
       ctx.beginPath();
       ctx.moveTo(0, 37);
       ctx.lineTo(0, 70);
@@ -1500,7 +1599,7 @@
       };
     }
 
-    requestAnimationFrame(gameLoop);
+    animFrameId = requestAnimationFrame(gameLoop);
   </script>
 </body>
 </html>

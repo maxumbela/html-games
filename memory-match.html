@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Emoji Memory Match</title>
+  <title>Emoji Memory Match 🎴</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark-brown: #3a2b2b;
-      --bg-card-brown: #4e3d3d;
-      --card-container-bg: #dceaf5;
-      --text-dark: #2d3142;
-      --p1-red: #f45c5c;
-      --p1-red-dark: #d94343;
-      --p2-cyan: #29c1ea;
-      --p2-cyan-dark: #1da3c8;
-      --purple-btn: #5b3b74;
-      --purple-btn-hover: #482c5e;
-      --card-amber: #f5ab27;
-      --card-amber-shadow: #c78310;
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --card-container-bg: #1e293b;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+      --p1-red: #f43f5e;
+      --p1-red-dark: #e11d48;
+      --p2-cyan: #06b6d4;
+      --p2-cyan-dark: #0891b2;
+      --purple-btn: #8b5cf6;
+      --card-amber: #f59e0b;
+      --card-amber-shadow: #d97706;
       --font-display: 'Fredoka', 'Outfit', system-ui, -apple-system, sans-serif;
     }
 
@@ -39,9 +39,9 @@
       height: 100%;
       height: 100dvh;
       overflow: hidden;
-      background-color: var(--bg-dark-brown);
+      background-color: var(--bg-dark);
       font-family: var(--font-display);
-      color: #ffffff;
+      color: var(--text-light);
       touch-action: manipulation;
     }
 
@@ -51,19 +51,86 @@
       height: 100dvh;
       position: relative;
       overflow: hidden;
-      background: radial-gradient(circle at center, #483737 0%, #2e2121 100%);
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    /* Subtle Pattern Tiles in Background */
+    /* Subtle Pattern Background */
     .bg-pattern {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      opacity: 0.12;
+      opacity: 0.1;
       background-image: 
         radial-gradient(12px 12px at 30px 30px, #ffffff, rgba(0,0,0,0)),
         radial-gradient(12px 12px at 90px 90px, #ffffff, rgba(0,0,0,0));
       background-size: 120px 120px;
+    }
+
+    /* TOP HEADER BAR */
+    .top-header-bar {
+      width: 100%;
+      max-width: 500px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .hub-back-btn {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 4px 0 #000000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 48px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .hub-back-btn:active, .btn:active, .sound-toggle:active, .hdr-pause-btn:active, .hud-btn:active {
+      transform: scale(0.94) translateY(3px) !important;
+      box-shadow: 0 2px 0 #000000 !important;
+    }
+
+    .sound-toggle, .hdr-pause-btn {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000000;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
 
     /* Screen Management */
@@ -78,6 +145,7 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s ease;
+      padding-top: 60px;
     }
 
     .screen.active {
@@ -85,66 +153,74 @@
       pointer-events: auto;
     }
 
-    /* Card Containers & Modals */
-    .modal-card {
+    /* Standard Card Container / Modals */
+    .card-container {
       width: calc(100% - 32px);
       max-width: 420px;
       background-color: var(--card-container-bg);
-      border-radius: 32px;
+      border: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
+      border-radius: 28px;
       padding: 24px 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(255, 255, 255, 0.15);
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
       position: relative;
       z-index: 2;
-      color: var(--text-dark);
+      color: var(--text-light);
+      will-change: transform;
+      transform: translateZ(0);
+      animation: popModal 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
 
-    .modal-title {
+    @keyframes popModal {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .card-title {
       font-size: 28px;
-      font-weight: 700;
-      color: var(--text-dark);
+      font-weight: 800;
+      color: #ffffff;
       letter-spacing: -0.5px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       text-transform: uppercase;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
 
     /* Buttons */
     .btn {
-      background-color: var(--purple-btn);
+      background: linear-gradient(135deg, var(--purple-btn), #6d28d9);
       color: #ffffff;
       font-family: var(--font-display);
-      font-size: 20px;
-      font-weight: 700;
+      font-size: 19px;
+      font-weight: 800;
       border: 3px solid #000000;
-      border-radius: 18px;
-      padding: 12px 28px;
+      border-radius: 24px;
+      padding: 12px 24px;
+      min-height: 48px;
       cursor: pointer;
       box-shadow: 0 4px 0 #000000;
-      transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.1s ease;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       text-decoration: none;
-    }
-
-    .btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #000000;
+      width: 100%;
     }
 
     .btn-secondary {
-      background-color: #ffffff;
-      color: var(--text-dark);
+      background: #ffffff;
+      color: #0f172a;
     }
 
     .btn-icon {
       padding: 10px 18px;
       font-size: 20px;
-      border-radius: 14px;
+      width: auto;
+      min-width: 48px;
     }
 
     .btn:disabled {
@@ -155,51 +231,47 @@
     }
 
     .link-btn {
-      background: var(--bg-card-brown);
+      background: rgba(255,255,255,0.08);
       color: #ffffff;
       border: 3px solid #000000;
-      border-radius: 16px;
+      border-radius: 20px;
       font-family: var(--font-display);
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       margin-top: 14px;
       cursor: pointer;
-      padding: 10px 32px;
+      padding: 10px 28px;
+      min-height: 48px;
       box-shadow: 0 4px 0 #000000;
-    }
-
-    .link-btn:active {
-      transform: translateY(2px);
-      box-shadow: 0 2px 0 #000000;
     }
 
     /* MAIN MENU SCREEN */
     #screen-menu .menu-logo {
-      width: 110px;
-      height: 110px;
+      width: 100px;
+      height: 100px;
       background: var(--card-amber);
       border: 4px solid #ffffff;
-      border-radius: 24px;
+      border-radius: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 56px;
+      font-size: 52px;
       margin-bottom: 16px;
-      box-shadow: 0 8px 0 var(--card-amber-shadow), 0 12px 24px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 0 #000000;
       transform: rotate(-4deg);
     }
 
     #screen-menu .menu-title {
-      font-size: 32px;
+      font-size: 30px;
       font-weight: 800;
       line-height: 1.1;
       margin-bottom: 6px;
-      color: var(--text-dark);
+      color: #ffffff;
     }
 
     #screen-menu .menu-subtitle {
       font-size: 15px;
-      color: #5a6578;
+      color: var(--text-muted);
       font-weight: 600;
       margin-bottom: 20px;
     }
@@ -214,9 +286,9 @@
     /* Segmented Control Selectors */
     .segmented-control {
       display: flex;
-      background: rgba(0, 0, 0, 0.08);
-      border: 2px solid rgba(0, 0, 0, 0.15);
-      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
       padding: 4px;
       margin-bottom: 12px;
       width: 100%;
@@ -225,42 +297,24 @@
     .segmented-opt {
       flex: 1;
       padding: 10px 0;
+      min-height: 44px;
       font-size: 14px;
-      font-weight: 700;
-      border-radius: 12px;
+      font-weight: 800;
+      border-radius: 16px;
       border: none;
       background: transparent;
-      color: #5a6578;
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .segmented-opt.active {
       background: #ffffff;
-      color: var(--text-dark);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 0 0 2px #000000;
+      color: #0f172a;
+      box-shadow: 0 4px 0 #000000;
     }
 
-    /* Sound Toggle Pill */
-    .sound-toggle {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: #ffffff;
-      border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #000;
-      z-index: 5;
-    }
-
-    /* HOW TO PLAY CAROUSEL SCREEN (Matches image.png) */
+    /* HOW TO PLAY CAROUSEL SCREEN */
     .carousel-view {
       width: 100%;
       overflow: hidden;
@@ -281,11 +335,10 @@
       padding: 0 4px;
     }
 
-    /* Demo Preview Box matching image.png */
     .demo-box {
       width: 100%;
-      height: 240px;
-      background-color: #4e3d3d;
+      height: 220px;
+      background-color: #0f172a;
       border-radius: 20px;
       border: 3px solid #000000;
       position: relative;
@@ -295,14 +348,13 @@
       justify-content: center;
       margin-bottom: 16px;
       overflow: hidden;
-      box-shadow: inset 0 0 16px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 0 #000000;
     }
 
-    /* Top HUD Badge inside Demo Box */
     .demo-hud {
       position: absolute;
       top: 12px;
-      background: #362a2a;
+      background: #1e293b;
       border: 2px solid #000000;
       border-radius: 12px;
       padding: 4px 14px;
@@ -317,7 +369,6 @@
     .demo-hud-vs { color: #ffffff; }
     .demo-hud-p2 { color: var(--p2-cyan); text-align: center; }
 
-    /* Mini Grid inside Demo Cards */
     .demo-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -331,7 +382,7 @@
       background: var(--card-amber);
       border: 2.5px solid #ffffff;
       border-radius: 8px;
-      box-shadow: 0 3px 0 var(--card-amber-shadow), 0 4px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 0 #000000;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -341,7 +392,7 @@
     .demo-card-item.flipped {
       background: #ffffff;
       border-color: #000000;
-      box-shadow: 0 3px 0 #000000;
+      box-shadow: 0 4px 0 #000000;
     }
 
     .demo-hand-pointer {
@@ -359,11 +410,11 @@
     }
 
     .card-desc {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
-      color: var(--text-dark);
+      color: var(--text-light);
       line-height: 1.35;
-      min-height: 56px;
+      min-height: 54px;
       padding: 0 8px;
     }
 
@@ -377,7 +428,7 @@
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      background-color: #c7d3dc;
+      background-color: #475569;
       border: 2px solid #000000;
       transition: all 0.25s ease;
     }
@@ -399,22 +450,24 @@
     #screen-game {
       padding: 16px;
       justify-content: flex-start;
+      padding-top: 76px;
     }
 
-    /* Top Banner Score HUD (Matches image.png) */
     .game-hud-bar {
       width: 100%;
       max-width: 440px;
-      background: #362a2a;
+      background: rgba(15, 23, 42, 0.95);
       border: 3px solid #000000;
       border-radius: 24px;
-      padding: 10px 18px;
+      padding: 8px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 6px 0 #000000, 0 8px 20px rgba(0,0,0,0.4);
-      margin-bottom: 12px;
+      box-shadow: 0 4px 0 #000000;
+      margin-bottom: 10px;
       z-index: 10;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .player-score-box {
@@ -439,7 +492,7 @@
     }
 
     .hud-vs-badge {
-      background: #1e1616;
+      background: #0f172a;
       color: #ffffff;
       border: 2px solid #000000;
       font-size: 14px;
@@ -455,19 +508,15 @@
 
     .hud-btn {
       background: #ffffff;
-      color: var(--text-dark);
+      color: #0f172a;
       border: 2px solid #000000;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 6px 12px;
+      min-height: 40px;
       font-size: 12px;
       font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 3px 0 #000000;
-    }
-
-    .hud-btn:active {
-      transform: translateY(2px);
-      box-shadow: 0 1px 0 #000000;
+      box-shadow: 0 4px 0 #000000;
     }
 
     /* Turn Indicator Banner */
@@ -476,35 +525,55 @@
       color: #ffffff;
       font-size: 15px;
       font-weight: 800;
-      padding: 6px 20px;
-      border-radius: 14px;
-      border: 2px solid #000000;
+      padding: 8px 20px;
+      border-radius: 16px;
+      border: 3px solid #000000;
       box-shadow: 0 4px 0 #000000;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       transition: background-color 0.3s ease;
       letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
 
     .turn-banner.p2-turn {
       background: var(--p2-cyan);
+      color: #000000;
     }
 
-    /* Card Grid (4x5 = 20 Cards) */
-    .cards-grid {
+    /* Card Grid (4x5 = 20 Cards) Auto-Scales */
+    .cards-grid-container {
       width: 100%;
       max-width: 440px;
+      flex: 1;
+      max-height: calc(100dvh - 210px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .cards-grid {
+      width: 100%;
+      height: 100%;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px 10px;
+      grid-template-rows: repeat(5, 1fr);
+      gap: 8px;
       perspective: 1000px;
     }
 
-    /* Card Element */
+    /* Card Element (Minimum 48px Touch Target) */
     .card {
-      aspect-ratio: 0.82;
+      width: 100%;
+      height: 100%;
+      min-width: 48px;
+      min-height: 48px;
       position: relative;
       cursor: pointer;
       transform-style: preserve-3d;
+      will-change: transform;
+      transform: translateZ(0);
       transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
@@ -520,8 +589,8 @@
     }
 
     .card.matched .card-front {
-      border: 4px solid #4ebd42 !important;
-      box-shadow: 0 0 16px rgba(78, 189, 66, 0.6), 0 5px 0 #2b8232 !important;
+      border: 3.5px solid #34c759 !important;
+      box-shadow: 0 4px 0 #000000 !important;
       background: #ffffff !important;
     }
 
@@ -531,7 +600,7 @@
       inset: 0;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      border-radius: 16px;
+      border-radius: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -540,18 +609,18 @@
     /* Card Back (Face Down Amber/Yellow) */
     .card-back {
       background: var(--card-amber);
-      border: 3.5px solid #ffffff;
-      box-shadow: 0 5px 0 var(--card-amber-shadow), 0 8px 16px rgba(0,0,0,0.35);
-      background-image: radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.05) 100%);
+      border: 3.5px solid #000000;
+      box-shadow: 0 4px 0 #000000;
+      background-image: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, rgba(0,0,0,0.05) 100%);
     }
 
     /* Card Front (Face Up White) */
     .card-front {
       background: #ffffff;
       border: 3.5px solid #000000;
-      box-shadow: 0 5px 0 #000000, 0 8px 16px rgba(0,0,0,0.35);
+      box-shadow: 0 4px 0 #000000;
       transform: rotateY(180deg);
-      padding: 8px;
+      padding: 6px;
     }
 
     .emoji-img {
@@ -578,7 +647,7 @@
       position: absolute;
       font-size: 32px;
       font-weight: 800;
-      color: #4ebd42;
+      color: #34c759;
       -webkit-text-stroke: 2px #000000;
       pointer-events: none;
       z-index: 40;
@@ -595,8 +664,7 @@
     .modal-overlay {
       position: absolute;
       inset: 0;
-      background-color: rgba(30, 20, 20, 0.85);
-      backdrop-filter: blur(4px);
+      background-color: rgba(15, 23, 42, 0.95);
       z-index: 50;
       display: flex;
       align-items: center;
@@ -632,60 +700,18 @@
     .winner-recap {
       font-size: 20px;
       font-weight: 700;
-      background: rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.08);
       padding: 8px 16px;
-      border-radius: 12px;
+      border-radius: 14px;
       margin-bottom: 24px;
+      border: 2px solid rgba(255,255,255,0.15);
     }
 
-    /* Sound & Hub Back Toggle */
-    .hub-back-btn {
+    #confetti-canvas {
       position: absolute;
-      top: 16px;
-      left: 16px;
-      background: #ffffff;
-      color: #000000;
-      border: 3px solid #000000;
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-family: var(--font-display);
-      font-size: 15px;
-      font-weight: 800;
-      text-decoration: none;
-      box-shadow: 0 4px 0 #000000;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-    }
-
-    .hub-back-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 0 #000000;
-    }
-
-    .hub-back-btn:active {
-      transform: scale(0.92) translateY(2px);
-      box-shadow: 0 1px 0 #000000;
-    }
-
-    .sound-toggle {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: #ffffff;
-      border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #000;
-      z-index: 100;
+      inset: 0;
+      pointer-events: none;
+      z-index: 48;
     }
   </style>
 </head>
@@ -694,13 +720,18 @@
     <div class="bg-pattern"></div>
     <canvas id="confetti-canvas"></canvas>
 
-    <!-- Floating Navigation & Sound Controls -->
-    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
-    <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+    <!-- Standard Top Header Bar -->
+    <header class="top-header-bar">
+      <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+      <div class="header-actions">
+        <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+        <button class="hdr-pause-btn" id="pause-btn" onclick="promptExitGame()" aria-label="Pause Game">⏸️</button>
+      </div>
+    </header>
 
     <!-- MAIN MENU SCREEN -->
     <section class="screen active" id="screen-menu">
-      <div class="modal-card">
+      <div class="card-container">
         <div class="menu-logo">🎴</div>
         <h1 class="menu-title">EMOJI MEMORY</h1>
         <p class="menu-subtitle">Turn cards & find matching pairs!</p>
@@ -726,10 +757,10 @@
       </div>
     </section>
 
-    <!-- HOW TO PLAY CAROUSEL SCREEN (Matching image.png) -->
+    <!-- HOW TO PLAY CAROUSEL SCREEN -->
     <section class="screen" id="screen-howto">
-      <div class="modal-card">
-        <h2 class="modal-title">HOW TO PLAY</h2>
+      <div class="card-container">
+        <h2 class="card-title">HOW TO PLAY</h2>
         
         <div class="carousel-view">
           <div class="carousel-track" id="carousel-track">
@@ -751,7 +782,6 @@
                   <div class="demo-card-item flipped"><img src="icons_output/icon_r1_c2.png" style="width:80%;height:80%;object-fit:contain;" /></div>
                   <div class="demo-card-item"></div>
                 </div>
-                <!-- Hand pointer SVG -->
                 <svg class="demo-hand-pointer" style="bottom:18px;right:40px;" viewBox="0 0 100 100">
                   <path d="M30,90 L30,45 C30,40 38,40 38,45 L38,25 C38,20 46,20 46,25 L46,20 C46,15 54,15 54,20 L54,15 C54,10 62,10 62,15 L62,60 C62,75 80,75 80,90 Z" fill="#e6c49c" stroke="#000000" stroke-width="4"/>
                 </svg>
@@ -824,8 +854,6 @@
               </div>
               <p class="card-desc">Whoever matches the most cards wins the game!</p>
             </div>
-              <p class="card-desc">Whoever matches the most cards wins the game!</p>
-            </div>
           </div>
         </div>
 
@@ -850,7 +878,7 @@
 
     <!-- GAME SCREEN -->
     <section class="screen" id="screen-game">
-      <!-- Top HUD Banner (Matches image.png) -->
+      <!-- Top Score HUD Bar -->
       <div class="game-hud-bar">
         <div class="player-score-box">
           <span class="player-name p1-name" id="hud-p1-name">YOU</span>
@@ -865,7 +893,7 @@
         </div>
 
         <div class="hud-actions">
-          <button class="hud-btn" onclick="openHowToInGame()">HOW TO PLAY</button>
+          <button class="hud-btn" onclick="openHowToInGame()">RULES</button>
           <button class="hud-btn" onclick="promptExitGame()">EXIT</button>
         </div>
       </div>
@@ -873,13 +901,15 @@
       <!-- Turn Indicator -->
       <div class="turn-banner" id="turn-banner">YOUR TURN</div>
 
-      <!-- 4x5 Cards Grid (20 Cards = 10 Pairs) -->
-      <div class="cards-grid" id="cards-grid"></div>
+      <!-- Auto-scaling 4x5 Cards Grid (20 Cards) -->
+      <div class="cards-grid-container">
+        <div class="cards-grid" id="cards-grid"></div>
+      </div>
     </section>
 
     <!-- MATCH WINNER SCREEN -->
     <section class="screen" id="screen-winner">
-      <div class="modal-card">
+      <div class="card-container">
         <div class="winner-trophy">🏆</div>
         <h2 class="winner-title" id="winner-headline">YOU WIN!</h2>
         <div class="winner-recap" id="winner-recap">Final Score: 6 - 4</div>
@@ -894,9 +924,9 @@
 
     <!-- EXIT CONFIRMATION MODAL -->
     <div class="modal-overlay" id="exit-modal">
-      <div class="modal-card">
-        <h3 class="modal-title">Quit Match?</h3>
-        <p class="card-desc" style="min-height:auto;margin-bottom:16px;">Current match progress will be lost.</p>
+      <div class="card-container">
+        <h3 class="card-title">Quit Match?</h3>
+        <p class="card-desc" style="min-height:auto;margin-bottom:16px;color:var(--text-muted);">Current match progress will be lost.</p>
         <div class="carousel-nav-row">
           <button class="btn btn-secondary" onclick="closeExitModal()">Cancel</button>
           <button class="btn" onclick="confirmExitGame()">Quit</button>
@@ -906,10 +936,6 @@
   </div>
 
   <script>
-    /* ==========================================================================
-       GAME CONFIGURATION & EMOJI POOL
-       ========================================================================== */
-    /* Master Pool of 60 Custom Theme Icons from icons_output/ */
     const ICON_POOL = [];
     for (let r = 1; r <= 6; r++) {
       for (let c = 1; c <= 10; c++) {
@@ -919,23 +945,21 @@
 
     const state = {
       screen: 'screen-menu',
-      mode: 'bot', // 'bot' | 'p2'
-      botDiff: 'medium', // 'easy' | 'medium' | 'hard'
+      mode: 'bot',
+      botDiff: 'medium',
       scores: { p1: 0, p2: 0 },
-      currentTurn: 1, // 1 = P1 / YOU, 2 = P2 / BOT
-      cards: [], // Array of card objects
+      currentTurn: 1,
+      cards: [],
       firstFlippedIndex: null,
       secondFlippedIndex: null,
       gridLocked: false,
       howtoIndex: 0,
       soundEnabled: true,
-      botMemory: {} // Memory map for Bot AI
+      botMemory: {}
     };
 
-    /* ==========================================================================
-       WEB AUDIO SYNTHESIZER (100% Offline Sound FX)
-       ========================================================================== */
     let audioCtx = null;
+    let confettiAnimId = null;
 
     function getAudioContext() {
       if (!audioCtx) {
@@ -954,7 +978,6 @@
         const ctx = getAudioContext();
         if (!ctx) return;
         const now = ctx.currentTime;
-
         if (type === 'flip') {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -1026,15 +1049,21 @@
       document.getElementById('sound-btn').textContent = state.soundEnabled ? '🔊' : '🔇';
     });
 
-    /* ==========================================================================
-       ROUTER & NAVIGATION
-       ========================================================================== */
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const target = document.getElementById(screenId);
       if (target) {
         target.classList.add('active');
         state.screen = screenId;
+      }
+      if (screenId !== 'screen-winner' && confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+        const canvas = document.getElementById('confetti-canvas');
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
       }
     }
 
@@ -1071,9 +1100,7 @@
     }
 
     function finishHowTo() {
-      try {
-        localStorage.setItem('emoji_memory_seen_howto', 'true');
-      } catch(e) {}
+      try { localStorage.setItem('emoji_memory_seen_howto', 'true'); } catch(e) {}
       showScreen(previousScreenBeforeHowTo || 'screen-menu');
     }
 
@@ -1086,39 +1113,19 @@
     function updateCarousel() {
       const track = document.getElementById('carousel-track');
       track.style.transform = `translateX(-${state.howtoIndex * 100}%)`;
-
       const dots = document.querySelectorAll('#carousel-dots .dot');
-      dots.forEach((dot, idx) => {
-        dot.classList.toggle('active', idx === state.howtoIndex);
-      });
-
+      dots.forEach((dot, idx) => { dot.classList.toggle('active', idx === state.howtoIndex); });
       document.getElementById('btn-prev').disabled = state.howtoIndex === 0;
       document.getElementById('btn-next').disabled = state.howtoIndex === 3;
       document.getElementById('btn-ok').textContent = state.howtoIndex === 3 ? 'START' : 'OK';
     }
 
-    /* ==========================================================================
-       ITEM / ICON RENDER HELPER
-       ========================================================================== */
     function getItemHTML(itemVal) {
       if (!itemVal) return '';
-      if (itemVal.startsWith('icons_output/') || itemVal.endsWith('.png')) {
-        return `<img class="emoji-img" src="${itemVal}" alt="icon" draggable="false" />`;
-      }
-      return getEmojiHTML(itemVal);
+      if (itemVal.startsWith('icons_output/') || itemVal.endsWith('.png')) return `<img class="emoji-img" src="${itemVal}" alt="icon" draggable="false" />`;
+      return itemVal;
     }
 
-    function getEmojiHTML(emojiStr) {
-      try {
-        const codePoints = Array.from(emojiStr).map(c => c.codePointAt(0).toString(16)).join('-');
-        const imgUrl = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codePoints}.svg`;
-        return `<img class="emoji-img" src="${imgUrl}" alt="${emojiStr}" onerror="this.outerHTML='${emojiStr}'" draggable="false" />`;
-      } catch(e) {
-        return emojiStr;
-      }
-    }
-
-    // Shuffle helper
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1127,38 +1134,18 @@
       return arr;
     }
 
-    /* ==========================================================================
-       GAMEPLAY LOGIC
-       ========================================================================== */
     function startGame() {
-      state.scores.p1 = 0;
-      state.scores.p2 = 0;
-      state.currentTurn = 1;
-      state.firstFlippedIndex = null;
-      state.secondFlippedIndex = null;
-      state.gridLocked = false;
-      state.botMemory = {};
-
-      // Set HUD names
+      state.scores.p1 = 0; state.scores.p2 = 0; state.currentTurn = 1;
+      state.firstFlippedIndex = null; state.secondFlippedIndex = null;
+      state.gridLocked = false; state.botMemory = {};
       document.getElementById('hud-p1-name').textContent = state.mode === 'bot' ? 'YOU' : 'PLAYER 1';
       document.getElementById('hud-p2-name').textContent = state.mode === 'bot' ? 'BOT' : 'PLAYER 2';
-
       updateHUD();
-
-      // Pick 10 random icons from the 60 custom icons pool for this match!
       const availableIcons = [...ICON_POOL];
       shuffle(availableIcons);
       const chosenIcons = availableIcons.slice(0, 10);
       const cardPairs = shuffle([...chosenIcons, ...chosenIcons]);
-
-      state.cards = cardPairs.map((iconPath, idx) => ({
-        id: idx,
-        item: iconPath,
-        isFlipped: false,
-        isMatched: false,
-        tilt: (Math.random() - 0.5) * 6 // Organic tilt ±3deg matching image.png
-      }));
-
+      state.cards = cardPairs.map((iconPath, idx) => ({ id: idx, item: iconPath, isFlipped: false, isMatched: false, tilt: (Math.random() - 0.5) * 6 }));
       renderGrid();
       showScreen('screen-game');
     }
@@ -1166,218 +1153,102 @@
     function updateHUD() {
       document.getElementById('score-p1').textContent = state.scores.p1;
       document.getElementById('score-p2').textContent = state.scores.p2;
-
       const banner = document.getElementById('turn-banner');
       const isP1 = (state.currentTurn === 1);
-      
-      if (state.mode === 'bot') {
-        banner.textContent = isP1 ? 'YOUR TURN' : 'BOT THINKING...';
-      } else {
-        banner.textContent = isP1 ? "PLAYER 1'S TURN" : "PLAYER 2'S TURN";
-      }
-
+      if (state.mode === 'bot') banner.textContent = isP1 ? 'YOUR TURN' : 'BOT THINKING...';
+      else banner.textContent = isP1 ? "PLAYER 1'S TURN" : "PLAYER 2'S TURN";
       banner.classList.toggle('p2-turn', !isP1);
     }
 
     function renderGrid() {
       const gridEl = document.getElementById('cards-grid');
       gridEl.innerHTML = '';
-
       state.cards.forEach((card, idx) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
         cardEl.dataset.index = idx;
         cardEl.style.transform = `rotate(${card.tilt}deg)`;
-
         if (card.isFlipped) cardEl.classList.add('flipped');
         if (card.isMatched) cardEl.classList.add('matched');
-
-        cardEl.innerHTML = `
-          <div class="card-face card-back"></div>
-          <div class="card-face card-front">${getItemHTML(card.item)}</div>
-        `;
-
-        cardEl.addEventListener('pointerdown', (e) => {
-          e.preventDefault();
-          handleCardTap(idx);
-        });
-
+        cardEl.innerHTML = `<div class="card-face card-back"></div><div class="card-face card-front">${getItemHTML(card.item)}</div>`;
+        cardEl.addEventListener('pointerdown', (e) => { e.preventDefault(); handleCardTap(idx); });
         gridEl.appendChild(cardEl);
       });
     }
 
     function handleCardTap(index) {
-      if (state.gridLocked) return;
-      if (state.mode === 'bot' && state.currentTurn === 2) return; // Prevent tapping on Bot turn
-
+      if (state.gridLocked || (state.mode === 'bot' && state.currentTurn === 2)) return;
       const card = state.cards[index];
       if (card.isFlipped || card.isMatched) return;
-
       flipCard(index);
     }
 
     function flipCard(index) {
       const card = state.cards[index];
       card.isFlipped = true;
-
-      // Memorize card item for Bot AI
       state.botMemory[index] = card.item;
-
       playSound('flip');
       const cardEl = document.querySelector(`.card[data-index="${index}"]`);
       if (cardEl) cardEl.classList.add('flipped');
-
-      if (state.firstFlippedIndex === null) {
-        state.firstFlippedIndex = index;
-      } else {
-        state.secondFlippedIndex = index;
-        state.gridLocked = true;
-        checkMatch();
-      }
+      if (state.firstFlippedIndex === null) state.firstFlippedIndex = index;
+      else { state.secondFlippedIndex = index; state.gridLocked = true; checkMatch(); }
     }
 
     function checkMatch() {
-      const idx1 = state.firstFlippedIndex;
-      const idx2 = state.secondFlippedIndex;
-      const card1 = state.cards[idx1];
-      const card2 = state.cards[idx2];
-
+      const idx1 = state.firstFlippedIndex, idx2 = state.secondFlippedIndex;
+      const card1 = state.cards[idx1], card2 = state.cards[idx2];
       const isMatch = (card1.item === card2.item);
-
       if (isMatch) {
-        // --- MATCH SUCCESS ---
         setTimeout(() => {
           playSound('match');
-          if (navigator.vibrate) navigator.vibrate(50);
-
-          card1.isMatched = true;
-          card2.isMatched = true;
-
-          const el1 = document.querySelector(`.card[data-index="${idx1}"]`);
-          const el2 = document.querySelector(`.card[data-index="${idx2}"]`);
+          card1.isMatched = true; card2.isMatched = true;
+          const el1 = document.querySelector(`.card[data-index="${idx1}"]`), el2 = document.querySelector(`.card[data-index="${idx2}"]`);
           if (el1) el1.classList.add('matched', 'matched-pop');
           if (el2) el2.classList.add('matched', 'matched-pop');
-
           spawnToast(el2, "+1");
-
-          // Increment active player's score
-          if (state.currentTurn === 1) state.scores.p1++;
-          else state.scores.p2++;
-
+          if (state.currentTurn === 1) state.scores.p1++; else state.scores.p2++;
           updateHUD();
-
-          // Reset flip pointers (Active player gets another turn!)
-          state.firstFlippedIndex = null;
-          state.secondFlippedIndex = null;
-          state.gridLocked = false;
-
-          // Check if all 10 pairs matched
-          if (state.scores.p1 + state.scores.p2 >= 10) {
-            setTimeout(triggerMatchWin, 600);
-          } else if (state.mode === 'bot' && state.currentTurn === 2) {
-            // Bot gets an extra turn!
-            setTimeout(executeBotTurn, 800);
-          }
+          state.firstFlippedIndex = null; state.secondFlippedIndex = null; state.gridLocked = false;
+          if (state.scores.p1 + state.scores.p2 >= 10) setTimeout(triggerMatchWin, 600);
+          else if (state.mode === 'bot' && state.currentTurn === 2) setTimeout(executeBotTurn, 800);
         }, 500);
       } else {
-        // --- MISMATCH ---
         setTimeout(() => {
           playSound('miss');
-
-          card1.isFlipped = false;
-          card2.isFlipped = false;
-
-          const el1 = document.querySelector(`.card[data-index="${idx1}"]`);
-          const el2 = document.querySelector(`.card[data-index="${idx2}"]`);
+          card1.isFlipped = false; card2.isFlipped = false;
+          const el1 = document.querySelector(`.card[data-index="${idx1}"]`), el2 = document.querySelector(`.card[data-index="${idx2}"]`);
           if (el1) el1.classList.remove('flipped');
           if (el2) el2.classList.remove('flipped');
-
-          // Switch turn
           state.currentTurn = state.currentTurn === 1 ? 2 : 1;
           updateHUD();
-
-          state.firstFlippedIndex = null;
-          state.secondFlippedIndex = null;
-          state.gridLocked = false;
-
-          if (state.mode === 'bot' && state.currentTurn === 2) {
-            setTimeout(executeBotTurn, 800);
-          }
+          state.firstFlippedIndex = null; state.secondFlippedIndex = null; state.gridLocked = false;
+          if (state.mode === 'bot' && state.currentTurn === 2) setTimeout(executeBotTurn, 800);
         }, 900);
       }
     }
 
-    /* ==========================================================================
-       SMART BOT AI LOGIC
-       ========================================================================== */
     function executeBotTurn() {
       if (state.screen !== 'screen-game' || state.currentTurn !== 2) return;
-
-      const unrevealedIndices = state.cards
-        .map((c, i) => (!c.isMatched && !c.isFlipped ? i : null))
-        .filter(i => i !== null);
-
-      if (unrevealedIndices.length === 0) return;
-
-      let firstPick = null;
-      let secondPick = null;
-
-      // 1. Check if Bot remembers a matching pair in memory
-      const memoryEntries = Object.entries(state.botMemory).filter(([idxStr]) => {
-        const i = parseInt(idxStr);
-        return !state.cards[i].isMatched;
-      });
-
+      const unrevealed = state.cards.map((c, i) => (!c.isMatched && !c.isFlipped ? i : null)).filter(i => i !== null);
+      if (unrevealed.length === 0) return;
+      let firstPick = null, secondPick = null;
+      const memory = Object.entries(state.botMemory).filter(([idxStr]) => !state.cards[parseInt(idxStr)].isMatched);
       const itemToIndices = {};
-      memoryEntries.forEach(([idxStr, item]) => {
-        const i = parseInt(idxStr);
-        if (!itemToIndices[item]) itemToIndices[item] = [];
-        itemToIndices[item].push(i);
-      });
-
+      memory.forEach(([idxStr, item]) => { const i = parseInt(idxStr); if (!itemToIndices[item]) itemToIndices[item] = []; itemToIndices[item].push(i); });
       let knownPair = null;
-      for (const item in itemToIndices) {
-        if (itemToIndices[item].length === 2) {
-          knownPair = itemToIndices[item];
-          break;
-        }
-      }
-
-      // Memory retention chance based on Bot difficulty
+      for (const item in itemToIndices) if (itemToIndices[item].length === 2) { knownPair = itemToIndices[item]; break; }
       const recallChance = state.botDiff === 'easy' ? 0.3 : (state.botDiff === 'medium' ? 0.65 : 0.95);
-
-      if (knownPair && Math.random() < recallChance) {
-        firstPick = knownPair[0];
-        secondPick = knownPair[1];
-      } else {
-        // Pick 1st random card
-        shuffle(unrevealedIndices);
-        firstPick = unrevealedIndices[0];
-
-        // Check if 1st pick matches any remembered card
+      if (knownPair && Math.random() < recallChance) { firstPick = knownPair[0]; secondPick = knownPair[1]; } 
+      else {
+        shuffle(unrevealed);
+        firstPick = unrevealed[0];
         const firstItem = state.cards[firstPick].item;
-        const matchingMemIndex = Object.keys(state.botMemory).find(idxStr => {
-          const i = parseInt(idxStr);
-          return i !== firstPick && !state.cards[i].isMatched && state.cards[i].item === firstItem;
-        });
-
-        if (matchingMemIndex && Math.random() < recallChance) {
-          secondPick = parseInt(matchingMemIndex);
-        } else {
-          const remaining = unrevealedIndices.filter(i => i !== firstPick);
-          secondPick = remaining[0];
-        }
+        const matchingMem = Object.keys(state.botMemory).find(idxStr => { const i = parseInt(idxStr); return i !== firstPick && !state.cards[i].isMatched && state.cards[i].item === firstItem; });
+        if (matchingMem && Math.random() < recallChance) secondPick = parseInt(matchingMem);
+        else secondPick = unrevealed.filter(i => i !== firstPick)[0];
       }
-
-      // Execute Bot Pick 1
       flipCard(firstPick);
-
-      // Execute Bot Pick 2 after realistic thinking delay
-      setTimeout(() => {
-        if (state.screen === 'screen-game' && state.currentTurn === 2) {
-          flipCard(secondPick);
-        }
-      }, 700);
+      setTimeout(() => { if (state.screen === 'screen-game' && state.currentTurn === 2) flipCard(secondPick); }, 700);
     }
 
     function spawnToast(targetEl, text) {
@@ -1385,119 +1256,66 @@
       const toast = document.createElement('div');
       toast.className = 'toast-score';
       toast.textContent = text;
-      toast.style.left = '50%';
-      toast.style.top = '10%';
+      toast.style.left = '50%'; toast.style.top = '10%';
       targetEl.appendChild(toast);
       setTimeout(() => toast.remove(), 800);
     }
 
-    /* Exit Modal */
-    function promptExitGame() {
-      document.getElementById('exit-modal').classList.add('active');
-      playSound('tap');
-    }
+    function promptExitGame() { document.getElementById('exit-modal').classList.add('active'); playSound('tap'); }
+    function closeExitModal() { document.getElementById('exit-modal').classList.remove('active'); playSound('tap'); }
+    function confirmExitGame() { closeExitModal(); showScreen('screen-menu'); }
 
-    function closeExitModal() {
-      document.getElementById('exit-modal').classList.remove('active');
-      playSound('tap');
-    }
-
-    function confirmExitGame() {
-      closeExitModal();
-      showScreen('screen-menu');
-    }
-
-    /* Winner Screen & Confetti */
     function triggerMatchWin() {
       playSound('win');
-
       const headline = document.getElementById('winner-headline');
-      const p1Won = state.scores.p1 > state.scores.p2;
-      const tie = state.scores.p1 === state.scores.p2;
-
-      if (tie) {
-        headline.textContent = "IT'S A TIE! 🤝";
-        headline.style.color = "var(--text-dark)";
-      } else if (state.mode === 'bot') {
-        headline.textContent = p1Won ? "YOU WIN! 🏆" : "BOT WINS! 🤖";
-        headline.style.color = p1Won ? "var(--p1-red-dark)" : "var(--p2-cyan-dark)";
-      } else {
-        headline.textContent = p1Won ? "PLAYER 1 WINS! 🏆" : "PLAYER 2 WINS! 🏆";
-        headline.style.color = p1Won ? "var(--p1-red-dark)" : "var(--p2-cyan-dark)";
-      }
-
-      document.getElementById('winner-recap').textContent = 
-        `Final Score: ${state.scores.p1} - ${state.scores.p2}`;
-
+      const p1Won = state.scores.p1 > state.scores.p2, tie = state.scores.p1 === state.scores.p2;
+      if (tie) { headline.textContent = "IT'S A TIE! 🤝"; headline.style.color = "#ffffff"; } 
+      else if (state.mode === 'bot') { headline.textContent = p1Won ? "YOU WIN! 🏆" : "BOT WINS! 🤖"; headline.style.color = p1Won ? "var(--p1-red)" : "var(--p2-cyan)"; }
+      else { headline.textContent = p1Won ? "PLAYER 1 WINS! 🏆" : "PLAYER 2 WINS! 🏆"; headline.style.color = p1Won ? "var(--p1-red)" : "var(--p2-cyan)"; }
+      document.getElementById('winner-recap').textContent = `Final Score: ${state.scores.p1} - ${state.scores.p2}`;
       showScreen('screen-winner');
       startConfetti();
     }
 
-    /* Simple Canvas Confetti */
     function startConfetti() {
+      if (confettiAnimId) { cancelAnimationFrame(confettiAnimId); confettiAnimId = null; }
       const canvas = document.getElementById('confetti-canvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const particles = [];
-      const colors = ['#f45c5c', '#29c1ea', '#f5ab27', '#4ebd42', '#9b51e0'];
-
-      for (let i = 0; i < 80; i++) {
+      canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+      const particles = [], colors = ['#f43f5e', '#06b6d4', '#f59e0b', '#34c759', '#8b5cf6'];
+      for (let i = 0; i < 45; i++) {
         particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 6,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          vx: Math.random() * 4 - 2,
-          vy: Math.random() * 4 + 3,
-          rot: Math.random() * 360,
-          vRot: Math.random() * 6 - 3
+          x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 10 + 6, color: colors[Math.floor(Math.random() * colors.length)],
+          vx: Math.random() * 4 - 2, vy: Math.random() * 4 + 3, rot: Math.random() * 360, vRot: Math.random() * 6 - 3
         });
       }
-
       function render() {
+        if (state.screen !== 'screen-winner') {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          confettiAnimId = null;
+          return;
+        }
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         let alive = false;
-
         particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.rot += p.vRot;
-
+          p.x += p.vx; p.y += p.vy; p.rot += p.vRot;
           if (p.y < canvas.height) alive = true;
-
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate((p.rot * Math.PI) / 180);
-          ctx.fillStyle = p.color;
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color; ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
           ctx.restore();
         });
-
-        if (alive && state.screen === 'screen-winner') {
-          requestAnimationFrame(render);
-        }
+        if (alive && state.screen === 'screen-winner') confettiAnimId = requestAnimationFrame(render);
+        else confettiAnimId = null;
       }
       render();
     }
 
-    /* Initialization */
     document.addEventListener('DOMContentLoaded', () => {
       let seenHowTo = false;
-      try {
-        seenHowTo = localStorage.getItem('emoji_memory_seen_howto') === 'true';
-      } catch(e) {}
-
-      if (!seenHowTo) {
-        openHowTo();
-      } else {
-        showScreen('screen-menu');
-      }
-
-      window.addEventListener('pointerdown', () => {
-        getAudioContext();
-      }, { once: true });
+      try { seenHowTo = localStorage.getItem('emoji_memory_seen_howto') === 'true'; } catch(e) {}
+      if (!seenHowTo) openHowTo(); else showScreen('screen-menu');
+      window.addEventListener('pointerdown', () => { getAudioContext(); }, { once: true });
     });
   </script>
 </body>

@@ -49,7 +49,11 @@
       height: 100dvh;
       position: relative;
       overflow: hidden;
-      background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     /* Animated Grid Background */
@@ -57,10 +61,10 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      opacity: 0.15;
+      opacity: 0.12;
       background-image: 
-        linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px);
+        linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px);
       background-size: 40px 40px;
     }
 
@@ -83,14 +87,27 @@
       pointer-events: auto;
     }
 
-    /* Common Card Container */
+    /* Modal Entrance Animation */
+    @keyframes popModal {
+      0% { transform: scale(0.85) translateY(20px); opacity: 0; }
+      70% { transform: scale(1.02) translateY(-4px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .screen.active .card-container,
+    .modal-overlay.active .card-container {
+      animation: popModal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* Common Card Container - 3D Neumorphic Arcade Styling */
     .card-container {
       width: calc(100% - 32px);
       max-width: 420px;
       background-color: var(--card-light);
-      border-radius: 32px;
+      border: 3px solid #000000;
+      border-radius: 28px;
       padding: 24px 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 0 #000000;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -98,6 +115,8 @@
       position: relative;
       z-index: 2;
       color: var(--text-dark);
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .card-title {
@@ -109,29 +128,31 @@
       text-transform: uppercase;
     }
 
-    /* Buttons */
+    /* Standard Arcade Buttons with Tactile Feedback */
     .btn {
       background-color: var(--purple-btn);
       color: #ffffff;
       font-family: var(--font-display);
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 700;
       border: 3px solid #000000;
-      border-radius: 18px;
-      padding: 12px 28px;
+      border-radius: 24px;
+      padding: 12px 26px;
+      min-height: 48px;
       cursor: pointer;
-      box-shadow: 0 4px 0 #000000;
+      box-shadow: 0 5px 0 #000000;
       transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.1s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       text-decoration: none;
+      touch-action: manipulation;
     }
 
     .btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #000000;
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
     }
 
     .btn-secondary {
@@ -142,14 +163,15 @@
     .btn-icon {
       padding: 10px 18px;
       font-size: 20px;
-      border-radius: 14px;
+      border-radius: 20px;
+      min-width: 48px;
     }
 
     .btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
       transform: none !important;
-      box-shadow: 0 4px 0 #000000 !important;
+      box-shadow: 0 5px 0 #000000 !important;
     }
 
     .link-btn {
@@ -162,21 +184,97 @@
       margin-top: 14px;
       cursor: pointer;
       text-decoration: underline;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Standard Top Header Bar */
+    .top-header-bar {
+      position: absolute;
+      top: env(safe-area-inset-top, 12px);
+      left: 12px;
+      right: 12px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+      pointer-events: auto;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .hub-back-btn {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 24px;
+      padding: 8px 16px;
+      min-height: 48px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 5px 0 #000000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      touch-action: manipulation;
+    }
+
+    .hub-back-btn:active {
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
+    }
+
+    .header-btn, .sound-toggle {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 24px;
+      min-width: 48px;
+      min-height: 48px;
+      height: 48px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #000000;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      touch-action: manipulation;
+    }
+
+    .header-btn:active, .sound-toggle:active {
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
+    }
+
+    .header-right-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     /* MAIN MENU */
     #screen-menu .game-logo {
-      width: 110px;
-      height: 110px;
+      width: 100px;
+      height: 100px;
       background: linear-gradient(135deg, #06b6d4, #6d28d9);
-      border: 4px solid #ffffff;
-      border-radius: 24px;
+      border: 3.5px solid #ffffff;
+      border-radius: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 56px;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 0 rgba(0,0,0,0.2), 0 12px 24px rgba(0,0,0,0.3);
+      font-size: 52px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 0 #000000;
       transform: rotate(-3deg);
     }
 
@@ -192,7 +290,7 @@
       font-size: 15px;
       color: #475569;
       font-weight: 600;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     .menu-actions {
@@ -206,8 +304,8 @@
     .segmented-control {
       display: flex;
       background: rgba(0, 0, 0, 0.08);
-      border: 2px solid rgba(0, 0, 0, 0.15);
-      border-radius: 16px;
+      border: 3px solid #000000;
+      border-radius: 24px;
       padding: 4px;
       margin-bottom: 12px;
       width: 100%;
@@ -215,40 +313,31 @@
 
     .segmented-opt {
       flex: 1;
-      padding: 10px 0;
+      min-height: 44px;
+      padding: 8px 0;
       font-size: 14px;
-      font-weight: 700;
-      border-radius: 12px;
+      font-weight: 800;
+      border-radius: 18px;
       border: none;
       background: transparent;
       color: #475569;
       cursor: pointer;
       transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    .segmented-opt:active {
+      transform: scale(0.96);
     }
 
     .segmented-opt.active {
       background: #ffffff;
       color: var(--text-dark);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 0 0 2px #000000;
-    }
-
-    /* Sound Toggle */
-    .sound-toggle {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: #ffffff;
-      border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #000;
-      z-index: 5;
+      border: 2.5px solid #000000;
+      box-shadow: 0 3px 0 #000000;
     }
 
     /* HOW TO PLAY CAROUSEL */
@@ -274,7 +363,7 @@
 
     .demo-box {
       width: 100%;
-      height: 220px;
+      height: 200px;
       background-color: #0f172a;
       border-radius: 20px;
       border: 3px solid #000000;
@@ -284,16 +373,16 @@
       align-items: center;
       justify-content: flex-end;
       padding-bottom: 20px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       overflow: hidden;
-      box-shadow: inset 0 0 16px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 0 #000000;
     }
 
     .demo-block {
       height: 24px;
       border-radius: 6px;
       border: 2px solid #ffffff;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 0 #000000;
       position: absolute;
     }
 
@@ -303,17 +392,17 @@
     }
 
     .card-desc {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--text-dark);
       line-height: 1.35;
-      min-height: 52px;
+      min-height: 48px;
     }
 
     .carousel-dots {
       display: flex;
       gap: 8px;
-      margin: 14px 0;
+      margin: 12px 0;
     }
 
     .dot {
@@ -350,13 +439,15 @@
       width: 100%;
       height: 100%;
       height: 100dvh;
-      max-width: 500px;
+      max-width: 440px;
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      background: linear-gradient(to bottom, rgba(15,23,42,0.9), rgba(15,23,42,0.98));
+      background: linear-gradient(to bottom, rgba(15,23,42,0.92), rgba(15,23,42,0.98));
       cursor: pointer;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .lane-canvas {
@@ -365,10 +456,10 @@
       display: block;
     }
 
-    /* Shared Top HUD */
+    /* Shared HUD */
     .top-game-hud {
       position: absolute;
-      top: env(safe-area-inset-top, 12px);
+      top: calc(env(safe-area-inset-top, 12px) + 60px);
       left: 12px;
       right: 12px;
       display: flex;
@@ -377,37 +468,38 @@
       gap: 8px;
       z-index: 25;
       pointer-events: none;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .hud-player-card {
-      background: rgba(15, 23, 42, 0.88);
+      background: rgba(15, 23, 42, 0.95);
       border: 3px solid #000000;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 6px 12px;
       display: flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 0 #000000;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      opacity: 0.65;
+      opacity: 0.7;
       transform: scale(0.95);
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .hud-player-card.active-turn {
       opacity: 1;
-      transform: scale(1.05);
-      box-shadow: 0 0 16px rgba(255, 255, 255, 0.2), 0 4px 14px rgba(0,0,0,0.6);
+      transform: scale(1.04);
+      box-shadow: 0 4px 0 #000000;
     }
 
     .hud-player-card.p1.active-turn {
       border-color: var(--p1-cyan);
-      box-shadow: 0 0 16px rgba(6, 182, 212, 0.4), 0 4px 14px rgba(0,0,0,0.6);
     }
 
     .hud-player-card.p2.active-turn {
       border-color: var(--p2-rose);
-      box-shadow: 0 0 16px rgba(244, 63, 94, 0.4), 0 4px 14px rgba(0,0,0,0.6);
     }
 
     .hud-avatar {
@@ -429,7 +521,6 @@
 
     .p1 .hud-name { color: var(--p1-cyan); }
     .p2 .hud-name { color: var(--p2-rose); }
-    .single .hud-name { color: #a855f7; }
 
     .hud-score {
       font-size: 22px;
@@ -439,8 +530,8 @@
 
     /* Turn Banner Center */
     .turn-status-banner {
-      background: rgba(15, 23, 42, 0.92);
-      border: 2px solid #ffffff;
+      background: rgba(15, 23, 42, 0.95);
+      border: 3px solid #000000;
       border-radius: 20px;
       padding: 6px 14px;
       font-size: 13px;
@@ -449,8 +540,10 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 0 #000000;
       transition: all 0.25s ease;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .turn-status-banner.p1-turn {
@@ -477,32 +570,30 @@
       to { transform: scale(1.3); opacity: 1; }
     }
 
-    /* Top Controls Overlay */
-    .hud-controls-overlay {
+    /* Mobile Bottom Drop Action Control Bar */
+    .bottom-drop-bar {
       position: absolute;
-      top: calc(env(safe-area-inset-top, 12px) + 54px);
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 8px;
+      bottom: calc(env(safe-area-inset-bottom, 12px) + 12px);
+      left: 16px;
+      right: 16px;
       z-index: 30;
+      display: flex;
+      justify-content: center;
+      pointer-events: auto;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
-    .hud-pill-btn {
-      background: #ffffff;
-      color: var(--text-dark);
-      border: 3px solid #000000;
-      border-radius: 16px;
-      padding: 5px 12px;
-      font-size: 11px;
+    .drop-block-btn {
+      width: 100%;
+      max-width: 380px;
+      min-height: 52px;
+      font-size: 19px;
       font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 3px 0 #000000;
-    }
-
-    .hud-pill-btn:active {
-      transform: translateY(2px);
-      box-shadow: 0 1px 0 #000000;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #06b6d4, #0284c7);
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     /* Floating Toast Effect */
@@ -527,9 +618,8 @@
     .modal-overlay {
       position: absolute;
       inset: 0;
-      background-color: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(4px);
-      z-index: 50;
+      background-color: rgba(15, 23, 42, 0.95);
+      z-index: 200;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -566,8 +656,9 @@
       font-weight: 700;
       background: rgba(0,0,0,0.06);
       padding: 8px 16px;
-      border-radius: 12px;
-      margin-bottom: 24px;
+      border-radius: 14px;
+      margin-bottom: 22px;
+      border: 2px solid rgba(0,0,0,0.1);
     }
 
     /* Confetti Canvas */
@@ -575,57 +666,7 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      z-index: 45;
-    }
-
-    /* Sound & Hub Back Toggle */
-    .hub-back-btn {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: #ffffff;
-      color: #000000;
-      border: 3px solid #000000;
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-family: var(--font-display);
-      font-size: 15px;
-      font-weight: 800;
-      text-decoration: none;
-      box-shadow: 0 4px 0 #000000;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-    }
-
-    .hub-back-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 0 #000000;
-    }
-
-    .hub-back-btn:active {
-      transform: scale(0.92) translateY(2px);
-      box-shadow: 0 1px 0 #000000;
-    }
-
-    .sound-toggle {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: #ffffff;
-      border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #000;
-      z-index: 100;
+      z-index: 150;
     }
   </style>
 </head>
@@ -634,9 +675,14 @@
     <div class="bg-grid"></div>
     <canvas id="confetti-canvas"></canvas>
 
-    <!-- Floating Navigation & Sound Controls -->
-    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
-    <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+    <!-- Standard Top Header Bar -->
+    <header class="top-header-bar">
+      <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+      <div class="header-right-group">
+        <button class="header-btn" id="pause-btn" aria-label="Pause Game" onclick="openPauseModal()">⏸️</button>
+        <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+      </div>
+    </header>
 
     <!-- MAIN MENU SCREEN -->
     <section class="screen active" id="screen-menu">
@@ -680,7 +726,7 @@
                 <div class="demo-block" style="width:120px;bottom:20px;left:60px;background:#06b6d4;"></div>
                 <div class="demo-block" style="width:120px;bottom:48px;left:40px;background:#3b82f6;animation:slideDemo 1.5s infinite alternate ease-in-out;"></div>
               </div>
-              <p class="card-desc">Tap the screen to drop the sliding block onto the tower!</p>
+              <p class="card-desc">Tap the screen or DROP button to place the sliding block!</p>
             </div>
 
             <!-- Card 2 -->
@@ -732,7 +778,7 @@
       </div>
     </section>
 
-    <!-- GAME SCREEN (Single Viewport Turn-Based) -->
+    <!-- GAME SCREEN -->
     <section class="screen" id="screen-game">
       <div class="game-viewport-single" id="game-viewport">
 
@@ -763,14 +809,13 @@
           </div>
         </div>
 
-        <!-- HUD Controls Overlay -->
-        <div class="hud-controls-overlay">
-          <button class="hud-pill-btn" onclick="openHowToInGame()">HOW TO PLAY</button>
-          <button class="hud-pill-btn" onclick="promptExitGame()">EXIT</button>
-        </div>
-
         <!-- Main Single Canvas -->
         <canvas class="lane-canvas" id="canvas-main"></canvas>
+
+        <!-- Bottom Touch Drop Button Bar -->
+        <div class="bottom-drop-bar">
+          <button class="btn drop-block-btn" id="drop-trigger-btn">👇 DROP BLOCK</button>
+        </div>
       </div>
     </section>
 
@@ -789,14 +834,15 @@
       </div>
     </section>
 
-    <!-- EXIT CONFIRMATION MODAL -->
-    <div class="modal-overlay" id="exit-modal">
+    <!-- PAUSE / EXIT MODAL -->
+    <div class="modal-overlay" id="pause-modal">
       <div class="card-container">
-        <h3 class="card-title">Quit Match?</h3>
-        <p class="card-desc" style="min-height:auto;margin-bottom:16px;">Current match progress will be lost.</p>
-        <div class="carousel-nav-row">
-          <button class="btn btn-secondary" onclick="closeExitModal()">Cancel</button>
-          <button class="btn" onclick="confirmExitGame()">Quit</button>
+        <h3 class="card-title">GAME PAUSED</h3>
+        <p class="card-desc" style="min-height:auto;margin-bottom:16px;">Current match is paused.</p>
+        <div class="menu-actions">
+          <button class="btn" onclick="closePauseModal()">▶ RESUME</button>
+          <button class="btn btn-secondary" onclick="openHowToInGame()">❓ HOW TO PLAY</button>
+          <button class="btn btn-secondary" onclick="confirmExitGame()">🚪 QUIT TO MENU</button>
         </div>
       </div>
     </div>
@@ -942,6 +988,15 @@
         target.classList.add('active');
         state.screen = screenId;
       }
+      if (screenId !== 'screen-game' && towerAnimId) {
+        cancelAnimationFrame(towerAnimId);
+        towerAnimId = null;
+        state.loopActive = false;
+      }
+      if (screenId !== 'screen-winner' && confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+      }
     }
 
     function setGameMode(mode) {
@@ -971,6 +1026,7 @@
     }
 
     function openHowToInGame() {
+      closePauseModal();
       previousScreenBeforeHowTo = 'screen-game';
       state.howtoIndex = 0;
       updateCarousel();
@@ -1006,7 +1062,7 @@
     }
 
     /* ==========================================================================
-       SINGLE SHARED TOWER ENGINE (Turn-Based Duel & Solo)
+       SINGLE SHARED TOWER ENGINE (With Stack Bounce, Sway & Perfect Sparkles)
        ========================================================================== */
     class SharedTowerEngine {
       constructor(canvasId) {
@@ -1017,6 +1073,9 @@
         this.botProcessing = false;
         this.width = 0;
         this.height = 0;
+
+        this.cameraBounceY = 0;
+        this.cameraSwayX = 0;
         this.reset();
       }
 
@@ -1029,6 +1088,8 @@
         this.gameOver = false;
         this.cameraY = 0;
         this.targetCameraY = 0;
+        this.cameraBounceY = 0;
+        this.cameraSwayX = 0;
         this.lastDropTime = 0;
         this.activeBlock = null;
         this.botProcessing = false;
@@ -1038,9 +1099,11 @@
         const baseBlock = {
           x: (this.width - initialWidth) / 2,
           w: initialWidth,
-          y: this.height - BLOCK_HEIGHT * 2,
+          y: this.height - BLOCK_HEIGHT * 3.5,
           colorHue: 190,
-          player: 1
+          player: 1,
+          squishY: 1.0,
+          squishX: 1.0
         };
         this.stacked.push(baseBlock);
 
@@ -1048,7 +1111,7 @@
       }
 
       resize() {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
         const rect = this.canvas.getBoundingClientRect();
         this.width = rect.width || 360;
         this.height = rect.height || 600;
@@ -1062,12 +1125,11 @@
         const prev = this.stacked[this.stacked.length - 1];
         const nextY = prev.y - BLOCK_HEIGHT;
 
-        // Player specific colors or dynamic hue
         let colorHue;
         if (state.mode === 'single') {
           colorHue = (this.stacked.length * 14) % 360;
         } else {
-          colorHue = state.currentPlayer === 1 ? 190 : 345; // Cyan (190) vs Rose (345)
+          colorHue = state.currentPlayer === 1 ? 190 : 345;
         }
 
         const totalBlocksPlaced = this.stacked.length;
@@ -1082,7 +1144,7 @@
           player: state.currentPlayer
         };
 
-        // Camera follow
+        // Camera follow threshold
         const threshold = this.height * 0.45;
         const blockScreenY = nextY + this.cameraY;
         if (blockScreenY < threshold) {
@@ -1125,11 +1187,16 @@
 
         const droppingPlayer = state.currentPlayer;
 
+        // Trigger Stack Impact Bounce Micro-Animation!
+        this.cameraBounceY = 7.5;
+
         // --- PERFECT ALIGNMENT ---
         const perfectTol = Math.min(PERFECT_TOLERANCE, active.w * 0.25);
         if (Math.abs(diff) <= perfectTol) {
           active.x = prev.x;
           active.w = prev.w;
+          active.squishY = 0.82;
+          active.squishX = 1.15;
           state.combo++;
           state.scores[droppingPlayer]++;
           playSound('perfect', state.combo);
@@ -1227,7 +1294,9 @@
           w: overlapWidth,
           y: active.y,
           colorHue: active.colorHue,
-          player: droppingPlayer
+          player: droppingPlayer,
+          squishY: 0.85,
+          squishX: 1.12
         });
         this.activeBlock = null;
 
@@ -1245,9 +1314,9 @@
       }
 
       spawnSparkles(cx, cy) {
-        for (let i = 0; i < 14; i++) {
-          const angle = (i / 14) * Math.PI * 2;
-          const speed = Math.random() * 4 + 2;
+        for (let i = 0; i < 12; i++) {
+          const angle = (i / 12) * Math.PI * 2;
+          const speed = Math.random() * 4.5 + 2;
           this.particles.push({
             x: cx,
             y: cy,
@@ -1257,6 +1326,9 @@
             life: 1.0,
             color: '#facc15'
           });
+        }
+        if (this.particles.length > 45) {
+          this.particles.splice(0, this.particles.length - 45);
         }
       }
 
@@ -1268,7 +1340,7 @@
         toast.className = 'toast-score';
         toast.textContent = text;
         toast.style.left = '50%';
-        toast.style.top = '40%';
+        toast.style.top = '35%';
         laneEl.appendChild(toast);
         setTimeout(() => toast.remove(), 800);
       }
@@ -1284,7 +1356,29 @@
       }
 
       update() {
+        // Camera smooth tracking
         this.cameraY += (this.targetCameraY - this.cameraY) * 0.1;
+
+        // Stack Impact Bounce Decay
+        if (Math.abs(this.cameraBounceY) > 0.05) {
+          this.cameraBounceY *= 0.82;
+        } else {
+          this.cameraBounceY = 0;
+        }
+
+        // Ambient Camera Sway (Subtle breeze movement on high towers)
+        const swayAmplitude = Math.min(this.stacked.length * 0.3, 4.5);
+        this.cameraSwayX = Math.sin(Date.now() * 0.0016) * swayAmplitude;
+
+        // Block Squish/Bounce Recovery
+        for (const b of this.stacked) {
+          if (b.squishY && b.squishY < 1.0) {
+            b.squishY = Math.min(1.0, b.squishY + 0.04);
+          }
+          if (b.squishX && b.squishX > 1.0) {
+            b.squishX = Math.max(1.0, b.squishX - 0.04);
+          }
+        }
 
         if (this.activeBlock && !this.gameOver) {
           this.activeBlock.x += this.activeBlock.speed;
@@ -1327,16 +1421,17 @@
         ctx.clearRect(0, 0, this.width, this.height);
 
         ctx.save();
-        ctx.translate(0, this.cameraY);
+        // Camera translation with vertical bounce & horizontal sway
+        ctx.translate(this.cameraSwayX, this.cameraY + this.cameraBounceY);
 
         // Render Stacked Blocks
         for (const b of this.stacked) {
-          this.drawBlock(b.x, b.y, b.w, BLOCK_HEIGHT, b.colorHue, false);
+          this.drawBlock(b.x, b.y, b.w, BLOCK_HEIGHT, b.colorHue, false, b.squishX || 1.0, b.squishY || 1.0);
         }
 
         // Render Active Moving Block
         if (this.activeBlock && !this.gameOver) {
-          this.drawBlock(this.activeBlock.x, this.activeBlock.y, this.activeBlock.w, BLOCK_HEIGHT, this.activeBlock.colorHue, true);
+          this.drawBlock(this.activeBlock.x, this.activeBlock.y, this.activeBlock.w, BLOCK_HEIGHT, this.activeBlock.colorHue, true, 1.0, 1.0);
         }
 
         // Render Falling Debris
@@ -1344,7 +1439,7 @@
           ctx.save();
           ctx.translate(d.x + d.w / 2, d.y + BLOCK_HEIGHT / 2);
           ctx.rotate(d.rot);
-          this.drawBlock(-d.w / 2, -BLOCK_HEIGHT / 2, d.w, BLOCK_HEIGHT, d.colorHue, false);
+          this.drawBlock(-d.w / 2, -BLOCK_HEIGHT / 2, d.w, BLOCK_HEIGHT, d.colorHue, false, 1.0, 1.0);
           ctx.restore();
         }
 
@@ -1362,12 +1457,19 @@
         ctx.restore();
       }
 
-      drawBlock(x, y, w, h, hue, isActive = false) {
+      drawBlock(x, y, w, h, hue, isActive = false, scaleX = 1.0, scaleY = 1.0) {
         if (w <= 0) return;
         const ctx = this.ctx;
         const radius = Math.min(6, w / 2);
 
         ctx.save();
+
+        if (scaleX !== 1.0 || scaleY !== 1.0) {
+          ctx.translate(x + w / 2, y + h / 2);
+          ctx.scale(scaleX, scaleY);
+          x = -w / 2;
+          y = -h / 2;
+        }
 
         const grad = ctx.createLinearGradient(x, y, x, y + h);
         grad.addColorStop(0, `hsl(${hue}, 85%, 65%)`);
@@ -1387,7 +1489,7 @@
         ctx.stroke();
 
         // Top bevel highlight
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         const bevelX = x + radius;
         const bevelW = Math.max(0, w - radius * 2);
         if (bevelW > 0) {
@@ -1467,16 +1569,22 @@
       }
     }
 
+    let towerAnimId = null;
     function ensureGameLoop() {
       if (!state.loopActive) {
         state.loopActive = true;
-        requestAnimationFrame(gameLoop);
+        if (towerAnimId) cancelAnimationFrame(towerAnimId);
+        towerAnimId = requestAnimationFrame(gameLoop);
       }
     }
 
     function gameLoop() {
       if (!state.running || state.screen !== 'screen-game') {
         state.loopActive = false;
+        if (towerAnimId) {
+          cancelAnimationFrame(towerAnimId);
+          towerAnimId = null;
+        }
         return;
       }
 
@@ -1490,24 +1598,30 @@
         gameEngine.draw();
       }
 
-      requestAnimationFrame(gameLoop);
+      towerAnimId = requestAnimationFrame(gameLoop);
     }
 
     /* Input Event Listeners */
 
+    function triggerDropBlock() {
+      getAudioContext();
+      if (!state.running || !gameEngine || gameEngine.gameOver) return;
+      if (state.mode === 'bot' && state.currentPlayer === 2) return;
+      gameEngine.dropBlock();
+    }
+
     // Tap on game viewport
     document.getElementById('game-viewport').addEventListener('pointerdown', (e) => {
-      // Don't trigger if tapping HUD controls
-      if (e.target.closest('.hud-controls-overlay') || e.target.closest('.hud-pill-btn')) return;
+      if (e.target.closest('.top-header-bar') || e.target.closest('.bottom-drop-bar')) return;
       e.preventDefault();
-      getAudioContext();
+      triggerDropBlock();
+    });
 
-      if (!state.running || !gameEngine || gameEngine.gameOver) return;
-
-      // In Bot mode, don't allow player to tap during Bot's turn
-      if (state.mode === 'bot' && state.currentPlayer === 2) return;
-
-      gameEngine.dropBlock();
+    // Tap on bottom drop button
+    document.getElementById('drop-trigger-btn').addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      triggerDropBlock();
     });
 
     // Keyboard controls (Space / Enter)
@@ -1516,8 +1630,7 @@
 
       if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyA') {
         e.preventDefault();
-        if (state.mode === 'bot' && state.currentPlayer === 2) return;
-        gameEngine.dropBlock();
+        triggerDropBlock();
       }
     });
 
@@ -1525,6 +1638,11 @@
 
     function handleMissElimination(foulPlayer) {
       state.running = false;
+      if (towerAnimId) {
+        cancelAnimationFrame(towerAnimId);
+        towerAnimId = null;
+      }
+      state.loopActive = false;
 
       if (state.mode === 'single') {
         playSound('over');
@@ -1552,6 +1670,11 @@
 
     function handleMatchTargetWin() {
       state.running = false;
+      if (towerAnimId) {
+        cancelAnimationFrame(towerAnimId);
+        towerAnimId = null;
+      }
+      state.loopActive = false;
       playSound('win');
 
       const p1Score = state.scores[1];
@@ -1571,47 +1694,55 @@
       }, 700);
     }
 
-    /* Exit Modal */
-    function promptExitGame() {
-      document.getElementById('exit-modal').classList.add('active');
+    /* Pause / Exit Modal */
+    function openPauseModal() {
+      document.getElementById('pause-modal').classList.add('active');
       playSound('tap');
     }
 
-    function closeExitModal() {
-      document.getElementById('exit-modal').classList.remove('active');
+    function closePauseModal() {
+      document.getElementById('pause-modal').classList.remove('active');
       playSound('tap');
     }
 
     function confirmExitGame() {
-      closeExitModal();
+      closePauseModal();
       state.running = false;
       state.loopActive = false;
+      if (towerAnimId) {
+        cancelAnimationFrame(towerAnimId);
+        towerAnimId = null;
+      }
       if (state.botTimer) clearTimeout(state.botTimer);
       gameEngine = null;
       showScreen('screen-menu');
     }
 
     /* Confetti Canvas */
+    let confettiAnimId = null;
     function startConfetti() {
+      if (confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+      }
       const canvas = document.getElementById('confetti-canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
       const particles = [];
-      const colors = ['#06b6d4', '#f43f5e', '#facc15', '#10b981', '#6d28d9', '#ffffff'];
+      const colors = ['#06b6d4', '#f43f5e', '#6d28d9', '#facc15', '#22c55e', '#3b82f6'];
 
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 45; i++) {
         particles.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 4,
+          size: Math.random() * 10 + 6,
           color: colors[Math.floor(Math.random() * colors.length)],
           vx: Math.random() * 4 - 2,
-          vy: Math.random() * 4 + 2.5,
+          vy: Math.random() * 4 + 3,
           rot: Math.random() * 360,
-          vRot: Math.random() * 6 - 3,
-          alpha: 1
+          vRot: Math.random() * 6 - 3
         });
       }
 
@@ -1624,35 +1755,38 @@
           p.y += p.vy;
           p.rot += p.vRot;
 
-          if (p.y < canvas.height + 50) alive = true;
-          else return;
+          if (p.y < canvas.height) alive = true;
 
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate((p.rot * Math.PI) / 180);
           ctx.fillStyle = p.color;
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
           ctx.restore();
         });
 
         if (alive && state.screen === 'screen-winner') {
-          requestAnimationFrame(render);
+          confettiAnimId = requestAnimationFrame(render);
         } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (confettiAnimId) {
+            cancelAnimationFrame(confettiAnimId);
+            confettiAnimId = null;
+          }
         }
       }
-      render();
+      confettiAnimId = requestAnimationFrame(render);
     }
+
+    /* Window Resize Handler for Mobile Ergonomics */
+    window.addEventListener('resize', () => {
+      if (gameEngine) {
+        gameEngine.resize();
+      }
+    });
 
     /* Initialization */
     document.addEventListener('DOMContentLoaded', () => {
       showScreen('screen-menu');
-
-      window.addEventListener('resize', () => {
-        if (state.running && gameEngine) {
-          gameEngine.resize();
-        }
-      });
     });
   </script>
 </body>

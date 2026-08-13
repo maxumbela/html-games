@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Potato Bomb Duel</title>
+  <title>Potato Bomb Duel 🥔💣</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #1e130c;
-      --table-wood: #3e2723;
-      --table-border: #271c19;
-      --card-light: #f5ebe0;
-      --text-dark: #3a2518;
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --card-container-bg: #1e293b;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
       --p1-cyan: #06b6d4;
       --p1-cyan-dark: #0891b2;
       --p2-rose: #f43f5e;
       --p2-rose-dark: #e11d48;
-      --potato-gold: #d97706;
-      --potato-light: #fef3c7;
+      --potato-gold: #f59e0b;
+      --potato-dark: #d97706;
       --font-display: 'Fredoka', 'Outfit', system-ui, -apple-system, sans-serif;
     }
 
@@ -40,7 +40,7 @@
       overflow: hidden;
       background-color: var(--bg-dark);
       font-family: var(--font-display);
-      color: #ffffff;
+      color: var(--text-light);
       touch-action: manipulation;
     }
 
@@ -50,11 +50,105 @@
       height: 100dvh;
       position: relative;
       overflow: hidden;
-      background: radial-gradient(circle at center, #2e1c14 0%, #120b07 100%);
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
       display: flex;
       flex-direction: column;
       align-items: center;
+    }
+
+    /* Screen Shake Animation on Explosion */
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-8px, 6px); }
+      40% { transform: translate(8px, -6px); }
+      60% { transform: translate(-6px, -4px); }
+      80% { transform: translate(6px, 4px); }
+    }
+
+    .shake-effect {
+      animation: screenShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+    }
+
+    /* Ticking Fuse Glow */
+    @keyframes fuseGlow {
+      0%, 100% { box-shadow: 0 4px 0 #000000, 0 0 10px rgba(245, 158, 11, 0.4); }
+      50% { box-shadow: 0 4px 0 #000000, 0 0 24px rgba(244, 63, 94, 0.9); filter: brightness(1.08); }
+    }
+
+    /* Subtle Background Grid Tiles */
+    .bg-pattern {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.1;
+      background-image: 
+        radial-gradient(12px 12px at 30px 30px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(12px 12px at 90px 90px, #ffffff, rgba(0,0,0,0));
+      background-size: 120px 120px;
+    }
+
+    /* TOP HEADER BAR */
+    .top-header-bar {
+      width: 100%;
+      max-width: 500px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .hub-back-btn {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 4px 0 #000000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 48px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .hub-back-btn:active, .btn:active, .sound-toggle:active, .hdr-pause-btn:active, .hud-btn:active, .potato-card:active {
+      transform: scale(0.94) translateY(3px) !important;
+      box-shadow: 0 2px 0 #000000 !important;
+    }
+
+    .sound-toggle, .hdr-pause-btn {
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
       justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000000;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
 
     /* Screen Management */
@@ -69,6 +163,7 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s ease;
+      padding-top: 60px;
     }
 
     .screen.active {
@@ -76,114 +171,125 @@
       pointer-events: auto;
     }
 
-    /* Common Card Container */
+    /* Standard Card Container / Modals */
     .card-container {
       width: calc(100% - 32px);
       max-width: 420px;
-      background-color: var(--card-light);
-      border-radius: 32px;
+      background-color: var(--card-container-bg);
+      border: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
+      border-radius: 28px;
       padding: 24px 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 255, 255, 0.15);
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
       position: relative;
       z-index: 2;
-      color: var(--text-dark);
+      color: var(--text-light);
+      will-change: transform;
+      transform: translateZ(0);
+      animation: popModal 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes popModal {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
     }
 
     .card-title {
       font-size: 28px;
-      font-weight: 700;
-      color: var(--text-dark);
+      font-weight: 800;
+      color: #ffffff;
       letter-spacing: -0.5px;
       margin-bottom: 14px;
       text-transform: uppercase;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
 
     /* Buttons */
     .btn {
-      background: linear-gradient(135deg, #d97706, #b45309);
+      background: linear-gradient(135deg, var(--potato-gold), var(--potato-dark));
       color: #ffffff;
       font-family: var(--font-display);
-      font-size: 20px;
-      font-weight: 700;
+      font-size: 19px;
+      font-weight: 800;
       border: 3px solid #000000;
-      border-radius: 18px;
-      padding: 12px 28px;
+      border-radius: 24px;
+      padding: 12px 24px;
+      min-height: 48px;
       cursor: pointer;
-      box-shadow: 0 4px 0 #000000;
+      box-shadow: 0 5px 0 #000000;
       transition: transform 0.1s ease, box-shadow 0.1s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       text-decoration: none;
-    }
-
-    .btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #000000;
+      width: 100%;
     }
 
     .btn-secondary {
       background: #ffffff;
-      color: var(--text-dark);
+      color: #0f172a;
     }
 
     .btn-icon {
       padding: 10px 18px;
       font-size: 20px;
-      border-radius: 14px;
+      width: auto;
+      min-width: 48px;
     }
 
     .btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
       transform: none !important;
-      box-shadow: 0 4px 0 #000000 !important;
+      box-shadow: 0 5px 0 #000000 !important;
     }
 
     .link-btn {
-      background: none;
-      border: none;
-      color: #78350f;
+      background: rgba(255,255,255,0.08);
+      color: #ffffff;
+      border: 3px solid #000000;
+      border-radius: 20px;
       font-family: var(--font-display);
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 700;
       margin-top: 14px;
       cursor: pointer;
-      text-decoration: underline;
+      padding: 10px 28px;
+      min-height: 48px;
+      box-shadow: 0 4px 0 #000000;
     }
 
-    /* MAIN MENU */
+    /* MAIN MENU SCREEN */
     #screen-menu .game-logo {
-      width: 110px;
-      height: 110px;
-      background: linear-gradient(135deg, #f59e0b, #92400e);
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, #f59e0b, #b45309);
       border: 4px solid #ffffff;
       border-radius: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 56px;
+      font-size: 52px;
       margin-bottom: 16px;
-      box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 12px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 0 #000000;
       transform: rotate(-4deg);
     }
 
     #screen-menu .menu-title {
-      font-size: 32px;
+      font-size: 30px;
       font-weight: 800;
       line-height: 1.1;
       margin-bottom: 6px;
-      color: var(--text-dark);
+      color: #ffffff;
     }
 
     #screen-menu .menu-subtitle {
       font-size: 15px;
-      color: #78350f;
+      color: var(--text-muted);
       font-weight: 600;
       margin-bottom: 20px;
     }
@@ -198,9 +304,9 @@
     /* Segmented Selector */
     .segmented-control {
       display: flex;
-      background: rgba(0, 0, 0, 0.08);
-      border: 2px solid rgba(0, 0, 0, 0.15);
-      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
       padding: 4px;
       margin-bottom: 14px;
       width: 100%;
@@ -209,39 +315,21 @@
     .segmented-opt {
       flex: 1;
       padding: 10px 0;
+      min-height: 44px;
       font-size: 14px;
-      font-weight: 700;
-      border-radius: 12px;
+      font-weight: 800;
+      border-radius: 16px;
       border: none;
       background: transparent;
-      color: #78350f;
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .segmented-opt.active {
       background: #ffffff;
-      color: var(--text-dark);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 0 0 2px #000000;
-    }
-
-    /* Sound Toggle */
-    .sound-toggle {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: #ffffff;
-      border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #000;
-      z-index: 5;
+      color: #0f172a;
+      box-shadow: 0 4px 0 #000000;
     }
 
     /* HOW TO PLAY CAROUSEL */
@@ -267,8 +355,8 @@
 
     .demo-box {
       width: 100%;
-      height: 220px;
-      background-color: #271c19;
+      height: 200px;
+      background-color: #0f172a;
       border-radius: 20px;
       border: 3px solid #000000;
       position: relative;
@@ -277,35 +365,35 @@
       justify-content: center;
       margin-bottom: 16px;
       overflow: hidden;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.7);
+      box-shadow: 0 4px 0 #000000;
     }
 
     .card-desc {
       font-size: 17px;
-      font-weight: 600;
-      color: var(--text-dark);
+      font-weight: 700;
+      color: var(--text-light);
       line-height: 1.35;
       min-height: 52px;
     }
 
     .carousel-dots {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       margin: 14px 0;
     }
 
     .dot {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      background-color: #cbd5e1;
+      background-color: #475569;
       border: 2px solid #000000;
       transition: all 0.25s ease;
     }
 
     .dot.active {
       background-color: var(--potato-gold);
-      width: 28px;
+      width: 32px;
       border-radius: 8px;
     }
 
@@ -320,29 +408,30 @@
     #screen-game {
       padding: 12px;
       justify-content: flex-start;
+      padding-top: 76px;
     }
 
     .table-hud {
       width: 100%;
-      max-width: 480px;
+      max-width: 460px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: env(safe-area-inset-top, 12px);
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       z-index: 10;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .player-card-hud {
-      background: rgba(39, 28, 25, 0.9);
+      background: rgba(15, 23, 42, 0.95);
       border: 3px solid #000000;
       border-radius: 20px;
       padding: 8px 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 0 #000000;
     }
 
     .hud-p1 { border-color: var(--p1-cyan); }
@@ -351,33 +440,34 @@
     .hud-player-name {
       font-size: 13px;
       font-weight: 800;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
 
     .name-p1 { color: var(--p1-cyan); }
     .name-p2 { color: var(--p2-rose); }
 
     .hud-hearts {
-      font-size: 20px;
+      font-size: 18px;
       letter-spacing: 2px;
     }
 
     /* Action Banner */
     .turn-banner {
       width: 100%;
-      max-width: 480px;
+      max-width: 460px;
       background: #ffffff;
-      color: var(--text-dark);
+      color: #0f172a;
       border: 3px solid #000000;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 10px 16px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       text-align: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       box-shadow: 0 4px 0 #000000;
       transition: all 0.3s ease;
       z-index: 10;
+      text-transform: uppercase;
     }
 
     .turn-banner.p1-turn {
@@ -390,50 +480,52 @@
       color: #ffffff;
     }
 
+    .turn-banner.fuse-active {
+      animation: fuseGlow 1s infinite alternate ease-in-out;
+    }
+
     /* Confirm Hiding Button Row */
     .confirm-hide-row {
       width: 100%;
-      max-width: 480px;
-      margin-bottom: 12px;
+      max-width: 460px;
+      margin-bottom: 10px;
       display: flex;
       justify-content: center;
       z-index: 10;
     }
 
-    /* WOODEN TABLE & POTATO GRID */
+    /* WOODEN TABLE & POTATO GRID (Dynamic Auto-Scaling) */
     .wooden-table {
       width: 100%;
-      max-width: 480px;
+      max-width: 460px;
       flex: 1;
-      max-height: 540px;
-      background: linear-gradient(135deg, #4e342e 0%, #271c19 100%);
-      border: 6px solid #1a100d;
-      border-radius: 36px;
-      padding: 16px;
-      box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 16px 40px rgba(0,0,0,0.7);
+      max-height: calc(100dvh - 250px);
+      background: linear-gradient(135deg, #331e17 0%, #1e130c 100%);
+      border: 5px solid #000000;
+      border-radius: 28px;
+      padding: 12px;
+      box-shadow: 0 4px 0 #000000;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(4, 1fr);
-      gap: 12px;
+      gap: 10px;
       position: relative;
       overflow: hidden;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
-    .wooden-table::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,0.08) 20px, rgba(0,0,0,0.08) 40px);
-      pointer-events: none;
-    }
-
-    /* POTATO ITEM CARD */
+    /* POTATO ITEM CARD (Min 48px touch target) */
     .potato-card {
       position: relative;
       width: 100%;
       height: 100%;
+      min-width: 48px;
+      min-height: 48px;
       perspective: 800px;
       cursor: pointer;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .potato-inner {
@@ -441,7 +533,7 @@
       height: 100%;
       position: relative;
       transform-style: preserve-3d;
-      transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     .potato-card.revealed .potato-inner {
@@ -452,31 +544,31 @@
       position: absolute;
       inset: 0;
       backface-visibility: hidden;
-      border-radius: 24px;
+      -webkit-backface-visibility: hidden;
+      border-radius: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      border: 3px solid #1a100d;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+      border: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
     }
 
     /* Front Face (Identical Potato Texture for All) */
     .potato-front {
       background: radial-gradient(circle at 35% 35%, #fcd34d 0%, #d97706 70%, #92400e 100%);
-      border-color: #78350f;
     }
 
     .potato-front::after {
       content: '🥔';
-      font-size: 44px;
-      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+      font-size: 38px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
     }
 
     /* Selected Hiding Indicator */
     .potato-card.hiding-selected .potato-front {
       border: 4px solid #ffffff !important;
-      box-shadow: 0 0 20px #facc15, inset 0 0 16px rgba(250, 204, 21, 0.6);
+      box-shadow: 0 4px 0 #000000;
       transform: scale(0.96);
     }
 
@@ -485,36 +577,36 @@
       position: absolute;
       top: 6px;
       right: 6px;
-      font-size: 20px;
+      font-size: 18px;
     }
 
     /* Back Face (Underneath Reveal) */
     .potato-back {
       transform: rotateY(180deg);
-      background: #1a100d;
+      background: #0f172a;
     }
 
     .potato-back.safe {
       background: linear-gradient(135deg, #10b981, #059669);
-      border-color: #ffffff;
+      border-color: #000000;
     }
 
     .potato-back.safe::after {
       content: '✨ SAFE!';
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #ffffff;
     }
 
     .potato-back.bomb {
       background: linear-gradient(135deg, #ef4444, #b91c1c);
-      border-color: #ffffff;
+      border-color: #000000;
       animation: bombPulse 0.4s infinite alternate;
     }
 
     .potato-back.bomb::after {
       content: '💥 BOMB!';
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #ffffff;
     }
@@ -528,7 +620,7 @@
     .pass-overlay {
       position: absolute;
       inset: 0;
-      background-color: var(--card-light);
+      background-color: rgba(15, 23, 42, 0.95);
       z-index: 40;
       display: flex;
       flex-direction: column;
@@ -536,7 +628,9 @@
       justify-content: center;
       padding: 24px;
       text-align: center;
-      border-radius: 32px;
+      border-radius: 28px;
+      border: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
     }
 
     .pass-icon {
@@ -548,8 +642,7 @@
     .draw-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(18, 11, 7, 0.92);
-      backdrop-filter: blur(6px);
+      background: rgba(15, 23, 42, 0.95);
       z-index: 45;
       display: flex;
       flex-direction: column;
@@ -558,17 +651,17 @@
     }
 
     .spinner-coin {
-      width: 100px;
-      height: 100px;
+      width: 90px;
+      height: 90px;
       border-radius: 50%;
       background: linear-gradient(135deg, #facc15, #d97706);
-      border: 5px solid #ffffff;
+      border: 4px solid #000000;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 48px;
+      font-size: 44px;
       margin-bottom: 20px;
-      box-shadow: 0 0 30px rgba(250, 204, 21, 0.6);
+      box-shadow: 0 4px 0 #000000;
       animation: coinSpin 1.2s infinite ease-in-out;
     }
 
@@ -582,8 +675,7 @@
     .modal-overlay {
       position: absolute;
       inset: 0;
-      background-color: rgba(18, 11, 7, 0.85);
-      backdrop-filter: blur(6px);
+      background-color: rgba(15, 23, 42, 0.95);
       z-index: 50;
       display: flex;
       align-items: center;
@@ -619,10 +711,11 @@
     .winner-recap {
       font-size: 18px;
       font-weight: 700;
-      background: rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.08);
       padding: 8px 16px;
-      border-radius: 12px;
+      border-radius: 14px;
       margin-bottom: 24px;
+      border: 2px solid rgba(255,255,255,0.15);
     }
 
     /* Confetti Canvas */
@@ -632,65 +725,21 @@
       pointer-events: none;
       z-index: 48;
     }
-
-    /* Sound & Hub Back Toggle */
-    .hub-back-btn {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: #ffffff;
-      color: #000000;
-      border: 3px solid #000000;
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-family: var(--font-display);
-      font-size: 15px;
-      font-weight: 800;
-      text-decoration: none;
-      box-shadow: 0 4px 0 #000000;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-    }
-
-    .hub-back-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 0 #000000;
-    }
-
-    .hub-back-btn:active {
-      transform: scale(0.92) translateY(2px);
-      box-shadow: 0 1px 0 #000000;
-    }
-
-    .sound-toggle {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: #ffffff;
-      border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #000;
-      z-index: 100;
-    }
   </style>
 </head>
 <body>
   <div id="app">
+    <div class="bg-pattern"></div>
     <canvas id="confetti-canvas"></canvas>
 
-    <!-- Floating Navigation & Sound Controls -->
-    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
-    <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+    <!-- Standard Top Header Bar -->
+    <header class="top-header-bar">
+      <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+      <div class="header-actions">
+        <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+        <button class="hdr-pause-btn" id="pause-btn" onclick="promptExitGame()" aria-label="Pause Game">⏸️</button>
+      </div>
+    </header>
 
     <!-- MAIN MENU SCREEN -->
     <section class="screen active" id="screen-menu">
@@ -782,7 +831,7 @@
           <span class="hud-hearts" id="hearts-p1">❤️❤️❤️</span>
         </div>
 
-        <button class="btn btn-secondary btn-icon" onclick="promptExitGame()">EXIT</button>
+        <button class="btn btn-secondary btn-icon" onclick="promptExitGame()" style="padding:6px 14px;min-height:40px;">EXIT</button>
 
         <div class="player-card-hud hud-p2">
           <span class="hud-player-name name-p2" id="name-p2">PLAYER 2</span>
@@ -790,15 +839,15 @@
         </div>
       </div>
 
-      <!-- Action Banner -->
-      <div class="turn-banner" id="turn-banner">PLAYER 1: HIDE 3 BOMBS</div>
+      <!-- Action Banner with Fuse Glow -->
+      <div class="turn-banner fuse-active" id="turn-banner">PLAYER 1: HIDE 3 BOMBS</div>
 
       <!-- Confirm Hiding Button Row -->
       <div class="confirm-hide-row" id="confirm-hide-row" style="display:none;">
         <button class="btn" id="confirm-hide-btn" onclick="confirmHidingSelection()">CONFIRM BOMBS (3/3)</button>
       </div>
 
-      <!-- Table Grid (12 Potatoes) -->
+      <!-- Wooden Table Grid (12 Potatoes) -->
       <div class="wooden-table" id="potato-grid"></div>
 
       <!-- PASS DEVICE OVERLAY (FOR HIDING PHASE) -->
@@ -835,7 +884,7 @@
     <div class="modal-overlay" id="exit-modal">
       <div class="card-container">
         <h3 class="card-title">Quit Game?</h3>
-        <p class="card-desc" style="min-height:auto;margin-bottom:16px;">Current match progress will be lost.</p>
+        <p class="card-desc" style="min-height:auto;margin-bottom:16px;color:var(--text-muted);">Current match progress will be lost.</p>
         <div class="carousel-nav-row">
           <button class="btn btn-secondary" onclick="closeExitModal()">Cancel</button>
           <button class="btn" onclick="confirmExitGame()">Quit</button>
@@ -845,9 +894,6 @@
   </div>
 
   <script>
-    /* ==========================================================================
-       GAME CONFIGURATION & STATE
-       ========================================================================== */
     const TOTAL_POTATOES = 12;
     const BOMBS_PER_PLAYER = 3;
 
@@ -867,9 +913,7 @@
       gridLocked: false
     };
 
-    /* ==========================================================================
-       WEB AUDIO SYNTHESIZER (100% Offline Sound FX)
-       ========================================================================== */
+    /* WEB AUDIO SYNTHESIZER */
     let audioCtx = null;
 
     function getAudioContext() {
@@ -961,15 +1005,24 @@
       document.getElementById('sound-btn').textContent = state.soundEnabled ? '🔊' : '🔇';
     });
 
-    /* ==========================================================================
-       ROUTER & NAVIGATION
-       ========================================================================== */
+    /* ROUTER & NAVIGATION */
+    let confettiAnimId = null;
+
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const target = document.getElementById(screenId);
       if (target) {
         target.classList.add('active');
         state.screen = screenId;
+      }
+      if (screenId !== 'screen-winner' && confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+        const canvas = document.getElementById('confetti-canvas');
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
       }
     }
 
@@ -1019,9 +1072,7 @@
       document.getElementById('btn-ok').textContent = state.howtoIndex === 3 ? 'START' : 'OK';
     }
 
-    /* ==========================================================================
-       GAMEPLAY ENGINE & LOGIC
-       ========================================================================== */
+    /* GAMEPLAY ENGINE */
     function startGame() {
       state.p1Bombs = [];
       state.p2Bombs = [];
@@ -1071,13 +1122,12 @@
       }
     }
 
-    /* Hiding Phase Logic */
     function startHidingPhaseP1() {
       state.phase = 'hide_p1';
       state.tempSelection = [];
       const banner = document.getElementById('turn-banner');
       banner.textContent = 'PLAYER 1: SELECT 3 POTATOES TO HIDE BOMBS';
-      banner.className = 'turn-banner p1-turn';
+      banner.className = 'turn-banner p1-turn fuse-active';
       document.getElementById('confirm-hide-row').style.display = 'flex';
       updateConfirmButton();
       resetHidingVisuals();
@@ -1088,12 +1138,11 @@
       state.tempSelection = [];
       const banner = document.getElementById('turn-banner');
       banner.textContent = state.mode === 'bot' ? 'BOT HIDING BOMBS...' : 'PLAYER 2: SELECT 3 POTATOES TO HIDE BOMBS';
-      banner.className = 'turn-banner p2-turn';
+      banner.className = 'turn-banner p2-turn fuse-active';
       resetHidingVisuals();
 
       if (state.mode === 'bot') {
         document.getElementById('confirm-hide-row').style.display = 'none';
-        // Bot hides 3 random bombs
         setTimeout(() => {
           const indices = Array.from({length: TOTAL_POTATOES}, (_, i) => i);
           shuffle(indices);
@@ -1116,7 +1165,6 @@
       if (state.gridLocked) return;
 
       if (state.phase === 'hide_p1' || state.phase === 'hide_p2') {
-        // Hiding Phase Selection
         const idxInTemp = state.tempSelection.indexOf(index);
         if (idxInTemp !== -1) {
           state.tempSelection.splice(idxInTemp, 1);
@@ -1126,16 +1174,14 @@
           playSound('select');
         }
 
-        // Update Card Visual Highlight
         document.querySelectorAll('.potato-card').forEach((c, idx) => {
           c.classList.toggle('hiding-selected', state.tempSelection.includes(idx));
         });
 
         updateConfirmButton();
       } else if (state.phase === 'play') {
-        // Turn Selection Phase
         if (state.revealed.includes(index)) return;
-        if (state.mode === 'bot' && state.currentTurn === 2) return; // Ignore input on Bot turn
+        if (state.mode === 'bot' && state.currentTurn === 2) return;
 
         revealPotato(index);
       }
@@ -1157,7 +1203,6 @@
         if (state.mode === 'bot') {
           startHidingPhaseP2();
         } else {
-          // Show Pass Device Overlay
           state.phase = 'pass_p2';
           document.getElementById('confirm-hide-row').style.display = 'none';
           document.getElementById('pass-overlay').style.display = 'flex';
@@ -1176,7 +1221,6 @@
       startHidingPhaseP2();
     }
 
-    /* Draw Sequence (Who Goes First) */
     function startDrawSequence() {
       state.phase = 'draw';
       const drawOverlay = document.getElementById('draw-overlay');
@@ -1210,12 +1254,18 @@
       banner.className = `turn-banner ${isP1 ? 'p1-turn' : 'p2-turn'}`;
     }
 
-    /* Reveal Potato Logic */
+    function triggerScreenShake() {
+      const app = document.getElementById('app');
+      app.classList.remove('shake-effect');
+      void app.offsetWidth; // Force reflow
+      app.classList.add('shake-effect');
+      setTimeout(() => app.classList.remove('shake-effect'), 500);
+    }
+
     function revealPotato(index) {
       state.gridLocked = true;
       state.revealed.push(index);
 
-      // Check if potato contains ANY bomb (placed by P1 or P2)
       const isP1Bomb = state.p1Bombs.includes(index);
       const isP2Bomb = state.p2Bombs.includes(index);
       const isBomb = isP1Bomb || isP2Bomb;
@@ -1235,9 +1285,9 @@
       setTimeout(() => {
         if (isBomb) {
           playSound('boom');
-          if (navigator.vibrate) navigator.vibrate(120);
+          triggerScreenShake();
+          if (navigator.vibrate) navigator.vibrate(140);
 
-          // Active player loses 1 heart
           if (state.currentTurn === 1) state.p1Hearts--;
           else state.p2Hearts--;
 
@@ -1249,7 +1299,6 @@
             return;
           }
 
-          // On Bomb Hit -> Turn switches to Opponent!
           state.currentTurn = state.currentTurn === 1 ? 2 : 1;
           updateTurnBanner("💥 BOMB! TURN SWITCHES!");
           state.gridLocked = false;
@@ -1258,7 +1307,6 @@
             setTimeout(executeBotTurn, 900);
           }
         } else {
-          // On Safe Reveal -> Player KEEPS turn (PRD Section 5: Safe Potato -> Continue!)
           playSound('safe');
           updateTurnBanner("✨ SAFE! PICK AGAIN!");
           state.gridLocked = false;
@@ -1270,16 +1318,13 @@
       }, 700);
     }
 
-    /* Bot AI Turn (Smart: avoids picking its own bombs) */
     function executeBotTurn() {
       if (state.phase !== 'play' || state.currentTurn !== 2) return;
 
-      // Unrevealed potatoes that Bot did NOT place a bomb under
       let safeCandidates = Array.from({length: TOTAL_POTATOES}, (_, i) => i)
         .filter(i => !state.revealed.includes(i) && !state.p2Bombs.includes(i));
 
       if (safeCandidates.length === 0) {
-        // Fallback to any unrevealed potato
         safeCandidates = Array.from({length: TOTAL_POTATOES}, (_, i) => i)
           .filter(i => !state.revealed.includes(i));
       }
@@ -1291,7 +1336,6 @@
       revealPotato(chosenIndex);
     }
 
-    // Shuffle helper
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1319,7 +1363,6 @@
       startConfetti();
     }
 
-    /* Exit Modal */
     function promptExitGame() {
       document.getElementById('exit-modal').classList.add('active');
       playSound('tap');
@@ -1335,8 +1378,11 @@
       showScreen('screen-menu');
     }
 
-    /* Confetti Canvas */
     function startConfetti() {
+      if (confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+      }
       const canvas = document.getElementById('confetti-canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = window.innerWidth;
@@ -1345,7 +1391,7 @@
       const particles = [];
       const colors = ['#f59e0b', '#ef4444', '#10b981', '#06b6d4', '#facc15'];
 
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < 45; i++) {
         particles.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
@@ -1359,6 +1405,11 @@
       }
 
       function render() {
+        if (state.screen !== 'screen-winner') {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          confettiAnimId = null;
+          return;
+        }
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         let alive = false;
 
@@ -1378,13 +1429,14 @@
         });
 
         if (alive && state.screen === 'screen-winner') {
-          requestAnimationFrame(render);
+          confettiAnimId = requestAnimationFrame(render);
+        } else {
+          confettiAnimId = null;
         }
       }
       render();
     }
 
-    /* Initialization */
     document.addEventListener('DOMContentLoaded', () => {
       showScreen('screen-menu');
     });

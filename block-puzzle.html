@@ -40,6 +40,7 @@
       height: 100dvh;
       overflow: hidden;
       background-color: var(--bg-dark);
+      background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
       font-family: var(--font-display);
       color: #ffffff;
       touch-action: manipulation;
@@ -51,11 +52,64 @@
       height: 100dvh;
       position: relative;
       overflow: hidden;
-      background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+    }
+
+    /* AMBIENT FLOATING BACKGROUND ORBS */
+    .bg-orbs-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(50px);
+      opacity: 0.35;
+      animation: floatOrb 12s infinite alternate ease-in-out;
+    }
+
+    .orb-1 {
+      width: 260px;
+      height: 260px;
+      background: #6366f1;
+      top: -40px;
+      left: -50px;
+      animation-duration: 14s;
+    }
+
+    .orb-2 {
+      width: 300px;
+      height: 300px;
+      background: #ec4899;
+      bottom: 100px;
+      right: -80px;
+      animation-duration: 18s;
+      animation-delay: -5s;
+    }
+
+    .orb-3 {
+      width: 220px;
+      height: 220px;
+      background: #06b6d4;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation-duration: 16s;
+      animation-delay: -9s;
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(30px, 40px) scale(1.15); }
+      100% { transform: translate(-20px, 20px) scale(0.9); }
     }
 
     /* Screen Management */
@@ -77,14 +131,15 @@
       pointer-events: auto;
     }
 
-    /* Common Card Container */
+    /* Common Card Container - 3D Neumorphic Arcade Styling */
     .card-container {
       width: calc(100% - 32px);
       max-width: 420px;
       background-color: var(--card-light);
-      border-radius: 32px;
+      border: 3px solid #000000;
+      border-radius: 28px;
       padding: 24px 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 0 #000000;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -92,6 +147,14 @@
       position: relative;
       z-index: 2;
       color: var(--text-dark);
+      animation: popModal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    @keyframes popModal {
+      from { opacity: 0; transform: scale(0.85) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     .card-title {
@@ -103,19 +166,20 @@
       text-transform: uppercase;
     }
 
-    /* Buttons */
+    /* Buttons - 3D Neumorphic Arcade & Minimum 48px Touch Targets */
     .btn {
       background: linear-gradient(135deg, #7c3aed, #4c1d95);
       color: #ffffff;
       font-family: var(--font-display);
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 700;
       border: 3px solid #000000;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 12px 28px;
+      min-height: 48px;
       cursor: pointer;
       box-shadow: 0 4px 0 #000000;
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -124,8 +188,8 @@
     }
 
     .btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #000000;
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
     }
 
     .btn-secondary {
@@ -134,9 +198,13 @@
     }
 
     .btn-icon {
-      padding: 10px 18px;
+      min-width: 48px;
+      min-height: 48px;
+      width: 48px;
+      height: 48px;
+      padding: 0;
       font-size: 20px;
-      border-radius: 14px;
+      border-radius: 18px;
     }
 
     .btn:disabled {
@@ -149,13 +217,16 @@
     .link-btn {
       background: none;
       border: none;
-      color: #64748b;
+      color: #475569;
       font-family: var(--font-display);
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 800;
       margin-top: 14px;
       cursor: pointer;
       text-decoration: underline;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
     }
 
     /* MAIN MENU */
@@ -163,20 +234,20 @@
       width: 110px;
       height: 110px;
       background: linear-gradient(135deg, #06b6d4, #7c3aed);
-      border: 4px solid #ffffff;
+      border: 3.5px solid #000000;
       border-radius: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 56px;
       margin-bottom: 16px;
-      box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 12px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 0 #000000;
       transform: rotate(-3deg);
     }
 
     #screen-menu .menu-title {
       font-size: 32px;
-      font-weight: 800;
+      font-weight: 900;
       line-height: 1.1;
       margin-bottom: 6px;
       color: var(--text-dark);
@@ -185,7 +256,7 @@
     #screen-menu .menu-subtitle {
       font-size: 15px;
       color: #475569;
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 20px;
     }
 
@@ -200,30 +271,40 @@
     .segmented-control {
       display: flex;
       background: rgba(0, 0, 0, 0.08);
-      border: 2px solid rgba(0, 0, 0, 0.15);
-      border-radius: 16px;
+      border: 3px solid #000000;
+      border-radius: 20px;
       padding: 4px;
       margin-bottom: 14px;
       width: 100%;
+      box-shadow: 0 4px 0 #000000;
     }
 
     .segmented-opt {
       flex: 1;
       padding: 10px 0;
+      min-height: 44px;
       font-size: 13px;
-      font-weight: 700;
-      border-radius: 12px;
+      font-weight: 800;
+      border-radius: 14px;
       border: none;
       background: transparent;
       color: #475569;
       cursor: pointer;
       transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .segmented-opt.active {
       background: #ffffff;
       color: var(--text-dark);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 0 0 2px #000000;
+      box-shadow: 0 2px 0 #000000;
+      border: 2px solid #000000;
+    }
+
+    .segmented-opt:active {
+      transform: scale(0.94) translateY(2px);
     }
 
     /* Sound Toggle */
@@ -233,16 +314,26 @@
       right: 16px;
       background: #ffffff;
       border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
+      border-radius: 20px;
+      min-width: 48px;
+      min-height: 48px;
+      width: 48px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 20px;
       cursor: pointer;
       box-shadow: 0 4px 0 #000;
-      z-index: 5;
+      z-index: 100;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .sound-toggle:active {
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
     }
 
     /* HOW TO PLAY CAROUSEL */
@@ -268,9 +359,9 @@
 
     .demo-box {
       width: 100%;
-      height: 220px;
+      height: 200px;
       background-color: #0f172a;
-      border-radius: 20px;
+      border-radius: 24px;
       border: 3px solid #000000;
       position: relative;
       display: flex;
@@ -278,12 +369,12 @@
       justify-content: center;
       margin-bottom: 16px;
       overflow: hidden;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.7);
+      box-shadow: 0 4px 0 #000000;
     }
 
     .card-desc {
-      font-size: 17px;
-      font-weight: 600;
+      font-size: 16px;
+      font-weight: 700;
       color: var(--text-dark);
       line-height: 1.35;
       min-height: 52px;
@@ -317,41 +408,45 @@
       justify-content: center;
     }
 
-    /* GAME PLAY AREA & GRID */
+    /* GAME PLAY AREA & GRID - AUTO-SCALING FOR PHONE SCREENS */
     #screen-game {
-      padding: 12px;
+      padding: 10px;
       justify-content: flex-start;
+      gap: 6px;
     }
 
     .game-hud {
       width: 100%;
-      max-width: 440px;
+      max-width: 420px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: env(safe-area-inset-top, 12px);
-      margin-bottom: 10px;
+      margin-top: env(safe-area-inset-top, 8px);
+      margin-bottom: 4px;
       z-index: 10;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .score-badge {
-      background: rgba(30, 41, 59, 0.9);
+      background: rgba(30, 41, 59, 0.95);
       border: 3px solid #000000;
       border-radius: 20px;
       padding: 6px 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 0 #000000;
+      min-height: 48px;
+      justify-content: center;
     }
 
-    .hud-p1 { border-color: var(--p1-cyan); }
-    .hud-p2 { border-color: var(--p2-rose); }
+    .hud-p1 { border-color: #000000; background: linear-gradient(135deg, #1e293b, #0f172a); }
+    .hud-p2 { border-color: #000000; background: linear-gradient(135deg, #1e293b, #0f172a); }
 
     .badge-title {
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: 0.5px;
     }
 
@@ -360,7 +455,7 @@
 
     .badge-score {
       font-size: 22px;
-      font-weight: 800;
+      font-weight: 900;
       color: #ffffff;
       line-height: 1;
     }
@@ -372,15 +467,19 @@
       background: #ffffff;
       color: var(--text-dark);
       border: 3px solid #000000;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 8px 14px;
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 14px;
+      font-weight: 900;
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 4px;
       box-shadow: 0 4px 0 #000000;
       transition: all 0.3s ease;
       z-index: 10;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .turn-banner.p1-turn {
@@ -393,22 +492,23 @@
       color: #ffffff;
     }
 
-    /* 10x10 PUZZLE GRID */
+    /* 10x10 PUZZLE GRID - DYNAMIC MOBLE SCALING */
     .grid-container {
-      width: 100%;
-      max-width: 420px;
+      width: min(88vw, 46vh, 380px);
       aspect-ratio: 1;
       background: var(--grid-bg);
-      border: 5px solid #000000;
+      border: 4px solid #000000;
       border-radius: 24px;
-      padding: 8px;
+      padding: 6px;
       display: grid;
       grid-template-columns: repeat(10, 1fr);
       grid-template-rows: repeat(10, 1fr);
-      gap: 4px;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,0,0,0.5);
+      gap: 3px;
+      box-shadow: 0 4px 0 #000000;
       position: relative;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .grid-cell {
@@ -421,7 +521,7 @@
 
     .grid-cell.filled {
       border: 2px solid rgba(255,255,255,0.4);
-      box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), 0 3px 6px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 0 #000000;
     }
 
     .grid-cell.preview-valid {
@@ -437,16 +537,18 @@
     /* BOTTOM SHAPE TRAY */
     .tray-container {
       width: 100%;
-      max-width: 420px;
-      height: 110px;
-      background: rgba(30, 41, 59, 0.65);
+      max-width: 380px;
+      height: 104px;
+      background: rgba(30, 41, 59, 0.95);
       border: 3px solid #000000;
       border-radius: 24px;
       display: flex;
       align-items: center;
       justify-content: space-evenly;
-      padding: 8px;
-      backdrop-filter: blur(4px);
+      padding: 6px;
+      box-shadow: 0 4px 0 #000000;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .tray-slot {
@@ -471,11 +573,11 @@
     }
 
     .shape-cell {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 5px;
       border: 1.5px solid rgba(255,255,255,0.4);
-      box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 0 #000000;
     }
 
     /* DRAGGING CLONE SHAPE */
@@ -487,7 +589,6 @@
       gap: 4px;
       transform: none;
       transition: left 0.05s ease-out, top 0.05s ease-out;
-      filter: drop-shadow(0 12px 24px rgba(0,0,0,0.6));
     }
 
     .drag-clone .shape-cell {
@@ -498,8 +599,7 @@
     .modal-overlay {
       position: absolute;
       inset: 0;
-      background-color: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(6px);
+      background-color: rgba(15, 23, 42, 0.95);
       z-index: 50;
       display: flex;
       align-items: center;
@@ -528,16 +628,17 @@
 
     .winner-title {
       font-size: 32px;
-      font-weight: 800;
+      font-weight: 900;
       margin-bottom: 8px;
     }
 
     .winner-recap {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       background: rgba(0,0,0,0.06);
+      border: 2px solid #000000;
       padding: 8px 16px;
-      border-radius: 12px;
+      border-radius: 16px;
       margin-bottom: 24px;
     }
 
@@ -549,26 +650,31 @@
       z-index: 48;
     }
 
-    /* Sound & Hub Back Toggle */
+    /* Sound & Hub Back Toggle - Standard Top Header Bar Button */
     .hub-back-btn {
       position: absolute;
       top: 16px;
       left: 16px;
+      min-width: 48px;
+      min-height: 48px;
       background: #ffffff;
       color: #000000;
       border: 3px solid #000000;
       border-radius: 20px;
-      padding: 8px 16px;
+      padding: 8px 18px;
       font-family: var(--font-display);
       font-size: 15px;
-      font-weight: 800;
+      font-weight: 900;
       text-decoration: none;
       box-shadow: 0 4px 0 #000000;
       z-index: 100;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .hub-back-btn:hover {
@@ -577,30 +683,29 @@
     }
 
     .hub-back-btn:active {
-      transform: scale(0.92) translateY(2px);
-      box-shadow: 0 1px 0 #000000;
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
     }
 
-    .sound-toggle {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: #ffffff;
-      border: 3px solid #000;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #000;
-      z-index: 100;
+    .hub-back-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 0 #000000;
+    }
+
+    .hub-back-btn:active {
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
     }
   </style>
 </head>
 <body>
+  <!-- AMBIENT BACKGROUND ORBS -->
+  <div class="bg-orbs-container">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+  </div>
+
   <div id="app">
     <canvas id="confetti-canvas"></canvas>
 
@@ -1444,19 +1549,25 @@
     }
 
     /* Confetti Canvas */
+    let confettiAnimId = null;
     function startConfetti() {
+      if (confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+      }
       const canvas = document.getElementById('confetti-canvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+      canvas.width = Math.round(window.innerWidth * dpr);
+      canvas.height = Math.round(window.innerHeight * dpr);
 
       const particles = [];
       const colors = ['#06b6d4', '#f43f5e', '#facc15', '#10b981', '#7c3aed'];
 
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < 45; i++) {
         particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight - window.innerHeight,
           size: Math.random() * 10 + 6,
           color: colors[Math.floor(Math.random() * colors.length)],
           vx: Math.random() * 4 - 2,
@@ -1467,7 +1578,10 @@
       }
 
       function render() {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
         let alive = false;
 
         particles.forEach(p => {
@@ -1475,7 +1589,7 @@
           p.y += p.vy;
           p.rot += p.vRot;
 
-          if (p.y < canvas.height) alive = true;
+          if (p.y < window.innerHeight) alive = true;
 
           ctx.save();
           ctx.translate(p.x, p.y);
@@ -1485,8 +1599,15 @@
           ctx.restore();
         });
 
-        if (alive && state.screen === 'screen-winner') {
-          requestAnimationFrame(render);
+        if (alive && state.screen === 'screen-winner' && !document.hidden) {
+          confettiAnimId = requestAnimationFrame(render);
+        } else {
+          if (confettiAnimId) {
+            cancelAnimationFrame(confettiAnimId);
+            confettiAnimId = null;
+          }
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
       }
       render();

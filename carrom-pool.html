@@ -12,8 +12,8 @@
        DESIGN SYSTEM & COLOR PALETTE (Matching Workspace Games UI)
        ========================================================================== */
     :root {
-      --bg-dark: #0f1b2b;
-      --bg-gradient: radial-gradient(circle at center, #1b2a41 0%, #09101d 100%);
+      --bg-dark: #0f172a;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
       --card-bg: #dceaf5;
       --text-dark: #2d3142;
       --text-light: #ffffff;
@@ -23,8 +23,8 @@
       --p2-coral: #f45c5c;
       --p2-coral-dark: #d94343;
       
-      --purple-btn: #5b3b74;
-      --purple-btn-hover: #482c5e;
+      --purple-btn: #7c3aed;
+      --purple-btn-hover: #6d28d9;
       --gold-accent: #ffc83b;
       --gold-dark: #d49a12;
       --accent-green: #2ecc71;
@@ -49,6 +49,7 @@
       height: 100dvh;
       overflow: hidden;
       background-color: var(--bg-dark);
+      background-image: var(--bg-gradient);
       font-family: var(--font-display);
       color: var(--text-dark);
       touch-action: manipulation;
@@ -66,22 +67,57 @@
       align-items: center;
     }
 
-    /* Subtle Starry/Pattern Background */
-    .bg-stars {
-      position: absolute;
+    /* AMBIENT FLOATING BACKGROUND ORBS */
+    .bg-orbs-container {
+      position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 0;
-      opacity: 0.3;
-      background-image: 
-        radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 40px 70px, #29c1ea, rgba(0,0,0,0)),
-        radial-gradient(3px 3px at 80px 140px, #ffffff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 150px 50px, #f45c5c, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 250px 220px, #ffffff, rgba(0,0,0,0)),
-        radial-gradient(3px 3px at 320px 110px, #ffde59, rgba(0,0,0,0));
-      background-repeat: repeat;
-      background-size: 350px 350px;
+      overflow: hidden;
+    }
+
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(50px);
+      opacity: 0.35;
+      animation: floatOrb 12s infinite alternate ease-in-out;
+    }
+
+    .orb-1 {
+      width: 260px;
+      height: 260px;
+      background: #6366f1;
+      top: -40px;
+      left: -50px;
+      animation-duration: 14s;
+    }
+
+    .orb-2 {
+      width: 300px;
+      height: 300px;
+      background: #ec4899;
+      bottom: 100px;
+      right: -80px;
+      animation-duration: 18s;
+      animation-delay: -5s;
+    }
+
+    .orb-3 {
+      width: 220px;
+      height: 220px;
+      background: #06b6d4;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation-duration: 16s;
+      animation-delay: -9s;
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(30px, 40px) scale(1.15); }
+      100% { transform: translate(-20px, 20px) scale(0.9); }
     }
 
     /* Screen System */
@@ -105,20 +141,29 @@
       transform: scale(1);
     }
 
-    /* Modal / Card Container */
+    /* Modal / Card Container - 3D Neumorphic Arcade Styling */
     .modal-card {
       width: calc(100% - 32px);
       max-width: 420px;
       background-color: var(--card-bg);
-      border-radius: 32px;
+      border: 3px solid #000000;
+      border-radius: 28px;
       padding: 24px 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(255, 255, 255, 0.18);
+      box-shadow: 0 4px 0 #000000;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
       position: relative;
       z-index: 2;
+      animation: popModal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    @keyframes popModal {
+      from { opacity: 0; transform: scale(0.85) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     .modal-title {
@@ -137,7 +182,7 @@
       line-height: 1.4;
     }
 
-    /* UI Buttons */
+    /* UI Buttons - 3D Neumorphic & Touch Ergonomics */
     .btn {
       background-color: var(--purple-btn);
       color: #ffffff;
@@ -145,11 +190,12 @@
       font-size: 19px;
       font-weight: 700;
       border: 3px solid #000000;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 12px 26px;
+      min-height: 48px;
       cursor: pointer;
       box-shadow: 0 4px 0 #000000;
-      transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.1s ease;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, background-color 0.2s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -161,8 +207,8 @@
     }
 
     .btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #000000;
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
     }
 
     .btn-cyan {
@@ -186,14 +232,17 @@
     }
 
     .btn-icon {
-      width: 44px;
-      height: 44px;
+      min-width: 48px;
+      min-height: 48px;
+      width: 48px;
+      height: 48px;
       padding: 0;
-      border-radius: 14px;
+      border-radius: 18px;
       font-size: 20px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      margin-bottom: 0;
     }
 
     .btn-group {
@@ -214,9 +263,9 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding: clamp(10px, 2vh, 16px) clamp(10px, 3.5vw, 16px);
-      padding-top: max(clamp(10px, 2vh, 16px), env(safe-area-inset-top));
-      padding-bottom: max(clamp(10px, 2vh, 16px), env(safe-area-inset-bottom));
+      padding: clamp(8px, 1.8vh, 14px) clamp(10px, 3.5vw, 16px);
+      padding-top: max(clamp(8px, 1.8vh, 14px), env(safe-area-inset-top));
+      padding-bottom: max(clamp(8px, 1.8vh, 14px), env(safe-area-inset-bottom));
       position: relative;
       overflow: hidden;
     }
@@ -225,8 +274,8 @@
       #game-container {
         height: 94vh;
         border-radius: 36px;
-        border: 4px solid #25262b;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        border: 3px solid #000000;
+        box-shadow: 0 4px 0 #000000;
       }
     }
 
@@ -238,6 +287,8 @@
       align-items: center;
       gap: 8px;
       z-index: 5;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .top-bar-controls {
@@ -275,7 +326,7 @@
       flex: 1;
       background: rgba(255, 255, 255, 0.92);
       border: 3px solid #000000;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 6px 10px;
       display: flex;
       align-items: center;
@@ -283,6 +334,9 @@
       box-shadow: 0 4px 0 #000000;
       transition: transform 0.25s var(--spring-ease), border-color 0.25s ease, background 0.25s ease;
       position: relative;
+      min-height: 48px;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .player-card.p1 {
@@ -297,12 +351,12 @@
     .player-card.active-turn {
       transform: scale(1.04);
       background: #ffffff;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.25), 0 0 0 3px var(--gold-accent);
+      box-shadow: 0 4px 0 #000000, 0 0 0 3px var(--gold-accent);
     }
 
     .avatar {
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       border: 2px solid #000;
       display: flex;
@@ -362,9 +416,8 @@
     .puck-dot.black { background: #222222; }
 
     .turn-banner {
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(8px);
-      padding: 4px 14px;
+      background: rgba(30, 41, 59, 0.95);
+      padding: 6px 14px;
       border-radius: 20px;
       font-size: 13px;
       font-weight: 700;
@@ -372,7 +425,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 0 #000000;
+      border: 2px solid #000000;
     }
 
     .turn-dot {
@@ -388,7 +442,7 @@
       50% { transform: scale(1.4); opacity: 1; }
     }
 
-    /* BOARD STAGE CANVAS */
+    /* BOARD STAGE CANVAS - AUTO-SCALING FOR MOBILE */
     .board-stage {
       width: 100%;
       display: flex;
@@ -397,17 +451,20 @@
       justify-content: center;
       flex-grow: 1;
       position: relative;
-      margin: 6px 0;
+      margin: 4px 0;
     }
 
     .canvas-wrapper {
       position: relative;
-      width: min(92vw, 380px);
-      height: min(92vw, 380px);
-      border-radius: 20px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(255,255,255,0.4);
+      width: min(88vw, 62vh, 380px);
+      height: min(88vw, 62vh, 380px);
+      border-radius: 24px;
+      border: 3px solid #000000;
+      box-shadow: 0 4px 0 #000000;
       overflow: hidden;
       background: #2a1810;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     #gameCanvas {
@@ -421,9 +478,9 @@
     .striker-controls {
       width: 100%;
       max-width: 380px;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.95);
       border: 3px solid #000000;
-      border-radius: 22px;
+      border-radius: 24px;
       padding: 10px 14px;
       box-shadow: 0 4px 0 #000000;
       display: flex;
@@ -452,7 +509,7 @@
     }
 
     .slider-icon {
-      font-size: 16px;
+      font-size: 18px;
       color: #64748b;
     }
 
@@ -460,9 +517,9 @@
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 12px;
+      height: 14px;
       background: #cbd5e1;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 2px solid #000;
       outline: none;
     }
@@ -470,23 +527,23 @@
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       background: var(--gold-accent);
       border: 2px solid #000;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 0 #000000;
       transition: transform 0.1s ease;
     }
 
     input[type=range]::-webkit-slider-thumb:active {
-      transform: scale(1.2);
+      transform: scale(1.15);
     }
 
     .aim-instruction {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       color: #475569;
       text-align: center;
     }
@@ -495,8 +552,7 @@
     .overlay-modal {
       position: absolute;
       inset: 0;
-      background: rgba(15, 27, 43, 0.75);
-      backdrop-filter: blur(6px);
+      background: rgba(15, 23, 42, 0.95);
       z-index: 10;
       display: flex;
       justify-content: center;
@@ -515,12 +571,13 @@
       display: flex;
       justify-content: space-between;
       width: 100%;
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.6);
-      border-radius: 12px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 2px solid #000000;
+      border-radius: 14px;
       margin-bottom: 8px;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .winner-trophy {
@@ -542,26 +599,31 @@
       margin-top: 10px;
     }
 
-    /* Sound & Hub Back Toggle */
+    /* Sound & Hub Back Toggle - Standard Top Header Bar Button */
     .hub-back-btn {
       position: absolute;
       top: 16px;
       left: 16px;
+      min-width: 48px;
+      min-height: 48px;
       background: #ffffff;
       color: #000000;
       border: 3px solid #000000;
       border-radius: 20px;
-      padding: 8px 16px;
+      padding: 8px 18px;
       font-family: var(--font-display);
       font-size: 15px;
-      font-weight: 800;
+      font-weight: 900;
       text-decoration: none;
       box-shadow: 0 4px 0 #000000;
       z-index: 100;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .hub-back-btn:hover {
@@ -570,12 +632,28 @@
     }
 
     .hub-back-btn:active {
-      transform: scale(0.92) translateY(2px);
-      box-shadow: 0 1px 0 #000000;
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
+    }
+
+    .hub-back-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 0 #000000;
+    }
+
+    .hub-back-btn:active {
+      transform: scale(0.94) translateY(3px);
+      box-shadow: 0 2px 0 #000000;
     }
   </style>
 </head>
 <body>
+  <!-- AMBIENT BACKGROUND ORBS -->
+  <div class="bg-orbs-container">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+  </div>
 
   <div id="app">
     <div class="bg-stars"></div>
@@ -944,6 +1022,7 @@
       constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.resizeCanvas();
 
         this.gameMode = '2P';
         this.currentPlayer = 1;
@@ -969,6 +1048,12 @@
         this.initEventListeners();
         this.setupBoardPucks();
         this.resetStriker();
+      }
+
+      resizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+        this.canvas.width = Math.round(BOARD_SIZE * dpr);
+        this.canvas.height = Math.round(BOARD_SIZE * dpr);
       }
 
       initGame(mode = '2P') {
@@ -1493,8 +1578,11 @@
          RENDERING
          ------------------------------------------------------------------ */
       render() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
         const ctx = this.ctx;
-        ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         this.drawCarromBoard();
 
@@ -1704,12 +1792,24 @@
        ========================================================================== */
     const game = new CarromGame();
 
+    let mainGameAnimId = null;
     function gameLoop() {
-      game.updatePhysics();
-      game.render();
-      requestAnimationFrame(gameLoop);
+      if (document.getElementById('game-screen').classList.contains('active') && !document.hidden) {
+        game.updatePhysics();
+        game.render();
+      }
+      mainGameAnimId = requestAnimationFrame(gameLoop);
     }
     gameLoop();
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && mainGameAnimId) {
+        cancelAnimationFrame(mainGameAnimId);
+        mainGameAnimId = null;
+      } else if (!document.hidden && !mainGameAnimId) {
+        gameLoop();
+      }
+    });
 
     // --- Menu Navigation ---
     document.getElementById('btn-mode-2p').addEventListener('click', () => {
@@ -1786,19 +1886,26 @@
     }
 
     // --- Confetti Particle System ---
+    let confettiAnimId = null;
     function launchConfetti() {
+      if (confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+      }
       const canvas = document.getElementById('confettiCanvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+      canvas.width = Math.round(window.innerWidth * dpr);
+      canvas.height = Math.round(window.innerHeight * dpr);
 
       const particles = [];
       const colors = ['#29c1ea', '#f45c5c', '#ffc83b', '#2ecc71', '#9b59b6', '#ffffff'];
 
-      for (let i = 0; i < 120; i++) {
+      // Particle loop capped to 45 max
+      for (let i = 0; i < 45; i++) {
         particles.push({
-          x: canvas.width / 2 + (Math.random() - 0.5) * 100,
-          y: canvas.height / 2,
+          x: window.innerWidth / 2 + (Math.random() - 0.5) * 100,
+          y: window.innerHeight / 2,
           vx: (Math.random() - 0.5) * 16,
           vy: (Math.random() - 0.8) * 18,
           color: colors[Math.floor(Math.random() * colors.length)],
@@ -1810,7 +1917,10 @@
       }
 
       function renderConfetti() {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
         let active = false;
         particles.forEach(p => {
           p.x += p.vx;
@@ -1832,7 +1942,16 @@
           }
         });
 
-        if (active) requestAnimationFrame(renderConfetti);
+        if (active && document.getElementById('win-modal').classList.contains('active') && !document.hidden) {
+          confettiAnimId = requestAnimationFrame(renderConfetti);
+        } else {
+          if (confettiAnimId) {
+            cancelAnimationFrame(confettiAnimId);
+            confettiAnimId = null;
+          }
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
       }
 
       renderConfetti();
