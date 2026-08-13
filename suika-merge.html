@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Suika Fruit Merge Duel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --card-light: #f5ebe0;
+      --text-dark: #2d3142;
+      --p1-cyan: #06b6d4;
+      --p1-cyan-dark: #0891b2;
+      --p2-rose: #f43f5e;
+      --p2-rose-dark: #e11d48;
+      --fruit-gold: #f59e0b;
+      --font-display: 'Fredoka', 'Outfit', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: var(--font-display);
+      color: #ffffff;
+      touch-action: manipulation;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #14532d 0%, #052e16 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Screen Management */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Common Card Container */
+    .card-container {
+      width: calc(100% - 32px);
+      max-width: 420px;
+      background-color: var(--card-light);
+      border-radius: 32px;
+      padding: 24px 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      color: var(--text-dark);
+    }
+
+    .card-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-dark);
+      letter-spacing: -0.5px;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+    }
+
+    /* Buttons */
+    .btn {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: #ffffff;
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      border: 3px solid #000000;
+      border-radius: 18px;
+      padding: 12px 28px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000000;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #000000;
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--text-dark);
+    }
+
+    .btn-icon {
+      padding: 10px 18px;
+      font-size: 20px;
+      border-radius: 14px;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: 0 4px 0 #000000 !important;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: #14532d;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 14px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* MAIN MENU */
+    #screen-menu .game-logo {
+      width: 110px;
+      height: 110px;
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      border: 4px solid #ffffff;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 12px 24px rgba(0,0,0,0.4);
+      transform: rotate(-3deg);
+    }
+
+    #screen-menu .menu-title {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 6px;
+      color: var(--text-dark);
+    }
+
+    #screen-menu .menu-subtitle {
+      font-size: 15px;
+      color: #15803d;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .menu-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    /* Segmented Selector */
+    .segmented-control {
+      display: flex;
+      background: rgba(0, 0, 0, 0.08);
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      border-radius: 16px;
+      padding: 4px;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+
+    .segmented-opt {
+      flex: 1;
+      padding: 10px 0;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      color: #14532d;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .segmented-opt.active {
+      background: #ffffff;
+      color: var(--text-dark);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 0 0 2px #000000;
+    }
+
+    /* Sound & Hub Back Toggle */
+    .hub-back-btn {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 4px 0 #000000;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s ease;
+    }
+
+    .hub-back-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #000000;
+    }
+
+    .sound-toggle {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #ffffff;
+      border: 3px solid #000;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000;
+      z-index: 100;
+    }
+
+    /* HOW TO PLAY CAROUSEL */
+    .carousel-view {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .carousel-track {
+      display: flex;
+      transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+      width: 100%;
+    }
+
+    .carousel-card {
+      min-width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .demo-box {
+      width: 100%;
+      height: 220px;
+      background-color: #052e16;
+      border-radius: 20px;
+      border: 3px solid #000000;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.7);
+    }
+
+    .card-desc {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-dark);
+      line-height: 1.35;
+      min-height: 52px;
+    }
+
+    .carousel-dots {
+      display: flex;
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #cbd5e1;
+      border: 2px solid #000000;
+      transition: all 0.25s ease;
+    }
+
+    .dot.active {
+      background-color: #22c55e;
+      width: 28px;
+      border-radius: 8px;
+    }
+
+    .carousel-nav-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* GAME PLAY AREA & CONTAINER */
+    #screen-game {
+      padding: 12px;
+      justify-content: flex-start;
+    }
+
+    .game-hud {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: env(safe-area-inset-top, 12px);
+      margin-bottom: 10px;
+      z-index: 10;
+    }
+
+    .score-badge {
+      background: rgba(5, 46, 22, 0.9);
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 6px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .hud-p1 { border-color: var(--p1-cyan); }
+    .hud-p2 { border-color: var(--p2-rose); }
+
+    .badge-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .title-p1 { color: var(--p1-cyan); }
+    .title-p2 { color: var(--p2-rose); }
+
+    .badge-score {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    /* Action Turn Banner */
+    .turn-banner {
+      width: 100%;
+      max-width: 420px;
+      background: #ffffff;
+      color: var(--text-dark);
+      border: 3px solid #000000;
+      border-radius: 18px;
+      padding: 8px 14px;
+      font-size: 15px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 0 #000000;
+      transition: all 0.3s ease;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .turn-banner.p1-turn {
+      background: var(--p1-cyan);
+      color: #000000;
+    }
+
+    .turn-banner.p2-turn {
+      background: var(--p2-rose);
+      color: #ffffff;
+    }
+
+    .next-fruit-preview {
+      font-size: 24px;
+      background: rgba(0,0,0,0.15);
+      padding: 2px 10px;
+      border-radius: 12px;
+    }
+
+    /* SUIKA CONTAINER CANVAS */
+    .container-wrapper {
+      width: 100%;
+      max-width: 420px;
+      flex: 1;
+      max-height: 560px;
+      background: linear-gradient(135deg, rgba(20,83,45,0.7), rgba(5,46,22,0.9));
+      border: 5px solid #000000;
+      border-radius: 28px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 12px 32px rgba(0,0,0,0.7);
+      touch-action: none;
+    }
+
+    #suika-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* MODAL OVERLAYS */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(5, 46, 22, 0.85);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* MATCH WINNER / GAME OVER SCREEN */
+    #screen-winner .winner-trophy {
+      font-size: 72px;
+      margin-bottom: 8px;
+      animation: trophyBounce 1s infinite alternate cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes trophyBounce {
+      from { transform: translateY(0) scale(1); }
+      to { transform: translateY(-12px) scale(1.08); }
+    }
+
+    .winner-title {
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .winner-recap {
+      font-size: 18px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.06);
+      padding: 8px 16px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 48;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Floating Navigation & Sound Controls -->
+    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+    <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+
+    <!-- MAIN MENU SCREEN -->
+    <section class="screen active" id="screen-menu">
+      <div class="card-container">
+        <div class="game-logo">🍉</div>
+        <h1 class="menu-title">SUIKA MERGE</h1>
+        <p class="menu-subtitle">Fruit Physics Merge Duel</p>
+
+        <!-- Game Mode Selection -->
+        <div class="segmented-control">
+          <button class="segmented-opt active" id="mode-p2-btn" onclick="setGameMode('p2')">👥 2 PLAYER</button>
+          <button class="segmented-opt" id="mode-bot-btn" onclick="setGameMode('bot')">🤖 VS BOT</button>
+          <button class="segmented-opt" id="mode-single-btn" onclick="setGameMode('single')">🏆 1 PLAYER</button>
+        </div>
+
+        <div class="menu-actions">
+          <button class="btn" onclick="startGame()">▶ PLAY MATCH</button>
+          <button class="btn btn-secondary" onclick="openHowTo()">❓ HOW TO PLAY</button>
+          <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW TO PLAY CAROUSEL SCREEN -->
+    <section class="screen" id="screen-howto">
+      <div class="card-container">
+        <h2 class="card-title">HOW TO PLAY</h2>
+
+        <div class="carousel-view">
+          <div class="carousel-track" id="carousel-track">
+            <!-- Card 1 -->
+            <div class="carousel-card">
+              <div class="demo-box">
+                <span style="font-size:48px;">🍒 🍓 🍊</span>
+              </div>
+              <p class="card-desc">Drag & drop fruits into the container! Match 2 identical fruits to merge!</p>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="carousel-card">
+              <div class="demo-box">
+                <span style="font-size:52px;">🍒+🍒 = 🍓</span>
+              </div>
+              <p class="card-desc">Evolve small fruits all the way up to giant Watermelons 🍉!</p>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="carousel-card">
+              <div class="demo-box">
+                <span style="font-size:52px;">⚠️ 💥</span>
+              </div>
+              <p class="card-desc">If fruits overflow past the top line on your turn, you lose!</p>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="carousel-card">
+              <div class="demo-box">
+                <span style="font-size:54px;">🏆</span>
+              </div>
+              <p class="card-desc">Score the highest points or force your opponent to overflow!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carousel Pagination Dots -->
+        <div class="carousel-dots" id="carousel-dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="carousel-nav-row">
+          <button class="btn btn-icon" id="btn-prev" onclick="navCarousel(-1)">|◄</button>
+          <button class="btn" id="btn-ok" onclick="finishHowTo()">OK</button>
+          <button class="btn btn-icon" id="btn-next" onclick="navCarousel(1)">►|</button>
+        </div>
+
+        <button class="link-btn" onclick="finishHowTo()">Back</button>
+      </div>
+    </section>
+
+    <!-- GAME PLAY SCREEN -->
+    <section class="screen" id="screen-game">
+      <!-- HUD Header -->
+      <div class="game-hud">
+        <div class="score-badge hud-p1">
+          <span class="badge-title title-p1" id="name-p1">PLAYER 1</span>
+          <span class="badge-score" id="score-p1">0</span>
+        </div>
+
+        <button class="btn btn-secondary btn-icon" onclick="promptExitGame()">EXIT</button>
+
+        <div class="score-badge hud-p2">
+          <span class="badge-title title-p2" id="name-p2">PLAYER 2</span>
+          <span class="badge-score" id="score-p2">0</span>
+        </div>
+      </div>
+
+      <!-- Action Banner -->
+      <div class="turn-banner" id="turn-banner">
+        <span id="turn-text">PLAYER 1'S TURN</span>
+        <span class="next-fruit-preview" id="next-fruit-icon">NEXT: 🍒</span>
+      </div>
+
+      <!-- Suika Container Viewport -->
+      <div class="container-wrapper" id="container-wrapper">
+        <canvas id="suika-canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- MATCH WINNER / GAME OVER SCREEN -->
+    <section class="screen" id="screen-winner">
+      <div class="card-container">
+        <div class="winner-trophy" id="winner-icon">🏆</div>
+        <h2 class="winner-title" id="winner-headline">PLAYER 1 WINS!</h2>
+        <div class="winner-recap" id="winner-recap">Player 2 overflowed the container!</div>
+
+        <div class="menu-actions">
+          <button class="btn" onclick="startGame()">⚡ REMATCH</button>
+          <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🎮 MAIN MENU</button>
+          <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXIT CONFIRMATION MODAL -->
+    <div class="modal-overlay" id="exit-modal">
+      <div class="card-container">
+        <h3 class="card-title">Quit Game?</h3>
+        <p class="card-desc" style="min-height:auto;margin-bottom:16px;">Current match progress will be lost.</p>
+        <div class="carousel-nav-row">
+          <button class="btn btn-secondary" onclick="closeExitModal()">Cancel</button>
+          <button class="btn" onclick="confirmExitGame()">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       FRUIT TYPES DEFINITION (11 Levels)
+       ========================================================================== */
+    const FRUITS = [
+      { level: 0, name: 'Cherry', emoji: '🍒', radius: 15, score: 10, color: '#ef4444' },
+      { level: 1, name: 'Strawberry', emoji: '🍓', radius: 22, score: 20, color: '#f43f5e' },
+      { level: 2, name: 'Grape', emoji: '🍇', radius: 28, score: 40, color: '#a855f7' },
+      { level: 3, name: 'Orange', emoji: '🍊', radius: 36, score: 70, color: '#f97316' },
+      { level: 4, name: 'Persimmon', emoji: '🍊', radius: 44, score: 110, color: '#ea580c' },
+      { level: 5, name: 'Apple', emoji: '🍎', radius: 54, score: 160, color: '#dc2626' },
+      { level: 6, name: 'Pear', emoji: '🍐', radius: 64, score: 220, color: '#84cc16' },
+      { level: 7, name: 'Peach', emoji: '🍑', radius: 74, score: 300, color: '#fb7185' },
+      { level: 8, name: 'Pineapple', emoji: '🍍', radius: 86, score: 400, color: '#eab308' },
+      { level: 9, name: 'Melon', emoji: '🍈', radius: 98, score: 550, color: '#4ade80' },
+      { level: 10, name: 'Watermelon', emoji: '🍉', radius: 112, score: 750, color: '#16a34a' }
+    ];
+
+    const state = {
+      screen: 'screen-menu',
+      mode: 'p2', // 'p2' | 'bot' | 'single'
+      soundEnabled: true,
+      howtoIndex: 0,
+      p1Score: 0,
+      p2Score: 0,
+      bestScore: 0,
+      currentTurn: 1, // 1 = P1, 2 = P2
+      dropperX: 200,
+      nextFruitLevel: 0,
+      upcomingFruitLevel: 1,
+      canDrop: true,
+      running: false,
+      overflowTimer: 0
+    };
+
+    /* Load Best Score */
+    try {
+      state.bestScore = parseInt(localStorage.getItem('suika_merge_best') || '0');
+    } catch(e) {}
+
+    /* ==========================================================================
+       WEB AUDIO SYNTHESIZER (100% Offline Sound FX)
+       ========================================================================== */
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playSound(type, level = 0) {
+      if (!state.soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        if (type === 'drop') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (type === 'pop') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(300 + level * 30, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === 'merge') {
+          const baseFreq = 400 + level * 50;
+          [baseFreq, baseFreq * 1.25, baseFreq * 1.5].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+            gain.gain.setValueAtTime(0.25, now + idx * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.05 + 0.18);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.05);
+            osc.stop(now + idx * 0.05 + 0.18);
+          });
+        } else if (type === 'win') {
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.3, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.25);
+          });
+        } else if (type === 'over') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.linearRampToValueAtTime(60, now + 0.45);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'tap') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450, now);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.04);
+        }
+      } catch(e) {}
+    }
+
+    document.getElementById('sound-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.soundEnabled = !state.soundEnabled;
+      document.getElementById('sound-btn').textContent = state.soundEnabled ? '🔊' : '🔇';
+    });
+
+    /* ==========================================================================
+       ROUTER & NAVIGATION
+       ========================================================================== */
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) {
+        target.classList.add('active');
+        state.screen = screenId;
+      }
+    }
+
+    function setGameMode(mode) {
+      state.mode = mode;
+      document.getElementById('mode-p2-btn').classList.toggle('active', mode === 'p2');
+      document.getElementById('mode-bot-btn').classList.toggle('active', mode === 'bot');
+      document.getElementById('mode-single-btn').classList.toggle('active', mode === 'single');
+      playSound('tap');
+    }
+
+    let previousScreenBeforeHowTo = 'screen-menu';
+    function openHowTo() {
+      previousScreenBeforeHowTo = 'screen-menu';
+      state.howtoIndex = 0;
+      updateCarousel();
+      showScreen('screen-howto');
+    }
+
+    function openHowToInGame() {
+      previousScreenBeforeHowTo = state.screen;
+      state.howtoIndex = 0;
+      updateCarousel();
+      showScreen('screen-howto');
+    }
+
+    function finishHowTo() {
+      showScreen(previousScreenBeforeHowTo || 'screen-menu');
+    }
+
+    function navCarousel(delta) {
+      state.howtoIndex = Math.max(0, Math.min(3, state.howtoIndex + delta));
+      updateCarousel();
+      playSound('tap');
+    }
+
+    function updateCarousel() {
+      const track = document.getElementById('carousel-track');
+      track.style.transform = `translateX(-${state.howtoIndex * 100}%)`;
+
+      const dots = document.querySelectorAll('#carousel-dots .dot');
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === state.howtoIndex);
+      });
+
+      document.getElementById('btn-prev').disabled = state.howtoIndex === 0;
+      document.getElementById('btn-next').disabled = state.howtoIndex === 3;
+      document.getElementById('btn-ok').textContent = state.howtoIndex === 3 ? 'START' : 'OK';
+    }
+
+    /* ==========================================================================
+       SUIKA PHYSICS ENGINE
+       ========================================================================== */
+    class SuikaPhysicsEngine {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.width = 0;
+        this.height = 0;
+        this.gravity = 0.45;
+        this.friction = 0.98;
+        this.bounce = 0.25;
+        this.dangerLineY = 95;
+
+        this.fruits = [];
+        this.particles = [];
+        this.reset();
+      }
+
+      reset() {
+        this.resize();
+        this.fruits = [];
+        this.particles = [];
+        state.overflowTimer = 0;
+      }
+
+      resize() {
+        const rect = this.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        this.width = rect.width || 360;
+        this.height = rect.height || 540;
+
+        this.canvas.width = Math.floor(this.width * dpr);
+        this.canvas.height = Math.floor(this.height * dpr);
+        this.ctx.scale(dpr, dpr);
+
+        state.dropperX = this.width / 2;
+      }
+
+      spawnFruit(x, level, playerOwner) {
+        const fruitDef = FRUITS[level];
+        const newFruit = {
+          id: Math.random().toString(36).substring(2),
+          level: level,
+          radius: fruitDef.radius,
+          x: Math.max(fruitDef.radius + 10, Math.min(this.width - fruitDef.radius - 10, x)),
+          y: 55,
+          vx: 0,
+          vy: 1.5,
+          player: playerOwner,
+          age: 0
+        };
+        this.fruits.push(newFruit);
+        playSound('drop');
+      }
+
+      update() {
+        const numFruits = this.fruits.length;
+
+        // 1. Position & Velocity Updates (Gravity)
+        for (let i = 0; i < numFruits; i++) {
+          const f = this.fruits[i];
+          f.age += 1;
+          f.vy += this.gravity;
+          f.vx *= this.friction;
+          f.vy *= this.friction;
+
+          f.x += f.vx;
+          f.y += f.vy;
+
+          // Wall Collisions
+          if (f.x - f.radius < 0) {
+            f.x = f.radius;
+            f.vx = -f.vx * this.bounce;
+          } else if (f.x + f.radius > this.width) {
+            f.x = this.width - f.radius;
+            f.vx = -f.vx * this.bounce;
+          }
+
+          // Floor Collision
+          if (f.y + f.radius > this.height - 10) {
+            f.y = this.height - 10 - f.radius;
+            f.vy = -f.vy * this.bounce;
+            f.vx *= 0.85;
+          }
+
+          // Resting velocity threshold damping (prevents micro-shaking)
+          if (Math.abs(f.vx) < 0.12) f.vx = 0;
+          if (Math.abs(f.vy) < 0.12 && f.y + f.radius >= this.height - 15) f.vy = 0;
+        }
+
+        // 2. Fruit-Fruit Collisions & Merges
+        const toRemove = new Set();
+        const newSpawns = [];
+
+        for (let i = 0; i < this.fruits.length; i++) {
+          for (let j = i + 1; j < this.fruits.length; j++) {
+            const f1 = this.fruits[i];
+            const f2 = this.fruits[j];
+
+            if (toRemove.has(f1.id) || toRemove.has(f2.id)) continue;
+
+            const dx = f2.x - f1.x;
+            const dy = f2.y - f1.y;
+            const dist = Math.hypot(dx, dy);
+            const minDist = f1.radius + f2.radius;
+
+            if (dist < minDist) {
+              // MERGE CHECK
+              if (f1.level === f2.level && f1.level < FRUITS.length - 1) {
+                toRemove.add(f1.id);
+                toRemove.add(f2.id);
+
+                const nextLevel = f1.level + 1;
+                const midX = (f1.x + f2.x) / 2;
+                const midY = (f1.y + f2.y) / 2;
+
+                newSpawns.push({
+                  level: nextLevel,
+                  x: midX,
+                  y: midY,
+                  player: state.currentTurn
+                });
+
+                // Award points
+                const pts = FRUITS[nextLevel].score;
+                if (state.currentTurn === 1) state.p1Score += pts;
+                else state.p2Score += pts;
+                updateScoreHUD();
+
+                playSound('merge', nextLevel);
+                this.spawnSparkles(midX, midY, FRUITS[nextLevel].color);
+              } else {
+                // ELASTIC COLLISION IMPULSE & SEPARATION
+                const overlap = minDist - (dist || 0.0001);
+                const nx = dx / (dist || 0.0001);
+                const ny = dy / (dist || 0.0001);
+
+                const mass1 = f1.radius * f1.radius;
+                const mass2 = f2.radius * f2.radius;
+                const totalMass = mass1 + mass2;
+
+                f1.x -= nx * overlap * (mass2 / totalMass) * 0.5;
+                f1.y -= ny * overlap * (mass2 / totalMass) * 0.5;
+                f2.x += nx * overlap * (mass1 / totalMass) * 0.5;
+                f2.y += ny * overlap * (mass1 / totalMass) * 0.5;
+
+                const rvx = f2.vx - f1.vx;
+                const rvy = f2.vy - f1.vy;
+                const velAlongNormal = rvx * nx + rvy * ny;
+
+                if (velAlongNormal < 0) {
+                  const impulse = -(1 + this.bounce) * velAlongNormal / (1 / mass1 + 1 / mass2);
+                  const impulseX = impulse * nx;
+                  const impulseY = impulse * ny;
+
+                  f1.vx -= impulseX / mass1;
+                  f1.vy -= impulseY / mass1;
+                  f2.vx += impulseX / mass2;
+                  f2.vy += impulseY / mass2;
+
+                  const nowTime = Date.now();
+                  if (Math.abs(velAlongNormal) > 2.5 && (!f1.lastPop || nowTime - f1.lastPop > 150)) {
+                    f1.lastPop = nowTime;
+                    playSound('pop', f1.level);
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Apply Merges
+        if (toRemove.size > 0) {
+          this.fruits = this.fruits.filter(f => !toRemove.has(f.id));
+          newSpawns.forEach(s => {
+            const fruitDef = FRUITS[s.level];
+            this.fruits.push({
+              id: Math.random().toString(36).substring(2),
+              level: s.level,
+              radius: fruitDef.radius,
+              x: s.x,
+              y: s.y,
+              vx: (Math.random() - 0.5) * 1.5,
+              vy: -1.5,
+              player: s.player,
+              age: 60
+            });
+          });
+        }
+
+        // 3. Overflow Line Check (Only count settled fruits older than 60 frames)
+        let isOverflowing = false;
+        for (const f of this.fruits) {
+          if (f.age > 60 && f.y - f.radius < this.dangerLineY && Math.abs(f.vy) < 0.4) {
+            isOverflowing = true;
+            break;
+          }
+        }
+
+        if (isOverflowing) {
+          state.overflowTimer += 1 / 60;
+          if (state.overflowTimer > 2.2) {
+            // Container Overflowed -> Active Player Loses!
+            const foulPlayer = state.currentTurn;
+            handleMatchOverflow(foulPlayer);
+          }
+        } else {
+          state.overflowTimer = Math.max(0, state.overflowTimer - 1 / 60);
+        }
+
+        // 4. Update Sparkle Particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= 0.03;
+          if (p.life <= 0) this.particles.splice(i, 1);
+        }
+      }
+
+      spawnSparkles(cx, cy, color) {
+        for (let i = 0; i < 16; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 4 + 1.5;
+          this.particles.push({
+            x: cx,
+            y: cy,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1,
+            size: Math.random() * 6 + 3,
+            life: 1.0,
+            color: color
+          });
+        }
+      }
+
+      draw() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        // Danger Line
+        ctx.save();
+        const lineY = this.dangerLineY;
+        ctx.strokeStyle = state.overflowTimer > 0 ? '#ef4444' : 'rgba(239, 68, 68, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(0, lineY);
+        ctx.lineTo(this.width, lineY);
+        ctx.stroke();
+
+        ctx.font = '12px var(--font-display)';
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.fillText('⚠️ DANGER LINE', 10, lineY - 6);
+        ctx.restore();
+
+        // Dropper Guide Line & Active Dropper Fruit Preview
+        if (state.canDrop && state.running) {
+          const fruitDef = FRUITS[state.nextFruitLevel];
+          const activeColor = state.currentTurn === 1 ? '#06b6d4' : '#f43f5e';
+
+          ctx.save();
+          // Vertical Aim Line
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(state.dropperX, 55);
+          ctx.lineTo(state.dropperX, this.height - 10);
+          ctx.stroke();
+
+          // Dropper Fruit Preview Circle
+          ctx.setLineDash([]);
+          ctx.fillStyle = fruitDef.color;
+          ctx.strokeStyle = state.mode === 'single' ? '#ffffff' : activeColor;
+          ctx.lineWidth = 3.5;
+
+          ctx.beginPath();
+          ctx.arc(state.dropperX, 55, fruitDef.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Emoji overlay (Super crisp & visible!)
+          const emojiSize = Math.max(22, fruitDef.radius * 1.35);
+          ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(fruitDef.emoji, state.dropperX, 56);
+
+          ctx.restore();
+        }
+
+        // Render Fruits in Container
+        for (const f of this.fruits) {
+          const fruitDef = FRUITS[f.level];
+
+          ctx.save();
+          ctx.fillStyle = fruitDef.color;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 3;
+
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Bevel Highlight
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.beginPath();
+          ctx.arc(f.x - f.radius * 0.3, f.y - f.radius * 0.3, f.radius * 0.35, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Fruit Emoji Icon (Super crisp & visible!)
+          const emojiSize = Math.max(22, f.radius * 1.35);
+          ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(fruitDef.emoji, f.x, f.y + 1);
+
+          ctx.restore();
+        }
+
+        // Render Sparkle Particles
+        for (const p of this.particles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+
+    let physicsEngine = null;
+
+    /* ==========================================================================
+       GAMEPLAY ENGINE & GAME FLOW
+       ========================================================================== */
+    function startGame() {
+      state.p1Score = 0;
+      state.p2Score = 0;
+      state.currentTurn = 1;
+      state.canDrop = true;
+      state.running = false;
+      state.nextFruitLevel = Math.floor(Math.random() * 4); // Cherries to Oranges
+      state.upcomingFruitLevel = Math.floor(Math.random() * 4);
+
+      document.getElementById('name-p1').textContent = 'PLAYER 1';
+      document.getElementById('name-p2').textContent = state.mode === 'single' ? 'HIGH SCORE' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
+
+      updateScoreHUD();
+      updateTurnBanner();
+
+      showScreen('screen-game');
+
+      setTimeout(() => {
+        physicsEngine = new SuikaPhysicsEngine('suika-canvas');
+        state.running = true;
+        requestAnimationFrame(gameLoop);
+      }, 60);
+    }
+
+    function updateTurnBanner() {
+      const banner = document.getElementById('turn-banner');
+      const textEl = document.getElementById('turn-text');
+      const nextEl = document.getElementById('next-fruit-icon');
+
+      const nextEmoji = FRUITS[state.nextFruitLevel].emoji;
+      nextEl.textContent = `NEXT: ${nextEmoji}`;
+
+      if (state.mode === 'single') {
+        banner.className = 'turn-banner p1-turn';
+        textEl.textContent = 'SINGLE PLAYER MODE';
+        return;
+      }
+
+      const isP1 = state.currentTurn === 1;
+      const playerName = isP1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
+      banner.className = `turn-banner ${isP1 ? 'p1-turn' : 'p2-turn'}`;
+      textEl.textContent = `${playerName}'S TURN: DROP FRUIT`;
+    }
+
+    function updateScoreHUD() {
+      if (state.mode === 'single') {
+        document.getElementById('name-p1').textContent = 'SCORE';
+        document.getElementById('score-p1').textContent = state.p1Score;
+        document.getElementById('name-p2').textContent = 'BEST';
+        if (state.p1Score > state.bestScore) {
+          state.bestScore = state.p1Score;
+          try { localStorage.setItem('suika_merge_best', state.bestScore.toString()); } catch(e) {}
+        }
+        document.getElementById('score-p2').textContent = state.bestScore;
+      } else {
+        document.getElementById('name-p1').textContent = 'PLAYER 1';
+        document.getElementById('score-p1').textContent = state.p1Score;
+        document.getElementById('name-p2').textContent = state.mode === 'bot' ? 'BOT' : 'PLAYER 2';
+        document.getElementById('score-p2').textContent = state.p2Score;
+      }
+    }
+
+    function executeDrop(x) {
+      if (!state.canDrop || !physicsEngine || !state.running) return;
+      state.canDrop = false;
+
+      // Drop current fruit
+      const droppedLevel = state.nextFruitLevel;
+      physicsEngine.spawnFruit(x, droppedLevel, state.currentTurn);
+
+      // Score for dropping
+      const dropPts = FRUITS[droppedLevel].score;
+      if (state.currentTurn === 1) state.p1Score += dropPts;
+      else state.p2Score += dropPts;
+      updateScoreHUD();
+
+      // Cycle next fruit
+      state.nextFruitLevel = state.upcomingFruitLevel;
+      state.upcomingFruitLevel = Math.floor(Math.random() * 4);
+
+      setTimeout(() => {
+        if (state.mode !== 'single') {
+          state.currentTurn = state.currentTurn === 1 ? 2 : 1;
+        }
+        updateTurnBanner();
+        state.canDrop = true;
+
+        if (state.mode === 'bot' && state.currentTurn === 2) {
+          setTimeout(executeBotTurn, 800);
+        }
+      }, 600);
+    }
+
+    /* Smart Bot AI Turn */
+    function executeBotTurn() {
+      if (!state.running || state.currentTurn !== 2 || !physicsEngine) return;
+
+      const nextLevel = state.nextFruitLevel;
+      let targetX = physicsEngine.width / 2;
+
+      // Find matching fruit in container to merge!
+      const matchingFruits = physicsEngine.fruits.filter(f => f.level === nextLevel);
+
+      if (matchingFruits.length > 0) {
+        // Aim for matching fruit
+        matchingFruits.sort((a, b) => b.y - a.y);
+        targetX = matchingFruits[0].x;
+      } else if (physicsEngine.fruits.length > 0) {
+        // Aim for fruit with lowest Y (shallowest spot)
+        const sorted = [...physicsEngine.fruits].sort((a, b) => b.y - a.y);
+        targetX = sorted[0].x + (Math.random() - 0.5) * 40;
+      } else {
+        targetX = physicsEngine.width / 2;
+      }
+
+      // Clamp targetX to container bounds
+      const radius = FRUITS[nextLevel].radius;
+      targetX = Math.max(radius + 15, Math.min(physicsEngine.width - radius - 15, targetX));
+
+      state.dropperX = targetX;
+      executeDrop(targetX);
+    }
+
+    function gameLoop() {
+      if (!state.running || state.screen !== 'screen-game') return;
+
+      if (physicsEngine) {
+        physicsEngine.update();
+        physicsEngine.draw();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    /* Touch & Drag Event Handlers for Container */
+    const containerEl = document.getElementById('container-wrapper');
+
+    function updateDropperFromPointer(e) {
+      if (!physicsEngine) return;
+      const rect = containerEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      state.dropperX = Math.max(30, Math.min(physicsEngine.width - 30, x));
+    }
+
+    containerEl.addEventListener('pointermove', (e) => {
+      if (state.mode === 'bot' && state.currentTurn === 2) return;
+      updateDropperFromPointer(e);
+    });
+
+    containerEl.addEventListener('pointerdown', (e) => {
+      if (state.mode === 'bot' && state.currentTurn === 2) return;
+      updateDropperFromPointer(e);
+    });
+
+    containerEl.addEventListener('pointerup', (e) => {
+      if (state.mode === 'bot' && state.currentTurn === 2) return;
+      updateDropperFromPointer(e);
+      executeDrop(state.dropperX);
+    });
+
+    function handleMatchOverflow(foulPlayer) {
+      state.running = false;
+      playSound('over');
+
+      const headline = document.getElementById('winner-headline');
+      if (state.mode === 'single') {
+        headline.textContent = 'GAME OVER!';
+        headline.style.color = 'var(--fruit-gold)';
+        document.getElementById('winner-recap').textContent = `Final Score: ${state.p1Score}`;
+      } else {
+        const winnerNum = foulPlayer === 1 ? 2 : 1;
+        const loserName = foulPlayer === 1 ? 'Player 1' : (state.mode === 'bot' ? 'Bot' : 'Player 2');
+        const winnerName = winnerNum === 1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
+
+        headline.textContent = `${winnerName} WINS! 🏆`;
+        headline.style.color = winnerNum === 1 ? 'var(--p1-cyan-dark)' : 'var(--p2-rose-dark)';
+        document.getElementById('winner-recap').textContent = `${loserName} overflowed the container!`;
+        playSound('win');
+      }
+
+      showScreen('screen-winner');
+      startConfetti();
+    }
+
+    /* Exit Modal */
+    function promptExitGame() {
+      document.getElementById('exit-modal').classList.add('active');
+      playSound('tap');
+    }
+
+    function closeExitModal() {
+      document.getElementById('exit-modal').classList.remove('active');
+      playSound('tap');
+    }
+
+    function confirmExitGame() {
+      closeExitModal();
+      state.running = false;
+      showScreen('screen-menu');
+    }
+
+    /* Confetti Canvas */
+    function startConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#22c55e', '#ef4444', '#f97316', '#06b6d4', '#f43f5e', '#facc15'];
+
+      for (let i = 0; i < 80; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 10 + 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: Math.random() * 4 - 2,
+          vy: Math.random() * 4 + 3,
+          rot: Math.random() * 360,
+          vRot: Math.random() * 6 - 3
+        });
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let alive = false;
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rot += p.vRot;
+
+          if (p.y < canvas.height) alive = true;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        });
+
+        if (alive && state.screen === 'screen-winner') {
+          requestAnimationFrame(render);
+        }
+      }
+      render();
+    }
+
+    /* Initialization */
+    document.addEventListener('DOMContentLoaded', () => {
+      showScreen('screen-menu');
+    });
+  </script>
+</body>
+</html>

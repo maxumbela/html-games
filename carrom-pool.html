@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Carrom Pool Duel - 2 Player Mobile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM & COLOR PALETTE (Matching Workspace Games UI)
+       ========================================================================== */
+    :root {
+      --bg-dark: #0f1b2b;
+      --bg-gradient: radial-gradient(circle at center, #1b2a41 0%, #09101d 100%);
+      --card-bg: #dceaf5;
+      --text-dark: #2d3142;
+      --text-light: #ffffff;
+      
+      --p1-cyan: #29c1ea;
+      --p1-cyan-dark: #1da3c8;
+      --p2-coral: #f45c5c;
+      --p2-coral-dark: #d94343;
+      
+      --purple-btn: #5b3b74;
+      --purple-btn-hover: #482c5e;
+      --gold-accent: #ffc83b;
+      --gold-dark: #d49a12;
+      --accent-green: #2ecc71;
+
+      --font-display: 'Fredoka', 'Outfit', system-ui, -apple-system, sans-serif;
+      --spring-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: var(--font-display);
+      color: var(--text-dark);
+      touch-action: manipulation;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-gradient);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Subtle Starry/Pattern Background */
+    .bg-stars {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.3;
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 40px 70px, #29c1ea, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 80px 140px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 150px 50px, #f45c5c, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 250px 220px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 320px 110px, #ffde59, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 350px 350px;
+    }
+
+    /* Screen System */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      transform: scale(0.96);
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    /* Modal / Card Container */
+    .modal-card {
+      width: calc(100% - 32px);
+      max-width: 420px;
+      background-color: var(--card-bg);
+      border-radius: 32px;
+      padding: 24px 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(255, 255, 255, 0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .modal-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-dark);
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .modal-subtitle {
+      font-size: 15px;
+      color: #5a6578;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    /* UI Buttons */
+    .btn {
+      background-color: var(--purple-btn);
+      color: #ffffff;
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 700;
+      border: 3px solid #000000;
+      border-radius: 18px;
+      padding: 12px 26px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000000;
+      transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.1s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      width: 100%;
+      max-width: 280px;
+      margin-bottom: 12px;
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #000000;
+    }
+
+    .btn-cyan {
+      background-color: var(--p1-cyan);
+      color: #0b2938;
+    }
+
+    .btn-coral {
+      background-color: var(--p2-coral);
+      color: #ffffff;
+    }
+
+    .btn-gold {
+      background-color: var(--gold-accent);
+      color: #2b1f00;
+    }
+
+    .btn-secondary {
+      background-color: #ffffff;
+      color: var(--text-dark);
+    }
+
+    .btn-icon {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 14px;
+      font-size: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* GAME CONTAINER FOR MOBILE SCREEN */
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      max-width: 430px;
+      max-height: 932px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: clamp(10px, 2vh, 16px) clamp(10px, 3.5vw, 16px);
+      padding-top: max(clamp(10px, 2vh, 16px), env(safe-area-inset-top));
+      padding-bottom: max(clamp(10px, 2vh, 16px), env(safe-area-inset-bottom));
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (min-width: 480px) and (min-height: 600px) {
+      #game-container {
+        height: 94vh;
+        border-radius: 36px;
+        border: 4px solid #25262b;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      }
+    }
+
+    /* HEADER HUD */
+    .game-header {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 5;
+    }
+
+    .top-bar-controls {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .game-logo-sm {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .players-hud {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .player-card {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.92);
+      border: 3px solid #000000;
+      border-radius: 18px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 0 #000000;
+      transition: transform 0.25s var(--spring-ease), border-color 0.25s ease, background 0.25s ease;
+      position: relative;
+    }
+
+    .player-card.p1 {
+      border-left: 8px solid var(--p1-cyan);
+    }
+
+    .player-card.p2 {
+      border-right: 8px solid var(--p2-coral);
+      flex-direction: row-reverse;
+    }
+
+    .player-card.active-turn {
+      transform: scale(1.04);
+      background: #ffffff;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.25), 0 0 0 3px var(--gold-accent);
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: #f0f0f0;
+      flex-shrink: 0;
+    }
+
+    .p1 .avatar { background: var(--p1-cyan); }
+    .p2 .avatar { background: var(--p2-coral); color: white; }
+
+    .player-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      line-height: 1.1;
+    }
+
+    .p2 .player-info {
+      text-align: right;
+    }
+
+    .player-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dark);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .player-pucks {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .p2 .player-pucks {
+      justify-content: flex-end;
+    }
+
+    .puck-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid #000;
+      display: inline-block;
+    }
+
+    .puck-dot.white { background: #ffffff; }
+    .puck-dot.black { background: #222222; }
+
+    .turn-banner {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(8px);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .turn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold-accent);
+      animation: pulseDot 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.4); opacity: 1; }
+    }
+
+    /* BOARD STAGE CANVAS */
+    .board-stage {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+      position: relative;
+      margin: 6px 0;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      width: min(92vw, 380px);
+      height: min(92vw, 380px);
+      border-radius: 20px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(255,255,255,0.4);
+      overflow: hidden;
+      background: #2a1810;
+    }
+
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    /* FOOTER / STRIKER SLIDER CONTROLS */
+    .striker-controls {
+      width: 100%;
+      max-width: 380px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 3px solid #000000;
+      border-radius: 22px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 0 #000000;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      z-index: 5;
+    }
+
+    .slider-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .slider-track-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slider-icon {
+      font-size: 16px;
+      color: #64748b;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 12px;
+      background: #cbd5e1;
+      border-radius: 6px;
+      border: 2px solid #000;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--gold-accent);
+      border: 2px solid #000;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      transition: transform 0.1s ease;
+    }
+
+    input[type=range]::-webkit-slider-thumb:active {
+      transform: scale(1.2);
+    }
+
+    .aim-instruction {
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      text-align: center;
+    }
+
+    /* OVERLAYS & MODALS */
+    .overlay-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 27, 43, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .overlay-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .winner-trophy {
+      font-size: 56px;
+      margin: 10px 0;
+      animation: bounceTrophy 1s infinite alternate var(--spring-ease);
+    }
+
+    @keyframes bounceTrophy {
+      from { transform: translateY(0) scale(1); }
+      to { transform: translateY(-10px) scale(1.1); }
+    }
+
+    .mode-select-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    /* Sound & Hub Back Toggle */
+    .hub-back-btn {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 4px 0 #000000;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s ease;
+    }
+
+    .hub-back-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app">
+    <div class="bg-stars"></div>
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Floating Navigation Control -->
+    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+
+    <!-- START / MAIN MENU SCREEN -->
+    <div id="start-screen" class="screen active">
+      <div class="modal-card">
+        <div style="font-size: 48px; margin-bottom: 6px;">🔴⚪</div>
+        <h1 class="modal-title">Carrom Pool</h1>
+        <p class="modal-subtitle">2-Player Mobile Duel & vs Computer AI</p>
+
+        <div class="mode-select-grid">
+          <button class="btn btn-cyan" id="btn-mode-2p">
+            <span>👥</span> Pass & Play (2P)
+          </button>
+          <button class="btn btn-coral" id="btn-mode-ai">
+            <span>🤖</span> vs Computer (AI)
+          </button>
+          <button class="btn btn-secondary" id="btn-how-to-play">
+            <span>📖</span> How to Play
+          </button>
+          <a href="index.html" class="btn btn-secondary" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">
+            <span>🏠</span> Back to Hub
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOW TO PLAY MODAL -->
+    <div id="rules-modal" class="overlay-modal">
+      <div class="modal-card">
+        <h2 class="modal-title">How to Play</h2>
+        <div style="text-align: left; font-size: 14px; line-height: 1.5; color: #334155; margin-bottom: 16px;">
+          <p>🎯 <strong>Objective:</strong> Pot all your assigned carrom pucks (White or Black) before your opponent!</p>
+          <br>
+          <p>🎛️ <strong>Controls:</strong></p>
+          <ul style="padding-left: 20px;">
+            <li>Use the <strong>Bottom Slider</strong> to position your striker along baseline.</li>
+            <li><strong>Touch & Drag</strong> back from striker to aim & set shot power.</li>
+            <li>Release touch to shoot!</li>
+          </ul>
+          <br>
+          <p>⚠️ <strong>Foul Penalty:</strong> Potting the striker returns a puck to the center circle.</p>
+        </div>
+        <button class="btn btn-purple" id="btn-close-rules">Got it!</button>
+      </div>
+    </div>
+
+    <!-- GAMEPLAY HUD SCREEN -->
+    <div id="game-screen" class="screen">
+      <div id="game-container">
+
+        <!-- HEADER HUD -->
+        <div class="game-header">
+          <div class="top-bar-controls">
+            <div class="game-logo-sm">🎯 Carrom Pool</div>
+            <div class="icon-controls">
+              <button class="btn btn-secondary btn-icon" id="btn-sound-toggle" title="Sound Toggle">🔊</button>
+              <button class="btn btn-secondary btn-icon" id="btn-pause" title="Pause">⏸️</button>
+            </div>
+          </div>
+
+          <div class="players-hud">
+            <!-- Player 1 Card -->
+            <div class="player-card p1 active-turn" id="card-p1">
+              <div class="avatar">👤</div>
+              <div class="player-info">
+                <span class="player-name" id="name-p1">Player 1</span>
+                <span class="player-pucks">Pucks: <strong id="score-p1">6</strong> <span class="puck-dot white"></span></span>
+              </div>
+            </div>
+
+            <!-- Turn Banner -->
+            <div class="turn-banner" id="turn-banner">
+              <span class="turn-dot"></span>
+              <span id="turn-text">P1 Turn</span>
+            </div>
+
+            <!-- Player 2 Card -->
+            <div class="player-card p2" id="card-p2">
+              <div class="avatar" id="avatar-p2">👥</div>
+              <div class="player-info">
+                <span class="player-name" id="name-p2">Player 2</span>
+                <span class="player-pucks"><span class="puck-dot black"></span> <strong id="score-p2">6</strong> :Pucks</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER BOARD STAGE -->
+        <div class="board-stage">
+          <div class="canvas-wrapper">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+          </div>
+        </div>
+
+        <!-- STRIKER POSITION SLIDER & INSTRUCTION -->
+        <div class="striker-controls">
+          <div class="slider-label">
+            <span>Position Striker</span>
+            <span id="slider-val-text">Center</span>
+          </div>
+          <div class="slider-track-container">
+            <span class="slider-icon">👈</span>
+            <input type="range" id="strikerPositionSlider" min="0" max="100" value="50">
+            <span class="slider-icon">👉</span>
+          </div>
+          <div class="aim-instruction" id="aim-instruction-text">
+            👆 Drag back from striker to aim & shoot!
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PAUSE MODAL -->
+    <div id="pause-modal" class="overlay-modal">
+      <div class="modal-card">
+        <h2 class="modal-title">Game Paused</h2>
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+          <button class="btn btn-cyan" id="btn-resume">Resume</button>
+          <button class="btn btn-secondary" id="btn-restart">Restart Match</button>
+          <button class="btn btn-coral" id="btn-main-menu">Main Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WINNER / GAME OVER MODAL -->
+    <div id="win-modal" class="overlay-modal">
+      <div class="modal-card">
+        <div class="winner-trophy">🏆</div>
+        <h2 class="modal-title" id="win-title">Player 1 Wins!</h2>
+        <p class="modal-subtitle" id="win-subtitle">Master of the Carrom Board!</p>
+
+        <div class="stat-row">
+          <span>Pucks Potted:</span>
+          <strong id="stat-pucks-potted">6</strong>
+        </div>
+        <div class="stat-row">
+          <span>Total Shots:</span>
+          <strong id="stat-total-shots">12</strong>
+        </div>
+
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+          <button class="btn btn-gold" id="btn-play-again">Play Again 🔄</button>
+          <button class="btn btn-secondary" id="btn-win-menu">Main Menu</button>
+          <a href="index.html" class="btn btn-secondary" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">🏠 Back to Hub</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GAME ENGINE & PHYSICS SCRIPT -->
+  <script>
+    /* ==========================================================================
+       1. WEB AUDIO API SYNTHESIZER (No External Assets Required)
+       ========================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type, duration, gainVal = 0.1) {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+
+      playClack(intensity = 1) {
+        if (this.muted || !this.ctx) return;
+        const freq = 350 + Math.min(intensity * 400, 600);
+        this.playTone(freq, 'triangle', 0.08, Math.min(0.2 * intensity, 0.4));
+      }
+
+      playCushionBounce() {
+        this.playTone(180, 'sine', 0.12, 0.3);
+      }
+
+      playPot() {
+        if (this.muted || !this.ctx) return;
+        this.playTone(520, 'sine', 0.1, 0.3);
+        setTimeout(() => this.playTone(780, 'sine', 0.18, 0.3), 60);
+      }
+
+      playFoul() {
+        this.playTone(150, 'sawtooth', 0.25, 0.2);
+      }
+
+      playVictory() {
+        if (this.muted || !this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'triangle', 0.3, 0.25), idx * 120);
+        });
+      }
+
+      playButtonClick() {
+        this.init();
+        this.playTone(400, 'sine', 0.05, 0.1);
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* ==========================================================================
+       2. CARROM PHYSICS ENGINE (2D Rigid Body Circle Dynamics)
+       ========================================================================== */
+    const BOARD_SIZE = 600;
+    const POCKET_RADIUS = 28;
+    const PUCK_RADIUS = 14;
+    const STRIKER_RADIUS = 20;
+    const FRICTION = 0.985;
+    const RESTITUTION = 0.90;
+    const CUSHION_RESTITUTION = 0.82;
+    const VELOCITY_THRESHOLD = 0.08;
+    const MAX_SHOT_POWER = 20;
+
+    const BOARD_MARGIN = 38;
+    const BASELINE_Y_BOTTOM = BOARD_SIZE - 105;
+    const BASELINE_Y_TOP = 105;
+    const BASELINE_X_MIN = 120;
+    const BASELINE_X_MAX = BOARD_SIZE - 120;
+
+    // Corner Pocket Center Positions
+    const POCKETS = [
+      { x: 42, y: 42 },
+      { x: BOARD_SIZE - 42, y: 42 },
+      { x: 42, y: BOARD_SIZE - 42 },
+      { x: BOARD_SIZE - 42, y: BOARD_SIZE - 42 }
+    ];
+
+    class Puck {
+      constructor(x, y, radius, color, type) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.type = type; // 'white', 'black', 'queen', 'striker'
+        this.vx = 0;
+        this.vy = 0;
+        this.potted = false;
+        this.pottedThisTurn = false; // Track if potted during this specific turn
+        this.scale = 1;
+        this.mass = radius === STRIKER_RADIUS ? 1.6 : 1.0;
+      }
+
+      applyMovement() {
+        if (this.potted) return;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      applyFriction() {
+        if (this.potted) return;
+        this.vx *= FRICTION;
+        this.vy *= FRICTION;
+        if (Math.abs(this.vx) < VELOCITY_THRESHOLD) this.vx = 0;
+        if (Math.abs(this.vy) < VELOCITY_THRESHOLD) this.vy = 0;
+      }
+
+      checkWalls() {
+        if (this.potted) return;
+
+        const minX = BOARD_MARGIN + this.radius;
+        const maxX = BOARD_SIZE - BOARD_MARGIN - this.radius;
+        const minY = BOARD_MARGIN + this.radius;
+        const maxY = BOARD_SIZE - BOARD_MARGIN - this.radius;
+
+        // Skip wall collision if near a pocket
+        for (const p of POCKETS) {
+          const dx = this.x - p.x;
+          const dy = this.y - p.y;
+          if (Math.sqrt(dx * dx + dy * dy) < POCKET_RADIUS + this.radius + 5) {
+            return;
+          }
+        }
+
+        if (this.x < minX) {
+          this.x = minX;
+          this.vx = -this.vx * CUSHION_RESTITUTION;
+          if (Math.abs(this.vx) > 0.5) sound.playCushionBounce();
+        } else if (this.x > maxX) {
+          this.x = maxX;
+          this.vx = -this.vx * CUSHION_RESTITUTION;
+          if (Math.abs(this.vx) > 0.5) sound.playCushionBounce();
+        }
+
+        if (this.y < minY) {
+          this.y = minY;
+          this.vy = -this.vy * CUSHION_RESTITUTION;
+          if (Math.abs(this.vy) > 0.5) sound.playCushionBounce();
+        } else if (this.y > maxY) {
+          this.y = maxY;
+          this.vy = -this.vy * CUSHION_RESTITUTION;
+          if (Math.abs(this.vy) > 0.5) sound.playCushionBounce();
+        }
+      }
+
+      checkPockets() {
+        if (this.potted) return false;
+
+        for (const p of POCKETS) {
+          const dx = this.x - p.x;
+          const dy = this.y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < POCKET_RADIUS - 2) {
+            this.potted = true;
+            this.pottedThisTurn = true;
+            this.vx = 0;
+            this.vy = 0;
+            sound.playPot();
+            return true;
+          }
+        }
+        return false;
+      }
+
+      updatePottedAnimation() {
+        if (this.potted && this.scale > 0) {
+          this.scale -= 0.08;
+          if (this.scale < 0) this.scale = 0;
+        }
+      }
+
+      isMoving() {
+        return !this.potted && (Math.abs(this.vx) > VELOCITY_THRESHOLD || Math.abs(this.vy) > VELOCITY_THRESHOLD);
+      }
+
+      speed() {
+        return Math.hypot(this.vx, this.vy);
+      }
+    }
+
+    /* ==========================================================================
+       3. MAIN GAME CONTROLLER & LOGIC
+       ========================================================================== */
+    class CarromGame {
+      constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        this.gameMode = '2P';
+        this.currentPlayer = 1;
+        this.pucks = [];
+        this.striker = null;
+        this.gameActive = false;
+        this.gameOver = false;
+
+        this.aiming = false;
+        this.aimStartPos = { x: 0, y: 0 };
+        this.aimCurrentPos = { x: 0, y: 0 };
+        this.shotInProgress = false;
+        this.waitingForAI = false;
+
+        this.scores = { 1: 6, 2: 6 };
+        this.totalShots = 0;
+        this.shotsByPlayer = { 1: 0, 2: 0 };
+        this.pucksPottedByPlayer = { 1: 0, 2: 0 };
+
+        this.turnSettleTimer = 0;
+        this.SETTLE_FRAMES = 10; // Wait extra frames after everything stops
+
+        this.initEventListeners();
+        this.setupBoardPucks();
+        this.resetStriker();
+      }
+
+      initGame(mode = '2P') {
+        this.gameMode = mode;
+        this.currentPlayer = 1;
+        this.scores = { 1: 6, 2: 6 };
+        this.totalShots = 0;
+        this.shotsByPlayer = { 1: 0, 2: 0 };
+        this.pucksPottedByPlayer = { 1: 0, 2: 0 };
+        this.shotInProgress = false;
+        this.waitingForAI = false;
+        this.gameActive = true;
+        this.gameOver = false;
+        this.aiming = false;
+        this.turnSettleTimer = 0;
+
+        document.getElementById('score-p1').textContent = '6';
+        document.getElementById('score-p2').textContent = '6';
+        document.getElementById('name-p2').textContent = mode === 'AI' ? 'Computer Bot' : 'Player 2';
+        document.getElementById('avatar-p2').textContent = mode === 'AI' ? '🤖' : '👥';
+        document.getElementById('aim-instruction-text').textContent = '👆 Drag back from striker to aim & shoot!';
+
+        this.setupBoardPucks();
+        this.resetStriker();
+        this.updateHUD();
+      }
+
+      setupBoardPucks() {
+        this.pucks = [];
+        const cx = BOARD_SIZE / 2;
+        const cy = BOARD_SIZE / 2;
+
+        // Center Red Queen
+        this.pucks.push(new Puck(cx, cy, PUCK_RADIUS, '#e74c3c', 'queen'));
+
+        // 12 pucks in ring: 6 White, 6 Black alternating
+        const count = 12;
+        const ringRadius = 34;
+        for (let i = 0; i < count; i++) {
+          const angle = (i * Math.PI * 2) / count;
+          const px = cx + Math.cos(angle) * ringRadius;
+          const py = cy + Math.sin(angle) * ringRadius;
+          const type = (i % 2 === 0) ? 'white' : 'black';
+          const color = type === 'white' ? '#ffffff' : '#222222';
+          this.pucks.push(new Puck(px, py, PUCK_RADIUS, color, type));
+        }
+
+        this.striker = new Puck(cx, BASELINE_Y_BOTTOM, STRIKER_RADIUS, '#ffc83b', 'striker');
+      }
+
+      resetStriker() {
+        if (!this.striker) return;
+        this.striker.potted = false;
+        this.striker.pottedThisTurn = false;
+        this.striker.scale = 1;
+        this.striker.vx = 0;
+        this.striker.vy = 0;
+
+        const slider = document.getElementById('strikerPositionSlider');
+        slider.value = 50;
+        this.positionStrikerFromSlider(50);
+      }
+
+      positionStrikerFromSlider(val) {
+        if (this.shotInProgress || this.waitingForAI) return;
+        if (!this.striker) return;
+
+        const targetX = BASELINE_X_MIN + (val / 100) * (BASELINE_X_MAX - BASELINE_X_MIN);
+        this.striker.x = targetX;
+        this.striker.y = this.currentPlayer === 1 ? BASELINE_Y_BOTTOM : BASELINE_Y_TOP;
+      }
+
+      /* ------------------------------------------------------------------
+         EVENT LISTENERS
+         ------------------------------------------------------------------ */
+      initEventListeners() {
+        const slider = document.getElementById('strikerPositionSlider');
+        slider.addEventListener('input', (e) => {
+          if (!this.gameActive || this.gameOver) return;
+          this.positionStrikerFromSlider(parseFloat(e.target.value));
+        });
+
+        const getCanvasCoords = (e) => {
+          const rect = this.canvas.getBoundingClientRect();
+          const touch = e.touches ? e.touches[0] : e;
+          const scaleX = BOARD_SIZE / rect.width;
+          const scaleY = BOARD_SIZE / rect.height;
+          return {
+            x: (touch.clientX - rect.left) * scaleX,
+            y: (touch.clientY - rect.top) * scaleY
+          };
+        };
+
+        const startAim = (e) => {
+          if (!this.gameActive || this.gameOver) return;
+          if (this.shotInProgress || this.waitingForAI) return;
+          if (this.gameMode === 'AI' && this.currentPlayer === 2) return;
+
+          const pos = getCanvasCoords(e);
+          const dx = pos.x - this.striker.x;
+          const dy = pos.y - this.striker.y;
+          if (Math.sqrt(dx * dx + dy * dy) < STRIKER_RADIUS + 50) {
+            this.aiming = true;
+            this.aimStartPos = { x: this.striker.x, y: this.striker.y };
+            this.aimCurrentPos = { x: pos.x, y: pos.y };
+            sound.init();
+          }
+        };
+
+        const moveAim = (e) => {
+          if (!this.aiming) return;
+          e.preventDefault();
+          const pos = getCanvasCoords(e);
+          this.aimCurrentPos = { x: pos.x, y: pos.y };
+        };
+
+        const endAim = (e) => {
+          if (!this.aiming) return;
+          this.aiming = false;
+
+          const dx = this.aimStartPos.x - this.aimCurrentPos.x;
+          const dy = this.aimStartPos.y - this.aimCurrentPos.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist > 15) {
+            this.executeShot(dx, dy, dist);
+          }
+        };
+
+        this.canvas.addEventListener('mousedown', startAim);
+        window.addEventListener('mousemove', moveAim);
+        window.addEventListener('mouseup', endAim);
+        this.canvas.addEventListener('touchstart', startAim, { passive: false });
+        window.addEventListener('touchmove', moveAim, { passive: false });
+        window.addEventListener('touchend', endAim);
+      }
+
+      /* ------------------------------------------------------------------
+         SHOT EXECUTION
+         ------------------------------------------------------------------ */
+      executeShot(dx, dy, dist) {
+        const power = Math.min(dist * 0.14, MAX_SHOT_POWER);
+        const angle = Math.atan2(dy, dx);
+        this.striker.vx = Math.cos(angle) * power;
+        this.striker.vy = Math.sin(angle) * power;
+
+        this.beginShot();
+        sound.playTone(220, 'triangle', 0.15, 0.3);
+      }
+
+      beginShot() {
+        this.shotInProgress = true;
+        this.waitingForAI = false;
+        this.totalShots++;
+        this.shotsByPlayer[this.currentPlayer]++;
+        this.turnSettleTimer = 0;
+
+        // Mark all pucks' current potted state so we can detect new pots
+        this.pucks.forEach(p => { p.pottedThisTurn = false; });
+        this.striker.pottedThisTurn = false;
+      }
+
+      /* ------------------------------------------------------------------
+         AI TURN
+         ------------------------------------------------------------------ */
+      scheduleAITurn() {
+        if (this.gameMode !== 'AI' || this.currentPlayer !== 2) return;
+        if (this.gameOver) return;
+
+        this.waitingForAI = true;
+        document.getElementById('aim-instruction-text').textContent = '🤖 Computer is thinking...';
+
+        setTimeout(() => {
+          if (!this.waitingForAI || this.gameOver) return;
+
+          // Position striker
+          const targetPucks = this.pucks.filter(p => !p.potted && p.type === 'black');
+          const candidatePucks = targetPucks.length > 0
+            ? targetPucks
+            : this.pucks.filter(p => !p.potted && p.type === 'queen');
+
+          if (candidatePucks.length === 0) {
+            this.waitingForAI = false;
+            return;
+          }
+
+          // Find best puck+pocket combo: closest puck to any pocket
+          let bestTarget = candidatePucks[0];
+          let bestPocket = POCKETS[0];
+          let bestScore = -Infinity;
+
+          for (const puck of candidatePucks) {
+            for (const pkt of POCKETS) {
+              const puckToPocketDist = Math.hypot(puck.x - pkt.x, puck.y - pkt.y);
+              // Prefer pucks already close to pockets
+              const score = 1000 - puckToPocketDist;
+              if (score > bestScore) {
+                bestScore = score;
+                bestTarget = puck;
+                bestPocket = pkt;
+              }
+            }
+          }
+
+          // Aim: calculate where striker needs to hit the target puck
+          // to send it toward the best pocket
+          const pktAngle = Math.atan2(bestPocket.y - bestTarget.y, bestPocket.x - bestTarget.x);
+          const hitX = bestTarget.x - Math.cos(pktAngle) * (PUCK_RADIUS + STRIKER_RADIUS);
+          const hitY = bestTarget.y - Math.sin(pktAngle) * (PUCK_RADIUS + STRIKER_RADIUS);
+
+          // Position striker on its baseline
+          const clampedX = Math.max(BASELINE_X_MIN, Math.min(BASELINE_X_MAX, hitX));
+          const sliderVal = ((clampedX - BASELINE_X_MIN) / (BASELINE_X_MAX - BASELINE_X_MIN)) * 100;
+          document.getElementById('strikerPositionSlider').value = sliderVal;
+          this.positionStrikerFromSlider(sliderVal);
+
+          // Shoot toward the ideal hit point after a brief pause
+          setTimeout(() => {
+            if (!this.waitingForAI || this.gameOver) return;
+
+            const shootDx = hitX - this.striker.x;
+            const shootDy = hitY - this.striker.y;
+            const shootAngle = Math.atan2(shootDy, shootDx);
+            const power = 12 + Math.random() * 6;
+
+            this.striker.vx = Math.cos(shootAngle) * power;
+            this.striker.vy = Math.sin(shootAngle) * power;
+
+            this.beginShot();
+            sound.playTone(220, 'triangle', 0.15, 0.3);
+            document.getElementById('aim-instruction-text').textContent = '👆 Drag back from striker to aim & shoot!';
+          }, 500);
+
+        }, 700 + Math.random() * 400);
+      }
+
+      /* ------------------------------------------------------------------
+         PHYSICS UPDATE — Called once per frame
+         ------------------------------------------------------------------ */
+      updatePhysics() {
+        if (!this.striker || !this.gameActive) return;
+
+        const allEntities = [...this.pucks, this.striker];
+
+        // Only run physics when a shot is in progress
+        if (!this.shotInProgress) {
+          // Still animate potted puck shrinking
+          allEntities.forEach(p => p.updatePottedAnimation());
+          return;
+        }
+
+        // --- SUB-STEP COLLISION RESOLUTION ---
+        // Movement is sub-stepped, but friction/walls/pockets only once per frame
+        const subSteps = 3;
+        for (let step = 0; step < subSteps; step++) {
+
+          // Move all entities by fractional velocity
+          for (const p of allEntities) {
+            if (p.potted) continue;
+            p.x += p.vx / subSteps;
+            p.y += p.vy / subSteps;
+          }
+
+          // Resolve circle-circle collisions
+          for (let i = 0; i < allEntities.length; i++) {
+            for (let j = i + 1; j < allEntities.length; j++) {
+              const p1 = allEntities[i];
+              const p2 = allEntities[j];
+              if (p1.potted || p2.potted) continue;
+
+              const dx = p2.x - p1.x;
+              const dy = p2.y - p1.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              const minDist = p1.radius + p2.radius;
+
+              if (dist < minDist && dist > 0.001) {
+                const nx = dx / dist;
+                const ny = dy / dist;
+                const overlap = (minDist - dist) * 0.5;
+
+                // Separate
+                p1.x -= nx * overlap;
+                p1.y -= ny * overlap;
+                p2.x += nx * overlap;
+                p2.y += ny * overlap;
+
+                // Elastic collision impulse
+                const dvx = p1.vx - p2.vx;
+                const dvy = p1.vy - p2.vy;
+                const dotProduct = dvx * nx + dvy * ny;
+
+                // Only resolve if objects are approaching
+                if (dotProduct > 0) {
+                  const impulse = (2 * dotProduct) / (p1.mass + p2.mass);
+
+                  p1.vx -= impulse * p2.mass * nx * RESTITUTION;
+                  p1.vy -= impulse * p2.mass * ny * RESTITUTION;
+                  p2.vx += impulse * p1.mass * nx * RESTITUTION;
+                  p2.vy += impulse * p1.mass * ny * RESTITUTION;
+
+                  const hitForce = Math.abs(dotProduct);
+                  if (hitForce > 0.5) sound.playClack(hitForce * 0.15);
+                }
+              }
+            }
+          }
+        }
+
+        // Apply friction, walls, pockets ONCE per frame (not per sub-step)
+        for (const p of allEntities) {
+          p.applyFriction();
+          p.checkWalls();
+          p.checkPockets();
+          p.updatePottedAnimation();
+        }
+
+        // Check if shot has finished (all entities stopped moving)
+        const anyMoving = allEntities.some(p => p.isMoving());
+        if (!anyMoving) {
+          this.turnSettleTimer++;
+          if (this.turnSettleTimer >= this.SETTLE_FRAMES) {
+            this.evaluateShotOutcome();
+          }
+        } else {
+          this.turnSettleTimer = 0;
+        }
+      }
+
+      /* ------------------------------------------------------------------
+         SHOT OUTCOME EVALUATION
+         ------------------------------------------------------------------ */
+      evaluateShotOutcome() {
+        this.shotInProgress = false;
+
+        // Collect what was potted during this turn
+        const pottedWhite = this.pucks.filter(p => p.pottedThisTurn && p.type === 'white');
+        const pottedBlack = this.pucks.filter(p => p.pottedThisTurn && p.type === 'black');
+        const pottedQueen = this.pucks.filter(p => p.pottedThisTurn && p.type === 'queen');
+        const strikerPotted = this.striker.potted;
+
+        const myType = this.currentPlayer === 1 ? 'white' : 'black';
+        const myPotted = myType === 'white' ? pottedWhite : pottedBlack;
+        const oppPotted = myType === 'white' ? pottedBlack : pottedWhite;
+
+        let earnedExtraTurn = false;
+
+        // Count legitimate pots for scoring
+        const whitePotCount = pottedWhite.length;
+        const blackPotCount = pottedBlack.length;
+        const queenPotCount = pottedQueen.length;
+
+        // Update remaining puck counts
+        this.scores[1] = Math.max(0, this.scores[1] - whitePotCount);
+        this.scores[2] = Math.max(0, this.scores[2] - blackPotCount);
+
+        // Track pucks potted by this player
+        this.pucksPottedByPlayer[this.currentPlayer] += myPotted.length + queenPotCount;
+
+        // Determine if player earns an extra turn
+        if (myPotted.length > 0) {
+          earnedExtraTurn = true;
+        }
+
+        // --- FOUL HANDLING ---
+        let foulOccurred = false;
+
+        // Foul 1: Striker potted
+        if (strikerPotted) {
+          foulOccurred = true;
+        }
+
+        // Foul 2: Potted only opponent's pucks (without any of your own)
+        if (!foulOccurred && oppPotted.length > 0 && myPotted.length === 0) {
+          foulOccurred = true;
+        }
+
+        if (foulOccurred) {
+          sound.playFoul();
+          earnedExtraTurn = false;
+
+          // Penalty: return one of YOUR previously potted pucks to center
+          const penaltyType = myType;
+          const returnPuck = this.pucks.find(p =>
+            p.potted && p.type === penaltyType && !p.pottedThisTurn
+          );
+
+          if (returnPuck) {
+            this.returnPuckToCenter(returnPuck);
+            this.scores[this.currentPlayer]++;
+          } else {
+            // If no previously potted puck, return a just-potted one
+            const justPotted = this.pucks.find(p =>
+              p.pottedThisTurn && p.type === penaltyType
+            );
+            if (justPotted) {
+              this.returnPuckToCenter(justPotted);
+              this.scores[this.currentPlayer]++;
+            }
+          }
+        }
+
+        this.updateHUD();
+
+        // --- WIN CHECK ---
+        if (this.scores[1] === 0) {
+          this.gameOver = true;
+          this.gameActive = false;
+          setTimeout(() => this.showWinModal('Player 1'), 400);
+          return;
+        }
+        if (this.scores[2] === 0) {
+          this.gameOver = true;
+          this.gameActive = false;
+          const name = this.gameMode === 'AI' ? 'Computer Bot' : 'Player 2';
+          setTimeout(() => this.showWinModal(name), 400);
+          return;
+        }
+
+        // --- TURN SWITCH ---
+        if (!earnedExtraTurn) {
+          this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+        }
+
+        this.resetStriker();
+        this.updateHUD();
+
+        // Schedule AI turn if needed
+        if (this.gameMode === 'AI' && this.currentPlayer === 2) {
+          this.scheduleAITurn();
+        }
+      }
+
+      returnPuckToCenter(puck) {
+        puck.potted = false;
+        puck.pottedThisTurn = false;
+        puck.scale = 1;
+        puck.vx = 0;
+        puck.vy = 0;
+
+        // Find a safe position near center that doesn't overlap other pucks
+        const cx = BOARD_SIZE / 2;
+        const cy = BOARD_SIZE / 2;
+        let placed = false;
+
+        // Try center first
+        if (!this.isPositionOccupied(cx, cy, puck.radius, puck)) {
+          puck.x = cx;
+          puck.y = cy;
+          placed = true;
+        }
+
+        // Spiral outward to find safe spot
+        if (!placed) {
+          for (let r = 30; r < 80; r += 15) {
+            for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+              const tx = cx + Math.cos(a) * r;
+              const ty = cy + Math.sin(a) * r;
+              if (!this.isPositionOccupied(tx, ty, puck.radius, puck)) {
+                puck.x = tx;
+                puck.y = ty;
+                placed = true;
+                break;
+              }
+            }
+            if (placed) break;
+          }
+        }
+
+        if (!placed) {
+          puck.x = cx + (Math.random() * 40 - 20);
+          puck.y = cy + (Math.random() * 40 - 20);
+        }
+      }
+
+      isPositionOccupied(x, y, radius, excludePuck) {
+        const allEntities = [...this.pucks, this.striker];
+        for (const p of allEntities) {
+          if (p === excludePuck || p.potted) continue;
+          const dx = p.x - x;
+          const dy = p.y - y;
+          const minDist = p.radius + radius + 2;
+          if (Math.sqrt(dx * dx + dy * dy) < minDist) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      /* ------------------------------------------------------------------
+         HUD & UI
+         ------------------------------------------------------------------ */
+      updateHUD() {
+        document.getElementById('score-p1').textContent = this.scores[1];
+        document.getElementById('score-p2').textContent = this.scores[2];
+
+        const card1 = document.getElementById('card-p1');
+        const card2 = document.getElementById('card-p2');
+        const turnText = document.getElementById('turn-text');
+
+        if (this.currentPlayer === 1) {
+          card1.classList.add('active-turn');
+          card2.classList.remove('active-turn');
+          turnText.textContent = 'P1 Turn (White)';
+        } else {
+          card2.classList.add('active-turn');
+          card1.classList.remove('active-turn');
+          turnText.textContent = `${this.gameMode === 'AI' ? 'Bot' : 'P2'} Turn (Black)`;
+        }
+      }
+
+      showWinModal(winnerName) {
+        sound.playVictory();
+        document.getElementById('win-title').textContent = `${winnerName} Wins!`;
+        const totalPotted = this.pucksPottedByPlayer[1] + this.pucksPottedByPlayer[2];
+        document.getElementById('stat-pucks-potted').textContent = totalPotted;
+        document.getElementById('stat-total-shots').textContent = this.totalShots;
+        document.getElementById('win-modal').classList.add('active');
+        launchConfetti();
+      }
+
+      /* ------------------------------------------------------------------
+         RENDERING
+         ------------------------------------------------------------------ */
+      render() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
+
+        this.drawCarromBoard();
+
+        // Draw Pucks (only non-potted or still animating)
+        this.pucks.forEach(p => {
+          if (p.scale > 0) this.drawPuck(p);
+        });
+
+        // Draw Striker
+        if (this.striker && this.striker.scale > 0) {
+          this.drawPuck(this.striker);
+        }
+
+        // Draw Aim Line on top
+        if (this.aiming && !this.shotInProgress) {
+          this.drawAimLine();
+        }
+      }
+
+      drawCarromBoard() {
+        const ctx = this.ctx;
+
+        // Outer Wood Border
+        ctx.fillStyle = '#3a2010';
+        ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
+
+        // Inner Wooden Rail Frame
+        ctx.fillStyle = '#5c3a21';
+        ctx.fillRect(20, 20, BOARD_SIZE - 40, BOARD_SIZE - 40);
+
+        // Playfield Surface (Warm Ivory/Beige)
+        ctx.fillStyle = '#f4ecd8';
+        ctx.fillRect(BOARD_MARGIN, BOARD_MARGIN, BOARD_SIZE - BOARD_MARGIN * 2, BOARD_SIZE - BOARD_MARGIN * 2);
+
+        // Inner Border Line
+        ctx.strokeStyle = '#8b5a2b';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(BOARD_MARGIN, BOARD_MARGIN, BOARD_SIZE - BOARD_MARGIN * 2, BOARD_SIZE - BOARD_MARGIN * 2);
+
+        // 4 Corner Pockets
+        POCKETS.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, POCKET_RADIUS + 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#d4af37';
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI * 2);
+          ctx.fillStyle = '#111111';
+          ctx.fill();
+        });
+
+        // Center Rose Circle
+        const cx = BOARD_SIZE / 2;
+        const cy = BOARD_SIZE / 2;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 36, 0, Math.PI * 2);
+        ctx.strokeStyle = '#c0392b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fill();
+        ctx.strokeStyle = '#c0392b';
+        ctx.stroke();
+
+        // Baselines
+        this.drawBaseline(cx, BASELINE_Y_BOTTOM);
+        this.drawBaseline(cx, BASELINE_Y_TOP);
+
+        // Highlight current player's baseline
+        if (this.gameActive && !this.shotInProgress && !this.waitingForAI) {
+          const activeY = this.currentPlayer === 1 ? BASELINE_Y_BOTTOM : BASELINE_Y_TOP;
+          ctx.save();
+          ctx.globalAlpha = 0.12;
+          ctx.fillStyle = this.currentPlayer === 1 ? '#29c1ea' : '#f45c5c';
+          ctx.fillRect(BASELINE_X_MIN - 10, activeY - 18, BASELINE_X_MAX - BASELINE_X_MIN + 20, 36);
+          ctx.restore();
+        }
+      }
+
+      drawBaseline(cx, y) {
+        const ctx = this.ctx;
+
+        ctx.strokeStyle = '#a66c38';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(BASELINE_X_MIN, y - 6);
+        ctx.lineTo(BASELINE_X_MAX, y - 6);
+        ctx.moveTo(BASELINE_X_MIN, y + 6);
+        ctx.lineTo(BASELINE_X_MAX, y + 6);
+        ctx.stroke();
+
+        [BASELINE_X_MIN, BASELINE_X_MAX].forEach(x => {
+          ctx.beginPath();
+          ctx.arc(x, y, 10, 0, Math.PI * 2);
+          ctx.fillStyle = '#e74c3c';
+          ctx.fill();
+          ctx.strokeStyle = '#8b5a2b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+      }
+
+      drawPuck(puck) {
+        if (puck.scale <= 0) return;
+        const ctx = this.ctx;
+
+        ctx.save();
+        ctx.translate(puck.x, puck.y);
+        ctx.scale(puck.scale, puck.scale);
+
+        // Shadow
+        ctx.beginPath();
+        ctx.arc(3, 4, puck.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fill();
+
+        // Body
+        ctx.beginPath();
+        ctx.arc(0, 0, puck.radius, 0, Math.PI * 2);
+        ctx.fillStyle = puck.color;
+        ctx.fill();
+
+        // Rim
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = puck.type === 'striker' ? '#b8860b' : '#000000';
+        ctx.stroke();
+
+        // Inner Specular Ring
+        ctx.beginPath();
+        ctx.arc(0, 0, puck.radius * 0.55, 0, Math.PI * 2);
+        ctx.strokeStyle = puck.type === 'black' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Small highlight dot for depth
+        ctx.beginPath();
+        ctx.arc(-puck.radius * 0.25, -puck.radius * 0.25, puck.radius * 0.18, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      drawAimLine() {
+        const ctx = this.ctx;
+        const dx = this.aimStartPos.x - this.aimCurrentPos.x;
+        const dy = this.aimStartPos.y - this.aimCurrentPos.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 10) return;
+
+        const angle = Math.atan2(dy, dx);
+        const power = Math.min(dist * 0.14, MAX_SHOT_POWER);
+        const powerRatio = power / MAX_SHOT_POWER;
+        const aimLength = Math.min(dist * 2, 200);
+
+        const targetX = this.striker.x + Math.cos(angle) * aimLength;
+        const targetY = this.striker.y + Math.sin(angle) * aimLength;
+
+        // Dotted Aim Line
+        ctx.beginPath();
+        ctx.setLineDash([8, 6]);
+        ctx.moveTo(this.striker.x, this.striker.y);
+        ctx.lineTo(targetX, targetY);
+        ctx.strokeStyle = `rgba(255, 200, 59, ${0.5 + powerRatio * 0.5})`;
+        ctx.lineWidth = 2 + powerRatio * 2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Ghost Preview
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, STRIKER_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 200, 59, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Power indicator bar next to striker
+        const barWidth = 6;
+        const barHeight = 60;
+        const barX = this.striker.x + STRIKER_RADIUS + 12;
+        const barY = this.striker.y - barHeight / 2;
+
+        // Background
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        // Filled portion (green -> yellow -> red)
+        const fillHeight = barHeight * powerRatio;
+        const r = Math.min(255, powerRatio * 2 * 255);
+        const g = Math.min(255, (1 - powerRatio * 0.8) * 255);
+        ctx.fillStyle = `rgb(${r}, ${g}, 50)`;
+        ctx.fillRect(barX, barY + barHeight - fillHeight, barWidth, fillHeight);
+
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
+      }
+    }
+
+    /* ==========================================================================
+       4. UI SCREEN MANAGER & CONFETTI ANIMATION
+       ========================================================================== */
+    const game = new CarromGame();
+
+    function gameLoop() {
+      game.updatePhysics();
+      game.render();
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+
+    // --- Menu Navigation ---
+    document.getElementById('btn-mode-2p').addEventListener('click', () => {
+      sound.playButtonClick();
+      showScreen('game-screen');
+      game.initGame('2P');
+    });
+
+    document.getElementById('btn-mode-ai').addEventListener('click', () => {
+      sound.playButtonClick();
+      showScreen('game-screen');
+      game.initGame('AI');
+    });
+
+    document.getElementById('btn-how-to-play').addEventListener('click', () => {
+      sound.playButtonClick();
+      document.getElementById('rules-modal').classList.add('active');
+    });
+
+    document.getElementById('btn-close-rules').addEventListener('click', () => {
+      sound.playButtonClick();
+      document.getElementById('rules-modal').classList.remove('active');
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      sound.playButtonClick();
+      game.gameActive = false;
+      document.getElementById('pause-modal').classList.add('active');
+    });
+
+    document.getElementById('btn-resume').addEventListener('click', () => {
+      sound.playButtonClick();
+      game.gameActive = true;
+      document.getElementById('pause-modal').classList.remove('active');
+    });
+
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      sound.playButtonClick();
+      document.getElementById('pause-modal').classList.remove('active');
+      game.initGame(game.gameMode);
+    });
+
+    document.getElementById('btn-main-menu').addEventListener('click', () => {
+      sound.playButtonClick();
+      document.getElementById('pause-modal').classList.remove('active');
+      game.gameActive = false;
+      showScreen('start-screen');
+    });
+
+    document.getElementById('btn-play-again').addEventListener('click', () => {
+      sound.playButtonClick();
+      document.getElementById('win-modal').classList.remove('active');
+      showScreen('game-screen');
+      game.initGame(game.gameMode);
+    });
+
+    document.getElementById('btn-win-menu').addEventListener('click', () => {
+      sound.playButtonClick();
+      document.getElementById('win-modal').classList.remove('active');
+      showScreen('start-screen');
+    });
+
+    // Sound Mute Toggle
+    const soundBtn = document.getElementById('btn-sound-toggle');
+    soundBtn.addEventListener('click', () => {
+      sound.init();
+      sound.muted = !sound.muted;
+      soundBtn.textContent = sound.muted ? '🔇' : '🔊';
+    });
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    // --- Confetti Particle System ---
+    function launchConfetti() {
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#29c1ea', '#f45c5c', '#ffc83b', '#2ecc71', '#9b59b6', '#ffffff'];
+
+      for (let i = 0; i < 120; i++) {
+        particles.push({
+          x: canvas.width / 2 + (Math.random() - 0.5) * 100,
+          y: canvas.height / 2,
+          vx: (Math.random() - 0.5) * 16,
+          vy: (Math.random() - 0.8) * 18,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          size: Math.random() * 8 + 3,
+          rotation: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.2,
+          alpha: 1
+        });
+      }
+
+      function renderConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = false;
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.35;
+          p.vx *= 0.99;
+          p.rotation += p.rotSpeed;
+          p.alpha -= 0.012;
+
+          if (p.alpha > 0) {
+            active = true;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = Math.max(0, p.alpha);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+            ctx.restore();
+          }
+        });
+
+        if (active) requestAnimationFrame(renderConfetti);
+      }
+
+      renderConfetti();
+    }
+  </script>
+</body>
+</html>

@@ -845,10 +845,31 @@
             letter-spacing: 0.5px;
         }
 
-        .icon-svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
+        /* Sound & Hub Back Toggle */
+        .hub-back-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: #ffffff;
+            color: #000000;
+            border: 3px solid #000000;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-family: var(--font-main);
+            font-size: 15px;
+            font-weight: 800;
+            text-decoration: none;
+            box-shadow: 0 4px 0 #000000;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform 0.1s ease;
+        }
+
+        .hub-back-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #000000;
         }
     </style>
 </head>
@@ -856,8 +877,25 @@
 <body>
 
     <div id="game-container">
+        <!-- Floating Navigation Control -->
+        <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
 
-        <!-- HEADER -->
+        <!-- MAIN MENU OVERLAY -->
+        <div id="overlay-menu" class="overlay menu-overlay active">
+            <div class="modal-card menu-card" style="background:transparent; box-shadow:none;">
+                <h1 class="game-title" style="font-size: 38px; margin-bottom: 5px;">COLOR WARS</h1>
+                <div class="menu-buttons">
+                    <button id="btn-start-ai" class="btn btn-cyan menu-btn">VS AI (BOT)</button>
+                    <button id="btn-start-pvp" class="btn menu-btn">2 PLAYER (LOCAL)</button>
+                    <button id="btn-start-online" class="btn menu-btn"
+                        style="background-color:#102436; color:#19B9E8; border-color:#19B9E8;">ONLINE
+                        MULTIPLAYER</button>
+                    <button id="btn-open-tutorial" class="btn menu-btn">KIVABE KHELBEN</button>
+                    <button id="btn-open-settings" class="btn menu-btn">SETTINGS</button>
+                    <a href="index.html" class="btn menu-btn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;background:#ffffff;color:#000000;">🏠 BACK TO HUB</a>
+                </div>
+            </div>
+        </div>
         <header class="header">
             <h1 class="game-title">COLOR WARS</h1>
             <div id="status-banner" class="status-banner">

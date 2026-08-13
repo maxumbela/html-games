@@ -306,11 +306,40 @@
       margin: 8px 0;
       word-break: break-all;
     }
+    /* Sound & Hub Back Toggle */
+    .hub-back-btn {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 4px 0 #000000;
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s ease;
+    }
+
+    .hub-back-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #000000;
+    }
   </style>
 </head>
 <body>
 
   <div id="game-container">
+    <!-- Floating Navigation Control -->
+    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+
     <!-- Top HUD -->
     <div class="hud-header">
       <div class="score-badge">
@@ -352,6 +381,7 @@
           <button class="btn" id="btn-mode-vs">1 PLAYER (VS AI)</button>
           <button class="btn btn-green" id="btn-mode-local">2 PLAYER LOCAL (PASS & PLAY)</button>
           <button class="btn btn-blue" id="btn-mode-webrtc">2 PLAYER ONLINE (WebRTC)</button>
+          <a href="index.html" class="btn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;background:#ffffff;color:#000000;box-shadow:0 4px 0 #333;">🏠 BACK TO HUB</a>
         </div>
       </div>
     </div>
@@ -414,8 +444,9 @@
         <div class="modal-body" id="winner-body">
           You Win!
         </div>
-        <div class="btn-group">
+        <div class="btn-group" style="flex-direction:column;gap:10px;">
           <button class="btn btn-green" id="btn-restart">PLAY AGAIN</button>
+          <a href="index.html" class="btn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;background:#ffffff;color:#000000;box-shadow:0 4px 0 #333;">🏠 BACK TO HUB</a>
         </div>
       </div>
     </div>

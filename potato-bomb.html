@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Potato Bomb Duel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #1e130c;
+      --table-wood: #3e2723;
+      --table-border: #271c19;
+      --card-light: #f5ebe0;
+      --text-dark: #3a2518;
+      --p1-cyan: #06b6d4;
+      --p1-cyan-dark: #0891b2;
+      --p2-rose: #f43f5e;
+      --p2-rose-dark: #e11d48;
+      --potato-gold: #d97706;
+      --potato-light: #fef3c7;
+      --font-display: 'Fredoka', 'Outfit', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: var(--font-display);
+      color: #ffffff;
+      touch-action: manipulation;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #2e1c14 0%, #120b07 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Screen Management */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Common Card Container */
+    .card-container {
+      width: calc(100% - 32px);
+      max-width: 420px;
+      background-color: var(--card-light);
+      border-radius: 32px;
+      padding: 24px 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      color: var(--text-dark);
+    }
+
+    .card-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-dark);
+      letter-spacing: -0.5px;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+    }
+
+    /* Buttons */
+    .btn {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      color: #ffffff;
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      border: 3px solid #000000;
+      border-radius: 18px;
+      padding: 12px 28px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000000;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #000000;
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--text-dark);
+    }
+
+    .btn-icon {
+      padding: 10px 18px;
+      font-size: 20px;
+      border-radius: 14px;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: 0 4px 0 #000000 !important;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: #78350f;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 14px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* MAIN MENU */
+    #screen-menu .game-logo {
+      width: 110px;
+      height: 110px;
+      background: linear-gradient(135deg, #f59e0b, #92400e);
+      border: 4px solid #ffffff;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 12px 24px rgba(0,0,0,0.4);
+      transform: rotate(-4deg);
+    }
+
+    #screen-menu .menu-title {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 6px;
+      color: var(--text-dark);
+    }
+
+    #screen-menu .menu-subtitle {
+      font-size: 15px;
+      color: #78350f;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .menu-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    /* Segmented Selector */
+    .segmented-control {
+      display: flex;
+      background: rgba(0, 0, 0, 0.08);
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      border-radius: 16px;
+      padding: 4px;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+
+    .segmented-opt {
+      flex: 1;
+      padding: 10px 0;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      color: #78350f;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .segmented-opt.active {
+      background: #ffffff;
+      color: var(--text-dark);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 0 0 2px #000000;
+    }
+
+    /* Sound Toggle */
+    .sound-toggle {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #ffffff;
+      border: 3px solid #000;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000;
+      z-index: 5;
+    }
+
+    /* HOW TO PLAY CAROUSEL */
+    .carousel-view {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .carousel-track {
+      display: flex;
+      transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+      width: 100%;
+    }
+
+    .carousel-card {
+      min-width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .demo-box {
+      width: 100%;
+      height: 220px;
+      background-color: #271c19;
+      border-radius: 20px;
+      border: 3px solid #000000;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.7);
+    }
+
+    .card-desc {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-dark);
+      line-height: 1.35;
+      min-height: 52px;
+    }
+
+    .carousel-dots {
+      display: flex;
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #cbd5e1;
+      border: 2px solid #000000;
+      transition: all 0.25s ease;
+    }
+
+    .dot.active {
+      background-color: var(--potato-gold);
+      width: 28px;
+      border-radius: 8px;
+    }
+
+    .carousel-nav-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* GAME PLAY AREA & TABLE */
+    #screen-game {
+      padding: 12px;
+      justify-content: flex-start;
+    }
+
+    .table-hud {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: env(safe-area-inset-top, 12px);
+      margin-bottom: 12px;
+      z-index: 10;
+    }
+
+    .player-card-hud {
+      background: rgba(39, 28, 25, 0.9);
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 8px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .hud-p1 { border-color: var(--p1-cyan); }
+    .hud-p2 { border-color: var(--p2-rose); }
+
+    .hud-player-name {
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .name-p1 { color: var(--p1-cyan); }
+    .name-p2 { color: var(--p2-rose); }
+
+    .hud-hearts {
+      font-size: 20px;
+      letter-spacing: 2px;
+    }
+
+    /* Action Banner */
+    .turn-banner {
+      width: 100%;
+      max-width: 480px;
+      background: #ffffff;
+      color: var(--text-dark);
+      border: 3px solid #000000;
+      border-radius: 18px;
+      padding: 10px 16px;
+      font-size: 16px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 0 #000000;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+
+    .turn-banner.p1-turn {
+      background: var(--p1-cyan);
+      color: #000000;
+    }
+
+    .turn-banner.p2-turn {
+      background: var(--p2-rose);
+      color: #ffffff;
+    }
+
+    /* Confirm Hiding Button Row */
+    .confirm-hide-row {
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    /* WOODEN TABLE & POTATO GRID */
+    .wooden-table {
+      width: 100%;
+      max-width: 480px;
+      flex: 1;
+      max-height: 540px;
+      background: linear-gradient(135deg, #4e342e 0%, #271c19 100%);
+      border: 6px solid #1a100d;
+      border-radius: 36px;
+      padding: 16px;
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 16px 40px rgba(0,0,0,0.7);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .wooden-table::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,0.08) 20px, rgba(0,0,0,0.08) 40px);
+      pointer-events: none;
+    }
+
+    /* POTATO ITEM CARD */
+    .potato-card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      perspective: 800px;
+      cursor: pointer;
+    }
+
+    .potato-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .potato-card.revealed .potato-inner {
+      transform: rotateY(180deg);
+    }
+
+    .potato-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid #1a100d;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+    }
+
+    /* Front Face (Identical Potato Texture for All) */
+    .potato-front {
+      background: radial-gradient(circle at 35% 35%, #fcd34d 0%, #d97706 70%, #92400e 100%);
+      border-color: #78350f;
+    }
+
+    .potato-front::after {
+      content: '🥔';
+      font-size: 44px;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    }
+
+    /* Selected Hiding Indicator */
+    .potato-card.hiding-selected .potato-front {
+      border: 4px solid #ffffff !important;
+      box-shadow: 0 0 20px #facc15, inset 0 0 16px rgba(250, 204, 21, 0.6);
+      transform: scale(0.96);
+    }
+
+    .potato-card.hiding-selected .potato-front::before {
+      content: '💣';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      font-size: 20px;
+    }
+
+    /* Back Face (Underneath Reveal) */
+    .potato-back {
+      transform: rotateY(180deg);
+      background: #1a100d;
+    }
+
+    .potato-back.safe {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-color: #ffffff;
+    }
+
+    .potato-back.safe::after {
+      content: '✨ SAFE!';
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .potato-back.bomb {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border-color: #ffffff;
+      animation: bombPulse 0.4s infinite alternate;
+    }
+
+    .potato-back.bomb::after {
+      content: '💥 BOMB!';
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    @keyframes bombPulse {
+      from { transform: rotateY(180deg) scale(1); }
+      to { transform: rotateY(180deg) scale(1.08); }
+    }
+
+    /* BLINDFOLD / PASS DEVICE OVERLAY */
+    .pass-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: var(--card-light);
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      border-radius: 32px;
+    }
+
+    .pass-icon {
+      font-size: 72px;
+      margin-bottom: 12px;
+    }
+
+    /* DRAW / COIN FLIP ANIMATION OVERLAY */
+    .draw-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 11, 7, 0.92);
+      backdrop-filter: blur(6px);
+      z-index: 45;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spinner-coin {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #facc15, #d97706);
+      border: 5px solid #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 30px rgba(250, 204, 21, 0.6);
+      animation: coinSpin 1.2s infinite ease-in-out;
+    }
+
+    @keyframes coinSpin {
+      0% { transform: rotateY(0deg) scale(1); }
+      50% { transform: rotateY(180deg) scale(1.15); }
+      100% { transform: rotateY(360deg) scale(1); }
+    }
+
+    /* MODAL OVERLAYS */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(18, 11, 7, 0.85);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* MATCH WINNER SCREEN */
+    #screen-winner .winner-trophy {
+      font-size: 72px;
+      margin-bottom: 8px;
+      animation: trophyBounce 1s infinite alternate cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes trophyBounce {
+      from { transform: translateY(0) scale(1); }
+      to { transform: translateY(-12px) scale(1.08); }
+    }
+
+    .winner-title {
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .winner-recap {
+      font-size: 18px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.06);
+      padding: 8px 16px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 48;
+    }
+
+    /* Sound & Hub Back Toggle */
+    .hub-back-btn {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 4px 0 #000000;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s ease;
+    }
+
+    .hub-back-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #000000;
+    }
+
+    .sound-toggle {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #ffffff;
+      border: 3px solid #000;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Floating Navigation & Sound Controls -->
+    <a href="index.html" class="hub-back-btn" aria-label="Back to Hub">🏠 HUB</a>
+    <button class="sound-toggle" id="sound-btn" aria-label="Toggle Sound">🔊</button>
+
+    <!-- MAIN MENU SCREEN -->
+    <section class="screen active" id="screen-menu">
+      <div class="card-container">
+        <div class="game-logo">🥔</div>
+        <h1 class="menu-title">POTATO BOMB</h1>
+        <p class="menu-subtitle">Hide & Seek Bomb Duel</p>
+
+        <!-- Opponent Mode Selection -->
+        <div class="segmented-control">
+          <button class="segmented-opt active" id="mode-p2-btn" onclick="setGameMode('p2')">👥 2 PLAYER</button>
+          <button class="segmented-opt" id="mode-bot-btn" onclick="setGameMode('bot')">🤖 VS BOT</button>
+        </div>
+
+        <div class="menu-actions">
+          <button class="btn" onclick="startGame()">▶ START MATCH</button>
+          <button class="btn btn-secondary" onclick="openHowTo()">❓ HOW TO PLAY</button>
+          <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW TO PLAY CAROUSEL SCREEN -->
+    <section class="screen" id="screen-howto">
+      <div class="card-container">
+        <h2 class="card-title">HOW TO PLAY</h2>
+
+        <div class="carousel-view">
+          <div class="carousel-track" id="carousel-track">
+            <!-- Card 1 -->
+            <div class="carousel-card">
+              <div class="demo-box">
+                <span style="font-size:48px;">🥔 💣 🥔</span>
+              </div>
+              <p class="card-desc">Secretly place 3 hidden bombs under the potatoes on the table!</p>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="carousel-card">
+              <div class="demo-box">
+                <span style="font-size:52px;">🎲 🪙</span>
+              </div>
+              <p class="card-desc">An animated draw decides who gets the first turn!</p>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="carousel-card">
+              <div class="demo-box">
+                <span style="font-size:52px;">✨ 🥔</span>
+              </div>
+              <p class="card-desc">Safe Potato = Keep your turn & pick again! Bomb = Explosion & -1 Heart!</p>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="carousel-card">
+              <div class="demo-box">
+                <span style="font-size:54px;">🏆</span>
+              </div>
+              <p class="card-desc">Reduce your opponent to 0 hearts to win the round!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carousel Pagination Dots -->
+        <div class="carousel-dots" id="carousel-dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="carousel-nav-row">
+          <button class="btn btn-icon" id="btn-prev" onclick="navCarousel(-1)">|◄</button>
+          <button class="btn" id="btn-ok" onclick="finishHowTo()">OK</button>
+          <button class="btn btn-icon" id="btn-next" onclick="navCarousel(1)">►|</button>
+        </div>
+
+        <button class="link-btn" onclick="finishHowTo()">Back</button>
+      </div>
+    </section>
+
+    <!-- GAME PLAY SCREEN -->
+    <section class="screen" id="screen-game">
+      <!-- HUD Header -->
+      <div class="table-hud">
+        <div class="player-card-hud hud-p1">
+          <span class="hud-player-name name-p1" id="name-p1">PLAYER 1</span>
+          <span class="hud-hearts" id="hearts-p1">❤️❤️❤️</span>
+        </div>
+
+        <button class="btn btn-secondary btn-icon" onclick="promptExitGame()">EXIT</button>
+
+        <div class="player-card-hud hud-p2">
+          <span class="hud-player-name name-p2" id="name-p2">PLAYER 2</span>
+          <span class="hud-hearts" id="hearts-p2">❤️❤️❤️</span>
+        </div>
+      </div>
+
+      <!-- Action Banner -->
+      <div class="turn-banner" id="turn-banner">PLAYER 1: HIDE 3 BOMBS</div>
+
+      <!-- Confirm Hiding Button Row -->
+      <div class="confirm-hide-row" id="confirm-hide-row" style="display:none;">
+        <button class="btn" id="confirm-hide-btn" onclick="confirmHidingSelection()">CONFIRM BOMBS (3/3)</button>
+      </div>
+
+      <!-- Table Grid (12 Potatoes) -->
+      <div class="wooden-table" id="potato-grid"></div>
+
+      <!-- PASS DEVICE OVERLAY (FOR HIDING PHASE) -->
+      <div class="pass-overlay" id="pass-overlay" style="display:none;">
+        <div class="pass-icon">🙈</div>
+        <h2 class="card-title" id="pass-title">PASS DEVICE TO PLAYER 2</h2>
+        <p class="card-desc" style="margin-bottom:20px;">Don't look while Player 2 hides 3 bombs!</p>
+        <button class="btn" id="pass-confirm-btn" onclick="confirmPassDevice()">READY TO HIDE</button>
+      </div>
+
+      <!-- DRAW / COIN FLIP OVERLAY -->
+      <div class="draw-overlay" id="draw-overlay" style="display:none;">
+        <div class="spinner-coin">🪙</div>
+        <h2 class="card-title" style="color:#ffffff;" id="draw-text">DRAWING FIRST TURN...</h2>
+      </div>
+    </section>
+
+    <!-- MATCH WINNER SCREEN -->
+    <section class="screen" id="screen-winner">
+      <div class="card-container">
+        <div class="winner-trophy">🏆</div>
+        <h2 class="winner-title" id="winner-headline">PLAYER 1 WINS!</h2>
+        <div class="winner-recap" id="winner-recap">Player 2 ran out of hearts!</div>
+
+        <div class="menu-actions">
+          <button class="btn" onclick="startGame()">⚡ REMATCH</button>
+          <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🎮 MAIN MENU</button>
+          <a href="index.html" class="btn btn-secondary">🏠 BACK TO HUB</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXIT CONFIRMATION MODAL -->
+    <div class="modal-overlay" id="exit-modal">
+      <div class="card-container">
+        <h3 class="card-title">Quit Game?</h3>
+        <p class="card-desc" style="min-height:auto;margin-bottom:16px;">Current match progress will be lost.</p>
+        <div class="carousel-nav-row">
+          <button class="btn btn-secondary" onclick="closeExitModal()">Cancel</button>
+          <button class="btn" onclick="confirmExitGame()">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       GAME CONFIGURATION & STATE
+       ========================================================================== */
+    const TOTAL_POTATOES = 12;
+    const BOMBS_PER_PLAYER = 3;
+
+    const state = {
+      screen: 'screen-menu',
+      mode: 'p2', // 'p2' | 'bot'
+      phase: 'hide_p1', // 'hide_p1' | 'pass_p2' | 'hide_p2' | 'draw' | 'play'
+      soundEnabled: true,
+      howtoIndex: 0,
+      p1Bombs: [], // Indices of bombs placed by P1
+      p2Bombs: [], // Indices of bombs placed by P2
+      tempSelection: [], // Indices selected in current hiding step
+      p1Hearts: 3,
+      p2Hearts: 3,
+      currentTurn: 1, // 1 = P1, 2 = P2
+      revealed: [], // Indices of revealed potatoes
+      gridLocked: false
+    };
+
+    /* ==========================================================================
+       WEB AUDIO SYNTHESIZER (100% Offline Sound FX)
+       ========================================================================== */
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      if (!state.soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        if (type === 'select') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(520, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'safe') {
+          [523.25, 659.25, 783.99].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+            gain.gain.setValueAtTime(0.2, now + idx * 0.07);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.07);
+            osc.stop(now + idx * 0.07 + 0.2);
+          });
+        } else if (type === 'boom') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.linearRampToValueAtTime(40, now + 0.45);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'win') {
+          [440, 554.37, 659.25, 880].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+            gain.gain.setValueAtTime(0.3, now + idx * 0.09);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.09 + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.09);
+            osc.stop(now + idx * 0.09 + 0.3);
+          });
+        } else if (type === 'tap') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450, now);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.04);
+        }
+      } catch(e) {}
+    }
+
+    document.getElementById('sound-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.soundEnabled = !state.soundEnabled;
+      document.getElementById('sound-btn').textContent = state.soundEnabled ? '🔊' : '🔇';
+    });
+
+    /* ==========================================================================
+       ROUTER & NAVIGATION
+       ========================================================================== */
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) {
+        target.classList.add('active');
+        state.screen = screenId;
+      }
+    }
+
+    function setGameMode(mode) {
+      state.mode = mode;
+      document.getElementById('mode-p2-btn').classList.toggle('active', mode === 'p2');
+      document.getElementById('mode-bot-btn').classList.toggle('active', mode === 'bot');
+      playSound('tap');
+    }
+
+    let previousScreenBeforeHowTo = 'screen-menu';
+    function openHowTo() {
+      previousScreenBeforeHowTo = 'screen-menu';
+      state.howtoIndex = 0;
+      updateCarousel();
+      showScreen('screen-howto');
+    }
+
+    function openHowToInGame() {
+      previousScreenBeforeHowTo = state.screen;
+      state.howtoIndex = 0;
+      updateCarousel();
+      showScreen('screen-howto');
+    }
+
+    function finishHowTo() {
+      showScreen(previousScreenBeforeHowTo || 'screen-menu');
+    }
+
+    function navCarousel(delta) {
+      state.howtoIndex = Math.max(0, Math.min(3, state.howtoIndex + delta));
+      updateCarousel();
+      playSound('tap');
+    }
+
+    function updateCarousel() {
+      const track = document.getElementById('carousel-track');
+      track.style.transform = `translateX(-${state.howtoIndex * 100}%)`;
+
+      const dots = document.querySelectorAll('#carousel-dots .dot');
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === state.howtoIndex);
+      });
+
+      document.getElementById('btn-prev').disabled = state.howtoIndex === 0;
+      document.getElementById('btn-next').disabled = state.howtoIndex === 3;
+      document.getElementById('btn-ok').textContent = state.howtoIndex === 3 ? 'START' : 'OK';
+    }
+
+    /* ==========================================================================
+       GAMEPLAY ENGINE & LOGIC
+       ========================================================================== */
+    function startGame() {
+      state.p1Bombs = [];
+      state.p2Bombs = [];
+      state.tempSelection = [];
+      state.p1Hearts = 3;
+      state.p2Hearts = 3;
+      state.revealed = [];
+      state.gridLocked = false;
+
+      document.getElementById('name-p1').textContent = 'PLAYER 1';
+      document.getElementById('name-p2').textContent = state.mode === 'bot' ? 'BOT' : 'PLAYER 2';
+
+      updateHeartsHUD();
+      renderGrid();
+      showScreen('screen-game');
+
+      startHidingPhaseP1();
+    }
+
+    function updateHeartsHUD() {
+      document.getElementById('hearts-p1').textContent = '❤️'.repeat(state.p1Hearts) + '🖤'.repeat(3 - state.p1Hearts);
+      document.getElementById('hearts-p2').textContent = '❤️'.repeat(state.p2Hearts) + '🖤'.repeat(3 - state.p2Hearts);
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('potato-grid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < TOTAL_POTATOES; i++) {
+        const card = document.createElement('div');
+        card.className = 'potato-card';
+        card.dataset.index = i;
+
+        card.innerHTML = `
+          <div class="potato-inner">
+            <div class="potato-face potato-front"></div>
+            <div class="potato-face potato-back" id="back-${i}"></div>
+          </div>
+        `;
+
+        card.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          handlePotatoTap(i);
+        });
+
+        grid.appendChild(card);
+      }
+    }
+
+    /* Hiding Phase Logic */
+    function startHidingPhaseP1() {
+      state.phase = 'hide_p1';
+      state.tempSelection = [];
+      const banner = document.getElementById('turn-banner');
+      banner.textContent = 'PLAYER 1: SELECT 3 POTATOES TO HIDE BOMBS';
+      banner.className = 'turn-banner p1-turn';
+      document.getElementById('confirm-hide-row').style.display = 'flex';
+      updateConfirmButton();
+      resetHidingVisuals();
+    }
+
+    function startHidingPhaseP2() {
+      state.phase = 'hide_p2';
+      state.tempSelection = [];
+      const banner = document.getElementById('turn-banner');
+      banner.textContent = state.mode === 'bot' ? 'BOT HIDING BOMBS...' : 'PLAYER 2: SELECT 3 POTATOES TO HIDE BOMBS';
+      banner.className = 'turn-banner p2-turn';
+      resetHidingVisuals();
+
+      if (state.mode === 'bot') {
+        document.getElementById('confirm-hide-row').style.display = 'none';
+        // Bot hides 3 random bombs
+        setTimeout(() => {
+          const indices = Array.from({length: TOTAL_POTATOES}, (_, i) => i);
+          shuffle(indices);
+          state.p2Bombs = indices.slice(0, 3);
+          startDrawSequence();
+        }, 800);
+      } else {
+        document.getElementById('confirm-hide-row').style.display = 'flex';
+        updateConfirmButton();
+      }
+    }
+
+    function resetHidingVisuals() {
+      document.querySelectorAll('.potato-card').forEach(c => {
+        c.classList.remove('hiding-selected', 'revealed');
+      });
+    }
+
+    function handlePotatoTap(index) {
+      if (state.gridLocked) return;
+
+      if (state.phase === 'hide_p1' || state.phase === 'hide_p2') {
+        // Hiding Phase Selection
+        const idxInTemp = state.tempSelection.indexOf(index);
+        if (idxInTemp !== -1) {
+          state.tempSelection.splice(idxInTemp, 1);
+          playSound('tap');
+        } else if (state.tempSelection.length < BOMBS_PER_PLAYER) {
+          state.tempSelection.push(index);
+          playSound('select');
+        }
+
+        // Update Card Visual Highlight
+        document.querySelectorAll('.potato-card').forEach((c, idx) => {
+          c.classList.toggle('hiding-selected', state.tempSelection.includes(idx));
+        });
+
+        updateConfirmButton();
+      } else if (state.phase === 'play') {
+        // Turn Selection Phase
+        if (state.revealed.includes(index)) return;
+        if (state.mode === 'bot' && state.currentTurn === 2) return; // Ignore input on Bot turn
+
+        revealPotato(index);
+      }
+    }
+
+    function updateConfirmButton() {
+      const btn = document.getElementById('confirm-hide-btn');
+      btn.textContent = `CONFIRM BOMBS (${state.tempSelection.length}/3)`;
+      btn.disabled = state.tempSelection.length !== BOMBS_PER_PLAYER;
+    }
+
+    function confirmHidingSelection() {
+      if (state.tempSelection.length !== BOMBS_PER_PLAYER) return;
+
+      if (state.phase === 'hide_p1') {
+        state.p1Bombs = [...state.tempSelection];
+        resetHidingVisuals();
+
+        if (state.mode === 'bot') {
+          startHidingPhaseP2();
+        } else {
+          // Show Pass Device Overlay
+          state.phase = 'pass_p2';
+          document.getElementById('confirm-hide-row').style.display = 'none';
+          document.getElementById('pass-overlay').style.display = 'flex';
+          document.getElementById('pass-title').textContent = 'PASS DEVICE TO PLAYER 2';
+        }
+      } else if (state.phase === 'hide_p2') {
+        state.p2Bombs = [...state.tempSelection];
+        resetHidingVisuals();
+        document.getElementById('confirm-hide-row').style.display = 'none';
+        startDrawSequence();
+      }
+    }
+
+    function confirmPassDevice() {
+      document.getElementById('pass-overlay').style.display = 'none';
+      startHidingPhaseP2();
+    }
+
+    /* Draw Sequence (Who Goes First) */
+    function startDrawSequence() {
+      state.phase = 'draw';
+      const drawOverlay = document.getElementById('draw-overlay');
+      const drawText = document.getElementById('draw-text');
+      drawOverlay.style.display = 'flex';
+      drawText.textContent = 'DRAWING FIRST TURN...';
+
+      setTimeout(() => {
+        state.currentTurn = Math.random() < 0.5 ? 1 : 2;
+        const winnerName = (state.currentTurn === 1) ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
+        drawText.textContent = `${winnerName} GOES FIRST! 🪙`;
+        playSound('win');
+
+        setTimeout(() => {
+          drawOverlay.style.display = 'none';
+          state.phase = 'play';
+          updateTurnBanner();
+
+          if (state.mode === 'bot' && state.currentTurn === 2) {
+            setTimeout(executeBotTurn, 800);
+          }
+        }, 1200);
+      }, 1400);
+    }
+
+    function updateTurnBanner(extraMsg = '') {
+      const banner = document.getElementById('turn-banner');
+      const isP1 = state.currentTurn === 1;
+      const playerName = isP1 ? 'PLAYER 1' : (state.mode === 'bot' ? 'BOT' : 'PLAYER 2');
+      banner.textContent = extraMsg || `${playerName}'S TURN: PICK A POTATO!`;
+      banner.className = `turn-banner ${isP1 ? 'p1-turn' : 'p2-turn'}`;
+    }
+
+    /* Reveal Potato Logic */
+    function revealPotato(index) {
+      state.gridLocked = true;
+      state.revealed.push(index);
+
+      // Check if potato contains ANY bomb (placed by P1 or P2)
+      const isP1Bomb = state.p1Bombs.includes(index);
+      const isP2Bomb = state.p2Bombs.includes(index);
+      const isBomb = isP1Bomb || isP2Bomb;
+
+      const card = document.querySelector(`.potato-card[data-index="${index}"]`);
+      const back = document.getElementById(`back-${index}`);
+
+      if (isBomb) {
+        back.className = 'potato-face potato-back bomb';
+      } else {
+        back.className = 'potato-face potato-back safe';
+      }
+
+      playSound('select');
+      card.classList.add('revealed');
+
+      setTimeout(() => {
+        if (isBomb) {
+          playSound('boom');
+          if (navigator.vibrate) navigator.vibrate(120);
+
+          // Active player loses 1 heart
+          if (state.currentTurn === 1) state.p1Hearts--;
+          else state.p2Hearts--;
+
+          updateHeartsHUD();
+
+          if (state.p1Hearts <= 0 || state.p2Hearts <= 0) {
+            const winnerNum = state.p1Hearts > 0 ? 1 : 2;
+            setTimeout(() => triggerMatchWin(winnerNum), 800);
+            return;
+          }
+
+          // On Bomb Hit -> Turn switches to Opponent!
+          state.currentTurn = state.currentTurn === 1 ? 2 : 1;
+          updateTurnBanner("💥 BOMB! TURN SWITCHES!");
+          state.gridLocked = false;
+
+          if (state.mode === 'bot' && state.currentTurn === 2) {
+            setTimeout(executeBotTurn, 900);
+          }
+        } else {
+          // On Safe Reveal -> Player KEEPS turn (PRD Section 5: Safe Potato -> Continue!)
+          playSound('safe');
+          updateTurnBanner("✨ SAFE! PICK AGAIN!");
+          state.gridLocked = false;
+
+          if (state.mode === 'bot' && state.currentTurn === 2) {
+            setTimeout(executeBotTurn, 900);
+          }
+        }
+      }, 700);
+    }
+
+    /* Bot AI Turn (Smart: avoids picking its own bombs) */
+    function executeBotTurn() {
+      if (state.phase !== 'play' || state.currentTurn !== 2) return;
+
+      // Unrevealed potatoes that Bot did NOT place a bomb under
+      let safeCandidates = Array.from({length: TOTAL_POTATOES}, (_, i) => i)
+        .filter(i => !state.revealed.includes(i) && !state.p2Bombs.includes(i));
+
+      if (safeCandidates.length === 0) {
+        // Fallback to any unrevealed potato
+        safeCandidates = Array.from({length: TOTAL_POTATOES}, (_, i) => i)
+          .filter(i => !state.revealed.includes(i));
+      }
+
+      if (safeCandidates.length === 0) return;
+
+      shuffle(safeCandidates);
+      const chosenIndex = safeCandidates[0];
+      revealPotato(chosenIndex);
+    }
+
+    // Shuffle helper
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function triggerMatchWin(winnerNum) {
+      playSound('win');
+
+      const headline = document.getElementById('winner-headline');
+      if (state.mode === 'bot') {
+        headline.textContent = winnerNum === 1 ? 'YOU WIN! 🏆' : 'BOT WINS! 🤖';
+        headline.style.color = winnerNum === 1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
+      } else {
+        headline.textContent = `PLAYER ${winnerNum} WINS! 🏆`;
+        headline.style.color = winnerNum === 1 ? 'var(--p1-cyan)' : 'var(--p2-rose)';
+      }
+
+      const loserName = winnerNum === 1 ? (state.mode === 'bot' ? 'Bot' : 'Player 2') : 'Player 1';
+      document.getElementById('winner-recap').textContent = `${loserName} ran out of hearts!`;
+
+      showScreen('screen-winner');
+      startConfetti();
+    }
+
+    /* Exit Modal */
+    function promptExitGame() {
+      document.getElementById('exit-modal').classList.add('active');
+      playSound('tap');
+    }
+
+    function closeExitModal() {
+      document.getElementById('exit-modal').classList.remove('active');
+      playSound('tap');
+    }
+
+    function confirmExitGame() {
+      closeExitModal();
+      showScreen('screen-menu');
+    }
+
+    /* Confetti Canvas */
+    function startConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#f59e0b', '#ef4444', '#10b981', '#06b6d4', '#facc15'];
+
+      for (let i = 0; i < 80; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 10 + 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: Math.random() * 4 - 2,
+          vy: Math.random() * 4 + 3,
+          rot: Math.random() * 360,
+          vRot: Math.random() * 6 - 3
+        });
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let alive = false;
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rot += p.vRot;
+
+          if (p.y < canvas.height) alive = true;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        });
+
+        if (alive && state.screen === 'screen-winner') {
+          requestAnimationFrame(render);
+        }
+      }
+      render();
+    }
+
+    /* Initialization */
+    document.addEventListener('DOMContentLoaded', () => {
+      showScreen('screen-menu');
+    });
+  </script>
+</body>
+</html>
