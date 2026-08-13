@@ -382,8 +382,9 @@
         }
       }
 
-      // Always send or fallback to Supabase broadcast
-      if (!sentP2P && activeChannel) {
+      // Always send or mirror critical game lifecycle events to Supabase Realtime broadcast
+      const isCriticalEvent = !sentP2P || eventType.startsWith('init_') || eventType.includes('rematch') || eventType.includes('ready') || eventType === 'game_over';
+      if (isCriticalEvent && activeChannel) {
         activeChannel.send({
           type: 'broadcast',
           event: 'game_event',

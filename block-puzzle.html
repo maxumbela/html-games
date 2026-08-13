@@ -1737,35 +1737,16 @@
         state.mode = 'p2';
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
-          onPlayerJoined: (p) => {
-            if (localPlayerInfo.isHost) {
-              const firstTurn = Math.random() < 0.5 ? 1 : 2;
-              const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
-              const p2Name = p?.name || 'Player 2';
-              const initialShapes = [];
-              for (let i = 0; i < 3; i++) {
-                const rShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-                initialShapes.push(JSON.parse(JSON.stringify(rShape)));
-              }
-              SupabaseMultiplayer.sendEvent('init_online_match', {
-                firstTurn: firstTurn,
-                trayShapes: initialShapes,
-                hostName: p1Name,
-                guestName: p2Name
-              });
-              startOnlineTurnDrawMatch(firstTurn, initialShapes, p1Name, p2Name);
-            }
-          },
           onBroadcastEvent: (evt) => {
             if (evt.eventType === 'init_online_match') {
               startOnlineTurnDrawMatch(evt.firstTurn, evt.trayShapes, evt.hostName, evt.guestName);
             } else if (evt.eventType === 'remote_place') {
               applyRemotePlacement(evt);
             } else if (evt.eventType === 'rematch_request') {
-              if (localPlayerInfo.isHost) {
+              if (localPlayerInfo.slot === 1) {
                 const firstTurn = Math.random() < 0.5 ? 1 : 2;
-                const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
-                const p2Name = 'Player 2';
+                const p1Name = localPlayerInfo.name || 'Player 1';
+                const p2Name = onlineRoom.guest_name || 'Player 2';
                 const initialShapes = [];
                 for (let i = 0; i < 3; i++) {
                   const rShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
@@ -1782,6 +1763,26 @@
             }
           }
         });
+
+        if (player.slot === 1) {
+          const firstTurn = Math.random() < 0.5 ? 1 : 2;
+          const p1Name = player.name || 'Player 1';
+          const p2Name = room.guest_name || 'Player 2';
+          const initialShapes = [];
+          for (let i = 0; i < 3; i++) {
+            const rShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            initialShapes.push(JSON.parse(JSON.stringify(rShape)));
+          }
+          setTimeout(() => {
+            SupabaseMultiplayer.sendEvent('init_online_match', {
+              firstTurn: firstTurn,
+              trayShapes: initialShapes,
+              hostName: p1Name,
+              guestName: p2Name
+            });
+            startOnlineTurnDrawMatch(firstTurn, initialShapes, p1Name, p2Name);
+          }, 350);
+        }
       });
     }
 

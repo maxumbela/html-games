@@ -1783,17 +1783,6 @@
         state.mode = 'p2';
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
-          onPlayerJoined: (p) => {
-            if (localPlayerInfo.isHost) {
-              const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
-              const p2Name = p?.name || 'Player 2';
-              SupabaseMultiplayer.sendEvent('init_online_match', {
-                hostName: p1Name,
-                guestName: p2Name
-              });
-              startOnlineMatch(p1Name, p2Name);
-            }
-          },
           onBroadcastEvent: (evt) => {
             if (evt.eventType === 'init_online_match') {
               startOnlineMatch(evt.hostName, evt.guestName);
@@ -1810,9 +1799,9 @@
                 battleEngine.applySyncRoundEnd(evt);
               }
             } else if (evt.eventType === 'rematch_request') {
-              if (localPlayerInfo.isHost) {
-                const p1Name = SupabaseMultiplayer.localPlayer?.name || 'Player 1';
-                const p2Name = 'Player 2';
+              if (localPlayerInfo.slot === 1) {
+                const p1Name = localPlayerInfo.name || 'Player 1';
+                const p2Name = onlineRoom.guest_name || 'Player 2';
                 SupabaseMultiplayer.sendEvent('init_online_match', {
                   hostName: p1Name,
                   guestName: p2Name
@@ -1822,6 +1811,18 @@
             }
           }
         });
+
+        if (player.slot === 1) {
+          const p1Name = player.name || 'Player 1';
+          const p2Name = room.guest_name || 'Player 2';
+          setTimeout(() => {
+            SupabaseMultiplayer.sendEvent('init_online_match', {
+              hostName: p1Name,
+              guestName: p2Name
+            });
+            startOnlineMatch(p1Name, p2Name);
+          }, 350);
+        }
       });
     }
 
