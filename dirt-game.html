@@ -10,8 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-  <!-- PeerJS for WebRTC Online Multiplayer -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     /* ==========================================================================
        RESET & DESIGN TOKENS (3D Neumorphic Arcade Styling)
@@ -166,6 +164,10 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       opacity: 0.8;
+      max-width: 75px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .score-val {
@@ -256,6 +258,17 @@
       border-radius: 18px;
       padding: 8px 14px;
       box-shadow: 0 5px 0 #000000;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+
+    .turn-indicator-box.my-turn {
+      background: #059669;
+      border-color: #000000;
+    }
+
+    .turn-indicator-box.opp-turn {
+      background: #334155;
+      border-color: #000000;
     }
 
     .turn-text {
@@ -337,23 +350,6 @@
       margin-bottom: 20px;
     }
 
-    .input-box {
-      width: 100%;
-      padding: 12px;
-      border: 3px solid #000000;
-      border-radius: 18px;
-      box-shadow: 0 3px 0 #000000;
-      font-size: 1.1rem;
-      font-weight: 900;
-      text-align: center;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-      outline: none;
-      font-family: var(--font-main);
-      background: #ffffff;
-    }
-
     .btn-group {
       display: flex;
       justify-content: center;
@@ -408,18 +404,67 @@
     }
     .dot.active { background: var(--btn-cyan); width: 24px; border-radius: 10px; }
 
-    .code-display {
-      background: #0f172a;
-      color: #4ade80;
-      font-family: monospace;
-      font-size: 1.6rem;
+    /* ==========================================================================
+       TURN DRAW OVERLAY (Online Multiplayer Turn Determination)
+       ========================================================================== */
+    .turn-draw-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.95);
+      z-index: 250;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .turn-draw-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .turn-draw-card {
+      width: calc(100% - 40px);
+      max-width: 360px;
+      background: #ffffff;
+      border: 4px solid #000000;
+      border-radius: 28px;
+      padding: 26px 20px;
+      box-shadow: 0 8px 0 #000000;
+      text-align: center;
+      color: #0f172a;
+      will-change: transform;
+      animation: popModal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .turn-draw-badge {
+      font-size: 56px;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+    .turn-draw-badge.spinning {
+      animation: spinBadge 0.7s infinite linear;
+    }
+    @keyframes spinBadge {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.12); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    .turn-draw-title {
+      font-size: 22px;
       font-weight: 900;
-      padding: 10px;
-      border-radius: 16px;
-      border: 3px dashed #000000;
-      letter-spacing: 4px;
-      margin: 10px 0;
-      word-break: break-all;
+      margin-bottom: 4px;
+      color: #000000;
+      text-transform: uppercase;
+    }
+    .turn-draw-result {
+      font-size: 18px;
+      font-weight: 900;
+      padding: 10px 16px;
+      border-radius: 18px;
+      border: 3px solid #000000;
+      margin-top: 14px;
+      display: none;
+      box-shadow: 0 4px 0 #000000;
     }
   </style>
 </head>
@@ -453,7 +498,7 @@
 
     <!-- Bottom Controls/Info -->
     <div class="help-btn" id="btn-help" aria-label="How to play">❓</div>
-    <div class="turn-indicator-box">
+    <div class="turn-indicator-box" id="turn-box">
       <div class="turn-text" id="turn-status">YOUR TURN</div>
       <div class="dart-icons" id="dart-indicators">
         <div class="dart-icon active"></div>
@@ -474,35 +519,6 @@
           <button class="btn btn-green" id="btn-mode-local">👥 2 PLAYER LOCAL (PASS & PLAY)</button>
           <button class="btn btn-purple" onclick="openMultiplayerModal()">🌐 ONLINE MULTIPLAYER</button>
           <a href="index.html" class="btn" style="background:#ffffff;color:#000000;">🏠 BACK TO HUB</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- WebRTC Online Lobby Modal -->
-    <div class="modal-overlay hidden" id="webrtc-modal">
-      <div class="card-container">
-        <div class="modal-title">ONLINE LOBBY</div>
-        <div class="modal-body" id="webrtc-status">
-          Host a room or enter code to join friend!
-        </div>
-        
-        <div id="webrtc-host-section" class="hidden">
-          <div style="font-weight:700;">YOUR ROOM CODE:</div>
-          <div class="code-display" id="my-peer-code">----</div>
-          <button class="btn btn-green" id="btn-copy-code" style="margin-bottom: 8px; font-size: 0.9rem; flex: none; width: 100%;">📋 COPY CODE</button>
-          <p style="font-size:0.8rem; color:#64748b;">Share code with your friend</p>
-        </div>
-
-        <div id="webrtc-join-section">
-          <input type="text" id="join-code-input" class="input-box" placeholder="ENTER ROOM CODE" maxlength="6">
-          <button class="btn btn-green" id="btn-connect-peer" style="width:100%;">JOIN ROOM</button>
-        </div>
-
-        <div style="margin-top: 12px;">
-          <button class="btn btn-purple" id="btn-host-room" style="width:100%;">CREATE ROOM</button>
-        </div>
-        <div style="margin-top: 10px;">
-          <button class="btn" id="btn-back-menu" style="width:100%;">BACK TO MENU</button>
         </div>
       </div>
     </div>
@@ -539,8 +555,19 @@
         </div>
         <div class="btn-group" style="flex-direction:column; gap:10px;">
           <button class="btn btn-cyan" id="btn-restart" style="width:100%;">PLAY AGAIN</button>
+          <button class="btn" onclick="showMenu()" style="background:#ffffff;color:#000000;width:100%;">🎮 MAIN MENU</button>
           <a href="index.html" class="btn" style="background:#ffffff;color:#000000;width:100%;">🏠 BACK TO HUB</a>
         </div>
+      </div>
+    </div>
+
+    <!-- TURN DRAW OVERLAY (Online Multiplayer Turn Determination) -->
+    <div id="turn-draw-overlay" class="turn-draw-overlay">
+      <div class="turn-draw-card">
+        <div id="turn-draw-badge" class="turn-draw-badge spinning">🎰</div>
+        <h2 id="turn-draw-title" class="turn-draw-title">DRAWING FIRST TURN...</h2>
+        <p id="turn-draw-sub" style="font-size: 14px; font-weight: 700; color: #475569;">Selecting who throws first</p>
+        <div id="turn-draw-result" class="turn-draw-result"></div>
       </div>
     </div>
   </div>
@@ -651,11 +678,11 @@
     const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
     
     // --- Game State Vars ---
-    let gameMode = 'VS';
+    let gameMode = 'VS'; // 'VS' | 'LOCAL' | 'ONLINE'
     let scores = [301, 301];
     let dartsRemaining = [3, 3];
-    let currentPlayer = 0;
-    let myPlayerIdx = 0;
+    let currentPlayer = 0; // 0 = P1, 1 = P2
+    let myPlayerIdx = 0;   // 0 = P1, 1 = P2
 
     let state = 'IDLE';
 
@@ -689,62 +716,12 @@
     let particles = [];
     let scorePopups = [];
 
-    // --- WebRTC Online Multiplayer Setup (PeerJS) ---
-    let peer = null;
-    let conn = null;
-
-    function generateRoomCode() {
-      return Math.floor(100000 + Math.random() * 900000).toString();
-    }
-
-    function initPeerJS(customId = null, callback = null) {
-      if (peer) peer.destroy();
-      peer = customId ? new Peer(customId) : new Peer();
-
-      peer.on('open', (id) => {
-        if (callback) callback(id);
-      });
-
-      peer.on('connection', (connection) => {
-        conn = connection;
-        setupWebRTCConnection();
-      });
-
-      peer.on('error', (err) => {
-        alert('WebRTC Error: ' + err.type);
-        document.getElementById('webrtc-status').innerText = 'Connection error. Try again.';
-      });
-    }
-
-    function setupWebRTCConnection() {
-      conn.on('open', () => {
-        document.getElementById('webrtc-modal').classList.add('hidden');
-        startGame('WEBRTC');
-      });
-
-      conn.on('data', (data) => {
-        handleOnlineData(data);
-      });
-
-      conn.on('close', () => {
-        alert('Opponent disconnected');
-        showMenu();
-      });
-    }
-
-    function handleOnlineData(data) {
-      if (data.type === 'THROW') {
-        executeThrow(data.h, data.v, true);
-      } else if (data.type === 'RESTART') {
-        startGame('WEBRTC');
-      }
-    }
-
-    function sendOnlineData(data) {
-      if (conn && conn.open) {
-        conn.send(data);
-      }
-    }
+    // --- Online Multiplayer State (Supabase Realtime) ---
+    let isOnlineMultiplayer = false;
+    let onlineRoom = null;
+    let localPlayerInfo = null;
+    let lastProcessedThrowId = null;
+    let remoteAim = { h: 0.5, v: 0.5, aimState: 'IDLE', active: false };
 
     // --- Tutorial Logic ---
     const tutorialPages = [
@@ -767,63 +744,13 @@
 
     // --- DOM Event Listeners ---
     document.getElementById('btn-header-sound').onclick = toggleSound;
-    document.getElementById('btn-mode-vs').onclick = () => startGame('VS');
-    document.getElementById('btn-mode-local').onclick = () => startGame('LOCAL');
-    document.getElementById('btn-mode-webrtc').onclick = () => {
-      document.getElementById('menu-modal').classList.add('hidden');
-      document.getElementById('webrtc-modal').classList.remove('hidden');
+    document.getElementById('btn-mode-vs').onclick = () => {
+      isOnlineMultiplayer = false;
+      startGame('VS');
     };
-
-    document.getElementById('btn-host-room').onclick = () => {
-      initAudio();
-      const code = generateRoomCode();
-      document.getElementById('webrtc-status').innerText = 'Waiting for friend to join...';
-      document.getElementById('webrtc-host-section').classList.remove('hidden');
-      document.getElementById('webrtc-join-section').classList.add('hidden');
-      document.getElementById('my-peer-code').innerText = code;
-      myPlayerIdx = 0;
-      initPeerJS('dart301-' + code);
-    };
-
-    document.getElementById('btn-copy-code').onclick = () => {
-      const code = document.getElementById('my-peer-code').innerText;
-      if (code && code !== '----') {
-        navigator.clipboard.writeText(code).then(() => {
-          const copyBtn = document.getElementById('btn-copy-code');
-          copyBtn.innerText = '✅ COPIED!';
-          setTimeout(() => { copyBtn.innerText = '📋 COPY CODE'; }, 2000);
-        }).catch(() => {
-          const input = document.createElement('input');
-          input.value = code;
-          document.body.appendChild(input);
-          input.select();
-          document.execCommand('copy');
-          document.body.removeChild(input);
-          const copyBtn = document.getElementById('btn-copy-code');
-          copyBtn.innerText = '✅ COPIED!';
-          setTimeout(() => { copyBtn.innerText = '📋 COPY CODE'; }, 2000);
-        });
-      }
-    };
-
-    document.getElementById('btn-connect-peer').onclick = () => {
-      initAudio();
-      const inputCode = document.getElementById('join-code-input').value.trim();
-      if (inputCode.length < 5) {
-        alert('Please enter a valid 6-digit room code!');
-        return;
-      }
-      document.getElementById('webrtc-status').innerText = 'Connecting to Host...';
-      myPlayerIdx = 1;
-      initPeerJS(null, () => {
-        conn = peer.connect('dart301-' + inputCode);
-        setupWebRTCConnection();
-      });
-    };
-
-    document.getElementById('btn-back-menu').onclick = () => {
-      document.getElementById('webrtc-modal').classList.add('hidden');
-      showMenu();
+    document.getElementById('btn-mode-local').onclick = () => {
+      isOnlineMultiplayer = false;
+      startGame('LOCAL');
     };
 
     document.getElementById('btn-exit').onclick = () => showMenu();
@@ -843,12 +770,17 @@
       tutPageIndex = (tutPageIndex - 1 + tutorialPages.length) % tutorialPages.length;
       updateTutorialUI();
     };
+
     document.getElementById('btn-restart').onclick = () => {
       document.getElementById('gameover-modal').classList.add('hidden');
-      if (gameMode === 'WEBRTC') {
-        sendOnlineData({ type: 'RESTART' });
+      if (gameMode === 'ONLINE' && isOnlineMultiplayer) {
+        SupabaseMultiplayer.sendEvent('rematch_request', {});
+        if (localPlayerInfo && localPlayerInfo.slot === 1) {
+          initiateHostOnlineMatch();
+        }
+      } else {
+        startGame(gameMode);
       }
-      startGame(gameMode);
     };
 
     canvas.addEventListener('pointerdown', handleTap);
@@ -857,15 +789,27 @@
       initAudio();
 
       if (gameMode === 'VS' && currentPlayer === 1) return;
-      if (gameMode === 'WEBRTC' && currentPlayer !== myPlayerIdx) return;
+      if (gameMode === 'ONLINE' && currentPlayer !== myPlayerIdx) return;
+      if (state === 'THROWING' || state === 'GAME_OVER' || state === 'IDLE' || state === 'AI_THINKING') return;
 
       if (state === 'AIM_H') {
         lockedH = gaugeH;
         state = 'AIM_V';
+        broadcastAimGauge();
       } else if (state === 'AIM_V') {
         lockedV = gaugeV;
-        if (gameMode === 'WEBRTC') {
-          sendOnlineData({ type: 'THROW', h: lockedH, v: lockedV });
+        if (gameMode === 'ONLINE' && localPlayerInfo) {
+          const throwId = 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+          lastProcessedThrowId = throwId;
+          SupabaseMultiplayer.sendEvent('player_throw', {
+            throwId: throwId,
+            h: lockedH,
+            v: lockedV,
+            slot: localPlayerInfo.slot,
+            p1Score: scores[0],
+            p2Score: scores[1],
+            dartsRemaining: dartsRemaining
+          });
         }
         executeThrow(lockedH, lockedV);
       }
@@ -873,26 +817,30 @@
 
     function showMenu() {
       state = 'IDLE';
+      isOnlineMultiplayer = false;
       document.getElementById('menu-modal').classList.remove('hidden');
-      document.getElementById('webrtc-modal').classList.add('hidden');
-      if (peer) peer.destroy();
     }
 
     function startGame(mode) {
       gameMode = mode;
       scores = [301, 301];
       dartsRemaining = [3, 3];
-      currentPlayer = 0;
+      if (gameMode !== 'ONLINE') {
+        currentPlayer = 0;
+      }
       stuckDarts = [];
       particles = [];
       scorePopups = [];
+      remoteAim.active = false;
 
       document.getElementById('menu-modal').classList.add('hidden');
-      document.getElementById('webrtc-modal').classList.add('hidden');
+      document.getElementById('gameover-modal').classList.add('hidden');
 
-      if (gameMode === 'WEBRTC') {
-        document.getElementById('p1-label').innerText = myPlayerIdx === 0 ? 'YOU (P1)' : 'OPP (P1)';
-        document.getElementById('p2-label').innerText = myPlayerIdx === 1 ? 'YOU (P2)' : 'OPP (P2)';
+      if (gameMode === 'ONLINE' && onlineRoom) {
+        const hostName = (onlineRoom.host_name || 'Player 1').toUpperCase();
+        const guestName = (onlineRoom.guest_name || 'Player 2').toUpperCase();
+        document.getElementById('p1-label').innerText = hostName;
+        document.getElementById('p2-label').innerText = guestName;
       } else if (gameMode === 'VS') {
         document.getElementById('p1-label').innerText = 'YOU';
         document.getElementById('p2-label').innerText = 'BOT';
@@ -910,10 +858,28 @@
       if (gameMode === 'VS' && currentPlayer === 1) {
         state = 'AI_THINKING';
         setTimeout(playAITurn, 800);
-      } else if (gameMode === 'WEBRTC' && currentPlayer !== myPlayerIdx) {
+      } else if (gameMode === 'ONLINE' && currentPlayer !== myPlayerIdx) {
         state = 'IDLE';
       } else {
         state = 'AIM_H';
+        broadcastAimGauge();
+      }
+    }
+
+    let lastAimGaugeTime = 0;
+    function broadcastAimGauge() {
+      if (gameMode !== 'ONLINE' || !localPlayerInfo || currentPlayer !== myPlayerIdx) return;
+      const now = performance.now();
+      if (now - lastAimGaugeTime > 35) { // ~28 fps smooth aim update
+        lastAimGaugeTime = now;
+        const currentH = (state === 'AIM_H') ? gaugeH : lockedH;
+        const currentV = (state === 'AIM_H' || state === 'AIM_V') ? gaugeV : lockedV;
+        SupabaseMultiplayer.sendEvent('aim_gauge', {
+          h: Math.round(currentH * 1000) / 1000,
+          v: Math.round(currentV * 1000) / 1000,
+          aimState: state,
+          slot: localPlayerInfo.slot
+        });
       }
     }
 
@@ -966,8 +932,8 @@
       const R = getBoardRadius();
 
       const spread = R * 1.3;
-      const targetX = center.x + (hVal - 0.5) * 2 * spread + (Math.random() - 0.5) * 4;
-      const targetY = center.y + (vVal - 0.5) * 2 * spread + (Math.random() - 0.5) * 4;
+      const targetX = center.x + (hVal - 0.5) * 2 * spread;
+      const targetY = center.y + (vVal - 0.5) * 2 * spread;
 
       dartAnim = {
         active: true,
@@ -1010,13 +976,14 @@
         const winTitle = document.getElementById('winner-title');
         const winBody = document.getElementById('winner-body');
 
-        if (gameMode === 'WEBRTC') {
+        if (gameMode === 'ONLINE' && localPlayerInfo) {
           if (currentPlayer === myPlayerIdx) {
-            winTitle.innerText = "🎉 CONGRATULATIONS!";
-            winBody.innerText = "YOU WIN THE GAME!";
+            winTitle.innerText = "🏆 YOU WIN!";
+            winBody.innerText = "Fantastic throws! You cleared 301 first!";
           } else {
-            winTitle.innerText = "OPPONENT WON!";
-            winBody.innerText = "Opponent reached 0 first. Play again!";
+            const oppName = myPlayerIdx === 0 ? (onlineRoom?.guest_name || 'Player 2') : (onlineRoom?.host_name || 'Player 1');
+            winTitle.innerText = `🏆 ${oppName.toUpperCase()} WINS!`;
+            winBody.innerText = `${oppName} cleared 301 first. Good game!`;
           }
         } else if (gameMode === 'VS') {
           if (currentPlayer === 0) {
@@ -1109,12 +1076,22 @@
       }
 
       const statusEl = document.getElementById('turn-status');
-      if (gameMode === 'WEBRTC') {
-        statusEl.innerText = currentPlayer === myPlayerIdx ? 'YOUR TURN' : 'OPPONENT TURN';
+      const turnBox = document.getElementById('turn-box');
+
+      if (gameMode === 'ONLINE') {
+        if (currentPlayer === myPlayerIdx) {
+          statusEl.innerText = '🟢 YOUR TURN — TAP TO AIM';
+          turnBox.className = 'turn-indicator-box my-turn';
+        } else {
+          statusEl.innerText = "⌛ OPPONENT'S TURN — WAITING...";
+          turnBox.className = 'turn-indicator-box opp-turn';
+        }
       } else if (gameMode === 'VS') {
         statusEl.innerText = currentPlayer === 0 ? 'YOUR TURN' : 'BOT TURN';
+        turnBox.className = 'turn-indicator-box';
       } else {
         statusEl.innerText = `P${currentPlayer + 1} TURN`;
+        turnBox.className = 'turn-indicator-box';
       }
 
       const dartIcons = document.querySelectorAll('.dart-icon');
@@ -1165,10 +1142,12 @@
         gaugeH += gaugeHDir * GAUGE_SPEED * dt;
         if (gaugeH >= 1) { gaugeH = 1; gaugeHDir = -1; }
         if (gaugeH <= 0) { gaugeH = 0; gaugeHDir = 1; }
+        broadcastAimGauge();
       } else if (state === 'AIM_V') {
         gaugeV += gaugeVDir * GAUGE_SPEED * dt;
         if (gaugeV >= 1) { gaugeV = 1; gaugeVDir = -1; }
         if (gaugeV <= 0) { gaugeV = 0; gaugeVDir = 1; }
+        broadcastAimGauge();
       }
 
       if (state === 'THROWING' && dartAnim.active) {
@@ -1209,6 +1188,7 @@
 
       drawDartboard(ctx, center.x, center.y, R, now);
 
+      // Active player observation target
       if (state === 'AIM_H' || state === 'AIM_V') {
         const currentH = (state === 'AIM_H') ? gaugeH : lockedH;
         const currentV = (state === 'AIM_H' || state === 'AIM_V') ? gaugeV : lockedV;
@@ -1219,7 +1199,16 @@
         drawObservationDot(ctx, aimX, aimY);
       }
 
-      if (state === 'AIM_H' || state === 'AIM_V' || state === 'THROWING') {
+      // Realtime Opponent Aim Visualization on Dartboard
+      if (gameMode === 'ONLINE' && currentPlayer !== myPlayerIdx && remoteAim && remoteAim.active) {
+        const spread = R * 1.3;
+        const oppAimX = center.x + (remoteAim.h - 0.5) * 2 * spread;
+        const oppAimY = center.y + (remoteAim.v - 0.5) * 2 * spread;
+        const oppColor = currentPlayer === 0 ? '#ff5252' : '#38bdf8';
+        drawOpponentAim(ctx, oppAimX, oppAimY, oppColor);
+      }
+
+      if (state === 'AIM_H' || state === 'AIM_V' || state === 'THROWING' || (gameMode === 'ONLINE' && currentPlayer !== myPlayerIdx && remoteAim.active)) {
         drawGauges(ctx, center, R);
       }
 
@@ -1282,6 +1271,36 @@
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1;
       ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawOpponentAim(ctx, x, y, color) {
+      ctx.save();
+      // Outer pulse ring
+      ctx.beginPath();
+      ctx.arc(x, y, 14, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 82, 82, 0.2)';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 3]);
+      ctx.stroke();
+
+      // Center dot
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Badge text
+      ctx.font = '900 11px var(--font-main)';
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.fillText('🎯 OPPONENT AIMING', x, y - 18);
       ctx.restore();
     }
 
@@ -1439,11 +1458,12 @@
       ctx.strokeStyle = '#ffffff';
       ctx.stroke();
 
-      const hIndPos = state === 'AIM_H' ? gaugeH : lockedH;
+      const isRemoteOpp = (gameMode === 'ONLINE' && currentPlayer !== myPlayerIdx && remoteAim.active);
+      const hIndPos = isRemoteOpp ? remoteAim.h : (state === 'AIM_H' ? gaugeH : lockedH);
       const hIndX = hBarX + hIndPos * barW;
       ctx.beginPath();
       ctx.roundRect(hIndX - 4, hBarY - 4, 8, barH + 8, 4);
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = isRemoteOpp ? (currentPlayer === 0 ? '#ff5252' : '#38bdf8') : '#ffffff';
       ctx.fill();
 
       const vBarX = center.x - R * 1.35;
@@ -1462,11 +1482,11 @@
       ctx.strokeStyle = '#ffffff';
       ctx.stroke();
 
-      const vIndPos = (state === 'AIM_H' || state === 'AIM_V') ? gaugeV : lockedV;
+      const vIndPos = isRemoteOpp ? remoteAim.v : ((state === 'AIM_H' || state === 'AIM_V') ? gaugeV : lockedV);
       const vIndY = vBarY + vIndPos * barW;
       ctx.beginPath();
       ctx.roundRect(vBarX - 4, vIndY - 4, barH + 8, 8, 4);
-      ctx.fillStyle = state === 'AIM_H' ? 'rgba(255,255,255,0.4)' : '#ffffff';
+      ctx.fillStyle = isRemoteOpp ? (currentPlayer === 0 ? '#ff5252' : '#38bdf8') : (state === 'AIM_H' ? 'rgba(255,255,255,0.4)' : '#ffffff');
       ctx.fill();
     }
 
@@ -1603,35 +1623,107 @@
 
     animFrameId = requestAnimationFrame(gameLoop);
 
-    /* REALTIME ONLINE MULTIPLAYER INTEGRATION */
-    let isOnlineMultiplayer = false;
-    let onlineRoom = null;
-    let localPlayerInfo = null;
-
+    /* REALTIME ONLINE MULTIPLAYER INTEGRATION (Supabase Realtime) */
     function openMultiplayerModal() {
       if (!window.SupabaseMultiplayer) {
         alert('Supabase Multiplayer engine is loading. Please try again in a moment!');
         return;
       }
-      SupabaseMultiplayer.renderUI('dirt-game', '301 Darts Rally', (room, player) => {
+      SupabaseMultiplayer.renderUI('dirt-game', '301 Darts Arcade', (room, player) => {
         isOnlineMultiplayer = true;
         onlineRoom = room;
         localPlayerInfo = player;
+        myPlayerIdx = player.slot - 1; // 0 for Host, 1 for Guest
 
         SupabaseMultiplayer.subscribeToRoom(room.room_code, {
           onBroadcastEvent: (evt) => {
-            if (evt.eventType === 'throw_dart') {
-              if (evt.sender.slot !== localPlayerInfo.slot && typeof handleRemoteDartThrow === 'function') {
-                handleRemoteDartThrow(evt.x, evt.y, evt.score);
+            if (evt.eventType === 'init_online_match') {
+              startTurnDraw(evt.firstTurn, evt.hostName, evt.guestName);
+            } else if (evt.eventType === 'aim_gauge') {
+              if (evt.slot !== localPlayerInfo.slot) {
+                remoteAim = { h: evt.h, v: evt.v, aimState: evt.aimState, active: true };
               }
-            } else if (evt.eventType === 'rematch') {
-              document.getElementById('btn-mode-local').click();
+            } else if (evt.eventType === 'player_throw') {
+              if (evt.slot !== localPlayerInfo.slot) {
+                if (evt.throwId && evt.throwId === lastProcessedThrowId) return;
+                lastProcessedThrowId = evt.throwId;
+                remoteAim.active = false;
+                executeThrow(evt.h, evt.v, true);
+              }
+            } else if (evt.eventType === 'rematch_request') {
+              if (localPlayerInfo.slot === 1) {
+                initiateHostOnlineMatch();
+              }
             }
           }
         });
 
-        document.getElementById('btn-mode-local').click();
+        if (localPlayerInfo.slot === 1) {
+          initiateHostOnlineMatch();
+        }
       });
+    }
+
+    function initiateHostOnlineMatch() {
+      const firstTurn = Math.random() < 0.5 ? 1 : 2;
+      const hostName = onlineRoom?.host_name || 'Player 1';
+      const guestName = onlineRoom?.guest_name || 'Player 2';
+
+      SupabaseMultiplayer.sendEvent('init_online_match', {
+        firstTurn,
+        hostName,
+        guestName
+      });
+
+      startTurnDraw(firstTurn, hostName, guestName);
+    }
+
+    function startTurnDraw(firstTurn, hostName, guestName) {
+      const overlay = document.getElementById('turn-draw-overlay');
+      const badge = document.getElementById('turn-draw-badge');
+      const title = document.getElementById('turn-draw-title');
+      const sub = document.getElementById('turn-draw-sub');
+      const result = document.getElementById('turn-draw-result');
+
+      document.getElementById('menu-modal').classList.add('hidden');
+      document.getElementById('gameover-modal').classList.add('hidden');
+
+      overlay.classList.add('active');
+      badge.classList.add('spinning');
+      badge.textContent = '🎰';
+      title.textContent = 'DRAWING FIRST TURN...';
+      sub.textContent = `${hostName} VS ${guestName}`;
+      result.style.display = 'none';
+
+      playThrowSound();
+
+      setTimeout(() => {
+        badge.classList.remove('spinning');
+        const isP1 = firstTurn === 1;
+        const winnerName = isP1 ? hostName : guestName;
+        badge.textContent = isP1 ? '🔵' : '🔴';
+        title.textContent = `${winnerName.toUpperCase()} THROWS FIRST!`;
+        sub.textContent = 'Turn draw complete';
+
+        const isMyTurn = (firstTurn === localPlayerInfo.slot);
+        result.style.display = 'block';
+        result.style.background = isP1 ? 'var(--p1-color)' : 'var(--p2-color)';
+        result.style.color = '#ffffff';
+        result.textContent = isMyTurn ? '⚡ YOUR TURN FIRST!' : "⌛ OPPONENT'S TURN FIRST!";
+
+        playHitSound(true);
+
+        setTimeout(() => {
+          overlay.classList.remove('active');
+          scores = [301, 301];
+          dartsRemaining = [3, 3];
+          stuckDarts = [];
+          particles = [];
+          scorePopups = [];
+          currentPlayer = firstTurn === 1 ? 0 : 1;
+          startGame('ONLINE');
+        }, 1600);
+      }, 1400);
     }
   </script>
 </body>
